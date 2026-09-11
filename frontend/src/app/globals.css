@@ -52,11 +52,11 @@
   --spacing-space-sm: 0.75rem;
   --spacing-space-lg: 1.5rem;
   --spacing-space-xl: 2rem;
-  --spacing-gutter-desktop: 2rem;
+  --spacing-gutter-desktop: 1rem;
   --spacing-space-3xl: 4rem;
   --spacing-space-xs: 0.5rem;
-  --spacing-gutter-mobile: 1rem;
-  --spacing-gutter-tablet: 1.5rem;
+  --spacing-gutter-mobile: 0.5rem;
+  --spacing-gutter-tablet: 0.75rem;
   --spacing-space-xxs: 0.25rem;
   --spacing-container-max: 80rem;
   --spacing-space-2xl: 3rem;
@@ -91,4 +91,30 @@
   .font-body-lg { font-family: "Hanken Grotesk", sans-serif; }
   .font-headline-sm { font-family: "Source Serif 4", serif; }
   .font-display-lg-mobile { font-family: "Source Serif 4", serif; }
+}
+
+@layer utilities {
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  
+  .opacity-0-start {
+    opacity: 0;
+  }
 }

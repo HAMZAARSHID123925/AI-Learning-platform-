@@ -6,13 +6,13 @@ export default function Home() {
 <main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full">
 {/* Top Decorative Ambient Glow */}
 <div className="relative w-full overflow-hidden">
-<div className="absolute -top-40 -left-20 w-96 h-96 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
-<div className="absolute top-20 right-0 w-[32rem] h-[32rem] bg-secondary-fixed-dim/20 rounded-full blur-3xl pointer-events-none"></div>
+<div className="absolute -top-40 -left-20 w-96 h-96 bg-secondary/20 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+<div className="absolute top-20 right-0 w-[32rem] h-[32rem] bg-secondary-fixed-dim/30 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
 {/* SECTION 1: HERO (Desktop 2-Column Split) */}
-<section className="max-w-[80rem] mx-auto px-gutter-desktop pt-space-2xl pb-space-3xl relative">
-<div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-center">
+<section className="max-w-[80rem] mx-auto px-3 pt-space-2xl pb-space-3xl relative">
+<div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
 {/* Left Column: Copy & CTAs */}
-<div className="lg:col-span-6 flex flex-col items-start">
+<div className="lg:col-span-6 flex flex-col items-start animate-fade-in-up opacity-0-start">
 <div className="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-secondary/10 text-secondary mb-space-md shadow-sm">
 <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
 <span className="font-label-sm text-label-sm uppercase tracking-wider">Next-Gen Multi-Agent Adaptive Prep</span>
@@ -24,14 +24,14 @@ export default function Home() {
             Unlike static courses, our multi-agent AI analyzes your test errors in real time, generates custom quizzes, and personalizes your curriculum until you hit Band 7.5+.
           </p>
 <div className="flex flex-wrap items-center gap-space-md mb-space-lg w-full sm:w-auto">
-<a className="px-space-xl py-space-md rounded-lg font-label-md text-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all shadow-md hover:shadow-lg flex items-center gap-space-xs group" href="#">
+<Link className="px-space-xl py-space-md rounded-lg font-label-md text-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-secondary/30 hover:-translate-y-0.5 flex items-center gap-space-xs group" href="/pricing">
 <span>Start Free Diagnostic Test</span>
 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-</a>
-<a className="px-space-lg py-space-md rounded-lg font-label-md text-label-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-all flex items-center gap-space-xs" href="#">
+</Link>
+<Link className="px-space-lg py-space-md rounded-lg font-label-md text-label-md bg-surface-container hover:bg-surface-container-high text-on-surface transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md flex items-center gap-space-xs" href="/how-it-works">
 <span>Explore Courses</span>
 <span className="material-symbols-outlined text-[18px]">explore</span>
-</a>
+</Link>
 </div>
 <div className="flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm">
 <span className="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim"></span>
@@ -43,8 +43,8 @@ export default function Home() {
 </div>
 </div>
 {/* Right Column: Interactive Diagnostic Simulator Card */}
-<div className="lg:col-span-6 w-full">
-<div className="relative rounded-xl bg-surface-container-lowest shadow-xl overflow-hidden">
+<div className="lg:col-span-6 w-full animate-fade-in-up opacity-0-start delay-200">
+<div className="relative rounded-xl bg-surface-container-lowest shadow-xl overflow-hidden hover:shadow-2xl hover:shadow-secondary/10 transition-all duration-500 hover:-translate-y-1 border border-surface-container-high">
 {/* Mac/OS-like Chrome Topbar */}
 <div className="bg-surface-container px-space-md py-space-xs flex items-center justify-between">
 <div className="flex items-center gap-1.5">
@@ -65,7 +65,7 @@ export default function Home() {
                 &quot;The unprecedented surge in automated transport systems will inevitably transform metropolitan infrastructure; however, 
                 <span className="bg-amber-100 text-amber-900 px-1 py-0.5 rounded font-medium relative group cursor-help">
                   detractors argue
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:flex px-2 py-1 bg-inverse-surface text-inverse-on-surface font-caption text-caption rounded shadow-lg whitespace-nowrap z-20">
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:flex px-2 py-1 bg-inverse-surface text-inverse-on-surface shadow-2xl scale-95 group-hover:scale-100 transition-all duration-300 origin-bottom font-caption text-caption rounded shadow-lg whitespace-nowrap z-20">
                     Agent Alert: Informal transition verb
                   </span>
 </span> 
@@ -125,10 +125,10 @@ export default function Home() {
 </section>
 </div>
 {/* SECTION 2: METRICS & SOCIAL PROOF BAR */}
-<section className="w-full bg-surface-container-low py-space-xl">
-<div className="max-w-[80rem] mx-auto px-gutter-desktop">
+<section className="w-full bg-surface-container-low py-space-xl animate-fade-in-up opacity-0-start delay-300">
+<div className="max-w-[80rem] mx-auto px-3">
 <div className="grid grid-cols-2 md:grid-cols-4 gap-space-md">
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col">
 <div className="flex items-center justify-between mb-space-xs">
 <span className="font-headline-xl text-headline-xl text-secondary font-bold">98%</span>
 <span className="material-symbols-outlined text-secondary text-[24px]">verified</span>
@@ -136,7 +136,7 @@ export default function Home() {
 <span className="font-title-md text-title-md text-on-surface mb-0.5">Target Band Success</span>
 <span className="font-caption text-caption text-on-surface-variant">Candidates achieving target band within 6 weeks</span>
 </div>
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col">
 <div className="flex items-center justify-between mb-space-xs">
 <span className="font-headline-xl text-headline-xl text-on-surface font-bold">50,000+</span>
 <span className="material-symbols-outlined text-on-surface-variant text-[24px]">assignment_turned_in</span>
@@ -144,7 +144,7 @@ export default function Home() {
 <span className="font-title-md text-title-md text-on-surface mb-0.5">Diagnostics Taken</span>
 <span className="font-caption text-caption text-on-surface-variant">Precise benchmark data across 140 nations</span>
 </div>
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col">
 <div className="flex items-center justify-between mb-space-xs">
 <span className="font-headline-xl text-headline-xl text-tertiary-container font-bold">7.5+</span>
 <span className="material-symbols-outlined text-tertiary-fixed-dim text-[24px]">military_tech</span>
@@ -152,7 +152,7 @@ export default function Home() {
 <span className="font-title-md text-title-md text-on-surface mb-0.5">Average Score</span>
 <span className="font-caption text-caption text-on-surface-variant">Academic and General Training overall average</span>
 </div>
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col">
 <div className="flex items-center justify-between mb-space-xs">
 <span className="font-headline-xl text-headline-xl text-secondary-container font-bold">24/7</span>
 <span className="material-symbols-outlined text-secondary-container text-[24px]">forum</span>
@@ -164,7 +164,7 @@ export default function Home() {
 </div>
 </section>
 {/* SECTION 3: HOW IT WORKS (Connected Loop) */}
-<section className="max-w-[80rem] mx-auto px-gutter-desktop py-space-3xl">
+<section className="max-w-[80rem] mx-auto px-3 py-space-3xl">
 <div className="text-center max-w-2xl mx-auto mb-space-2xl">
 <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">The Adaptive Engine</span>
 <h2 className="font-headline-xl text-headline-xl text-on-surface mt-space-xxs mb-space-xs">
@@ -176,7 +176,7 @@ export default function Home() {
 </div>
 <div className="grid grid-cols-1 md:grid-cols-3 gap-space-lg relative">
 {/* Step 01 */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm relative flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm border border-surface-container relative flex flex-col justify-between group hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
 <div>
 <div className="flex items-center justify-between mb-space-lg">
 <span className="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-bold">
@@ -195,7 +195,7 @@ export default function Home() {
 </div>
 </div>
 {/* Step 02 */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm relative flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm border border-surface-container relative flex flex-col justify-between group hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
 <div>
 <div className="flex items-center justify-between mb-space-lg">
 <span className="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-bold">
@@ -214,7 +214,7 @@ export default function Home() {
 </div>
 </div>
 {/* Step 03 */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm relative flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm border border-surface-container relative flex flex-col justify-between group hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
 <div>
 <div className="flex items-center justify-between mb-space-lg">
 <span className="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center font-headline-sm text-headline-sm text-secondary font-bold">
@@ -234,28 +234,28 @@ export default function Home() {
 </div>
 </div>
 <div className="mt-space-xl text-center">
-<a className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary hover:text-secondary-container transition-colors group" href="#">
+<Link className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary hover:text-secondary-container transition-colors group" href="/how-it-works">
 <span>Learn How Our Adaptive AI Works Behind the Scenes</span>
 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-</a>
+</Link>
 </div>
 </section>
 {/* SECTION 4: FEATURED COURSES (Side-by-Side Cards) */}
 <section className="w-full bg-surface-container-low py-space-3xl">
-<div className="max-w-[80rem] mx-auto px-gutter-desktop">
+<div className="max-w-[80rem] mx-auto px-3">
 <div className="flex flex-col md:flex-row md:items-end justify-between mb-space-2xl">
 <div>
 <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">Proven Curriculum</span>
 <h2 className="font-headline-xl text-headline-xl text-on-surface mt-space-xxs">Targeted Prep for Every Test Taker</h2>
 </div>
-<a className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary hover:underline mt-space-sm md:mt-0" href="#">
+<Link className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary hover:underline mt-space-sm md:mt-0" href="/pricing">
 <span>View All Courses</span>
 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-</a>
+</Link>
 </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-gutter-desktop">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 {/* Course Card A */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col justify-between group">
 <div>
 <div className="flex items-center justify-between mb-space-md">
 <span className="px-space-xs py-0.5 rounded font-label-sm text-label-sm bg-secondary/10 text-secondary uppercase font-semibold">Comprehensive Track</span>
@@ -288,13 +288,13 @@ export default function Home() {
 <span className="font-caption text-caption text-on-surface-variant block">Target Level</span>
 <span className="font-label-md text-label-md text-on-surface font-semibold">All Band Targets</span>
 </div>
-<a className="px-space-lg py-space-xs rounded-lg font-label-md text-label-md bg-on-surface text-surface hover:bg-on-surface-variant transition-colors" href="#">
+<Link className="px-space-lg py-space-xs rounded-lg font-label-md text-label-md bg-on-surface text-surface hover:bg-on-surface-variant transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" href="/courses">
               Preview Syllabus
-            </a>
+            </Link>
 </div>
 </div>
 {/* Course Card B */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col justify-between group">
 <div>
 <div className="flex items-center justify-between mb-space-md">
 <span className="px-space-xs py-0.5 rounded font-label-sm text-label-sm bg-tertiary-fixed-dim/20 text-on-tertiary-fixed-variant uppercase font-semibold">Fast-Track</span>
@@ -327,16 +327,16 @@ export default function Home() {
 <span className="font-caption text-caption text-on-surface-variant block">Target Level</span>
 <span className="font-label-md text-label-md text-on-surface font-semibold">Immigration &amp; Work</span>
 </div>
-<a className="px-space-lg py-space-xs rounded-lg font-label-md text-label-md bg-on-surface text-surface hover:bg-on-surface-variant transition-colors" href="#">
+<Link className="px-space-lg py-space-xs rounded-lg font-label-md text-label-md bg-on-surface text-surface hover:bg-on-surface-variant transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5" href="/how-it-works">
               Preview Syllabus
-            </a>
+            </Link>
 </div>
 </div>
 </div>
 </div>
 </section>
 {/* SECTION 5: TRADITIONAL LMS VS ADAPTIVE AI */}
-<section className="max-w-[80rem] mx-auto px-gutter-desktop py-space-3xl">
+<section className="max-w-[80rem] mx-auto px-3 py-space-3xl">
 <div className="text-center max-w-2xl mx-auto mb-space-2xl">
 <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">Uncompromising Efficiency</span>
 <h2 className="font-headline-xl text-headline-xl text-on-surface mt-space-xxs mb-space-xs">
@@ -348,7 +348,7 @@ export default function Home() {
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-space-xl items-stretch">
 {/* Traditional LMS Card */}
-<div className="p-space-xl rounded-xl bg-surface-container-high/40 flex flex-col justify-between">
+<div className="p-space-xl rounded-xl bg-surface-container-high/40 flex flex-col justify-between hover:bg-surface-container-high/60 transition-colors duration-300">
 <div>
 <div className="flex items-center gap-space-xs mb-space-md text-on-surface-variant">
 <span className="material-symbols-outlined text-error text-[24px]">cancel</span>
@@ -378,7 +378,7 @@ export default function Home() {
         </div>
 </div>
 {/* Our Adaptive AI Card */}
-<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-xl flex flex-col justify-between relative overflow-hidden">
+<div className="p-space-xl rounded-xl bg-surface-container-lowest shadow-xl hover:shadow-2xl hover:shadow-secondary/20 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between relative overflow-hidden border border-secondary/10">
 <div className="absolute top-0 right-0 bg-secondary text-on-secondary px-space-md py-1 rounded-bl-lg font-label-sm text-label-sm font-bold tracking-wider">
           10X SPEED
         </div>
@@ -414,7 +414,7 @@ export default function Home() {
 </section>
 {/* SECTION 6: STUDENT TESTIMONIALS */}
 <section className="w-full bg-surface-container-low py-space-3xl">
-<div className="max-w-[80rem] mx-auto px-gutter-desktop">
+<div className="max-w-[80rem] mx-auto px-3">
 <div className="text-center max-w-2xl mx-auto mb-space-2xl">
 <span className="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">Student Success</span>
 <h2 className="font-headline-xl text-headline-xl text-on-surface mt-space-xxs mb-space-xs">
@@ -426,7 +426,7 @@ export default function Home() {
 </div>
 <div className="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
 {/* Review 1 */}
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col justify-between">
 <div>
 <div className="flex items-center justify-between mb-space-md">
 <div className="flex text-amber-400">
@@ -453,7 +453,7 @@ export default function Home() {
 </div>
 </div>
 {/* Review 2 */}
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col justify-between">
 <div>
 <div className="flex items-center justify-between mb-space-md">
 <div className="flex text-amber-400">
@@ -480,7 +480,7 @@ export default function Home() {
 </div>
 </div>
 {/* Review 3 */}
-<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between">
+<div className="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-surface-container flex flex-col justify-between">
 <div>
 <div className="flex items-center justify-between mb-space-md">
 <div className="flex text-amber-400">
@@ -510,7 +510,7 @@ export default function Home() {
 </div>
 </section>
 {/* SECTION 7: PEDAGOGICAL MISSION */}
-<section className="max-w-[80rem] mx-auto px-gutter-desktop py-space-2xl text-center">
+<section className="max-w-[80rem] mx-auto px-3 py-space-2xl text-center">
 <div className="inline-flex items-center gap-space-xs p-space-xs px-space-md rounded-full bg-surface-container mb-space-md">
 <span className="material-symbols-outlined text-secondary text-[20px]">school</span>
 <span className="font-caption text-caption text-on-surface font-semibold uppercase tracking-wider">Engineered for Pedagogical Rigor</span>
@@ -518,14 +518,14 @@ export default function Home() {
 <p className="font-headline-md text-headline-md text-on-surface max-w-3xl mx-auto leading-snug">
       We believe high-stakes test preparation should not be a gamble. By combining institutional psychometrics with multi-agent continuous assessment, we unlock academic potential for ambitious scholars across the globe.
     </p>
-<a className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary mt-space-md hover:underline" href="#">
+<Link className="inline-flex items-center gap-space-xs font-label-md text-label-md text-secondary mt-space-md hover:underline" href="/about">
 <span>Read Our Whitepaper on AI Psychometrics</span>
 <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-</a>
+</Link>
 </section>
 {/* SECTION 8: PRE-FOOTER HIGH-IMPACT BANNER */}
-<section className="max-w-[80rem] mx-auto px-gutter-desktop pb-space-3xl">
-<div className="rounded-xl bg-inverse-surface text-inverse-on-surface p-space-2xl relative overflow-hidden shadow-2xl">
+<section className="max-w-[80rem] mx-auto px-3 pb-space-3xl">
+<div className="rounded-xl bg-inverse-surface text-inverse-on-surface shadow-2xl scale-95 group-hover:scale-100 transition-all duration-300 origin-bottom p-space-2xl relative overflow-hidden shadow-2xl">
 {/* Subtle Decorative SVG Background pattern */}
 <div className="absolute -right-16 -bottom-16 w-80 h-80 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-space-xl">
@@ -538,19 +538,19 @@ export default function Home() {
           </p>
 </div>
 <div className="flex flex-col sm:flex-row items-center gap-space-md shrink-0 w-full md:w-auto">
-<a className="w-full sm:w-auto px-space-xl py-space-md rounded-lg font-label-md text-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all shadow-md text-center flex items-center justify-center gap-space-xs group" href="#">
+<Link className="w-full sm:w-auto px-space-xl py-space-md rounded-lg font-label-md text-label-md bg-secondary text-on-secondary hover:bg-secondary-container transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-secondary/30 hover:-translate-y-1 text-center flex items-center justify-center gap-space-xs group" href="/pricing">
 <span>Get Started Free</span>
 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-</a>
-<a className="w-full sm:w-auto px-space-lg py-space-md rounded-lg font-label-md text-label-md bg-surface-container-highest/20 hover:bg-surface-container-highest/30 text-surface-bright transition-colors text-center" href="#">
+</Link>
+<Link className="w-full sm:w-auto px-space-lg py-space-md rounded-lg font-label-md text-label-md bg-surface-container-highest/20 hover:bg-surface-container-highest/30 text-surface-bright transition-colors text-center" href="/contact">
             Speak to an Advisor
-          </a>
+          </Link>
 </div>
 </div>
 </div>
 </section>
 </div></main>
-<footer className="w-full bg-surface-container-low text-on-surface pt-space-3xl pb-space-2xl"><div className="max-w-[80rem] mx-auto px-gutter-desktop"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-gutter-desktop mb-space-2xl"><div className="lg:col-span-5 flex flex-col gap-space-md"><div className="flex items-center gap-space-sm"><img alt="Brand logo. - Primary color: #0f172a - Font: sourceSerif4 - Mode: light - Roundness: rounded-md" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VWTXMwVevMJ1a9l9n6UleQgerLrmTBA1p-JoiT81doSJT3T8EIekpZhmsrB_Hrx5ccWZ0aPJ6Gz7uCbvJRbcuX0KyMEhiShnECevyURH6QzJPScPVP0wKUwS-ihB6kInl5yhlagzehnoiMRc-zTWIvbCECnHq79XtJHd-OJ7F-0OqGrw5IItR0iuVlZsxZRyV8380JUEORzOoIRL1FTCiLoAVCR0dmZAB7Vpon_1X0E29892rj4RT9SVEo"/><span className="font-headline-sm text-headline-sm text-on-surface">IELTS<span className="text-secondary">.AI</span></span></div><p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm leading-relaxed">Empowering students worldwide to achieve Band 7.5+ with personalized multi-agent AI tutoring.</p><div className="flex items-center gap-space-sm pt-space-xs"><a aria-label="Global Community" className="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-colors" href="#"><span className="material-symbols-outlined text-[20px]">public</span></a><a aria-label="Community Forum" className="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-colors" href="#"><span className="material-symbols-outlined text-[20px]">forum</span></a><a aria-label="Research Publications" className="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-colors" href="#"><span className="material-symbols-outlined text-[20px]">menu_book</span></a><a aria-label="Institutional Verification" className="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-colors" href="#"><span className="material-symbols-outlined text-[20px]">verified</span></a></div></div><div className="lg:col-span-2 flex flex-col gap-space-sm"><span className="font-label-md text-label-md text-on-surface uppercase tracking-wider font-bold">Learning</span><nav className="flex flex-col gap-space-xs" data-active-classes="text-secondary font-medium"><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="courses" href="#">Courses</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="diagnostic-test" href="#">Diagnostic Test</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="ai-tutor" href="#">AI Tutor</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="vocabulary-bank" href="#">Vocabulary Bank</a></nav></div><div className="lg:col-span-2 flex flex-col gap-space-sm"><span className="font-label-md text-label-md text-on-surface uppercase tracking-wider font-bold">Company</span><nav className="flex flex-col gap-space-xs" data-active-classes="text-secondary font-medium"><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="about" href="#">About Us</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="how-it-works" href="#">How It Works</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="careers" href="#">Careers</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="contact" href="#">Contact Us</a></nav></div><div className="lg:col-span-3 flex flex-col gap-space-sm"><span className="font-label-md text-label-md text-on-surface uppercase tracking-wider font-bold">Legal &amp; Security</span><nav className="flex flex-col gap-space-xs" data-active-classes="text-secondary font-medium"><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="privacy-policy" href="#">Privacy Policy</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="terms-of-service" href="#">Terms of Service</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="student-safety" href="#">Student Safety</a><a className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="security" href="#">Security</a></nav></div></div><div className="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-md bg-surface-container/50 px-space-md py-space-sm rounded-lg"><span className="font-caption text-caption text-on-surface-variant">© 2026 AdaptiveLMS Inc. All rights reserved.</span><div className="flex items-center gap-space-xs"><span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse"></span><span className="font-caption text-caption text-on-surface-variant font-medium">Adaptive Core v4.2 • Operational</span></div></div></div></footer>
+
 
     </>
   );
