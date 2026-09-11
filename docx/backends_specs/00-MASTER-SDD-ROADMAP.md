@@ -327,4 +327,27 @@ A phase is **done** when:
 
 ---
 
+## 9. Production-Grade Engineering Standards & Real-User Protection Protocol
+
+> **CRITICAL DIRECTIVE FOR ALL AGENTS AND DEVELOPERS:**
+> This platform is being engineered for **real users in production**. Shortcuts, sloppy hacks, insecure fallbacks, and toy-project practices are strictly prohibited. Every commit and architectural decision must follow senior-level industry standards.
+
+### 9.1 The 10 Inviolable Production Guardrails
+
+| # | Guardrail | Standard Required | Anti-Pattern Avoided |
+|---|---|---|---|
+| **1** | **Data Integrity & Outbox Pattern** | Asynchronous events (AI embedding, notifications, adaptive loops) must use the **Transactional Outbox Pattern** in PostgreSQL. The event record is written in the exact same DB transaction as the state change. | Direct Redis/message broker publishing inside HTTP requests (which fails if network drops after DB commit, causing lost events). |
+| **2** | **Zero Frontend Trust (Backend Gating)** | Every business rule (content access prerequisites, permissions, role capabilities) is enforced inside backend dependencies. If a user tries to access Lesson 5 without completing Lesson 4, backend returns `403 Forbidden`. | Client-side only hiding of buttons/links while leaving API endpoints unguarded. |
+| **3** | **Robust Cryptography & Session Hygiene** | Access tokens use asymmetric **RS256** (private key signs, public key verifies). Refresh tokens are stored in **HttpOnly, Secure, SameSite=Strict** cookies. JTI blacklisting in Redis enables instantaneous logout/revocation. | Symmetric HS256 with shared secrets, storing tokens in localStorage (vulnerable to XSS), or inability to revoke compromised tokens. |
+| **4** | **No User Enumeration** | Authentication failures (unknown email vs wrong password) return the identical generic error message (`INVALID_CREDENTIALS`, `401 Unauthorized`) with constant-time response behavior. | "User not found" vs "Incorrect password" leaks user existence to attackers. |
+| **5** | **Deterministic vs Generative Separation** | MCQ grading is **100% deterministic code** with zero LLM intervention. AI generation (Claude / Groq) is strictly reserved for synthetic assessment creation, open-ended evaluations, and remediation synthesis. | Calling costly, nondeterministic LLMs to check if option 'B' equals 'B'. |
+| **6** | **N+1 Query Prevention** | All SQLAlchemy queries accessing related entities must explicitly specify eager loading strategies (`selectinload` / `joinedload`). | Lazy-loading inside loops that triggers 100 queries for 100 list items. |
+| **7** | **Standardized Error Responses** | All errors must produce the unified error schema (`{ "error": true, "code": "...", "message": "...", "details": {...} }`) with appropriate HTTP status codes (400, 401, 403, 404, 409, 422, 500). | Inconsistent raw tracebacks, string exceptions, or returning 200 OK with `{"error": true}`. |
+| **8** | **Idempotent Migrations & Seeds** | Database migrations and seed scripts must be completely idempotent. Seeding must safely check existence before insert (`INSERT ... ON CONFLICT DO NOTHING` or explicit existence queries). | Seeds that crash on second run or migrations that fail when reapplied. |
+| **9** | **Testing Isolation & Transaction Rollbacks** | Integration tests must run within wrapped database transactions that roll back at the end of each test (`await session.rollback()`), guaranteeing zero test pollution. | Tests writing permanently to shared dev databases or leaving dirty state. |
+| **10** | **Graceful AI Degradation & Cost Control** | Embedding generation and LLM calls must have bounded retry policies with exponential backoff, timeout ceilings, and circuit breakers. Fallback to free test providers (e.g. Groq/FastEmbed) during initial development must swap seamlessly to production models via configuration without code changes. | Unbounded loops calling paid APIs, infinite hanging on API outages, or coupling code to a single vendor. |
+
+---
+
 *This document is the master authority on build order and phase ownership. For detailed implementation, see the module spec documents listed in Section 7.*
+
