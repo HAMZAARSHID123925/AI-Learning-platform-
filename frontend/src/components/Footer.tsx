@@ -2,8 +2,55 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
+    <footer className="bg-[#0B1221] mt-20 border-t border-white/5">
+      <div className="max-w-[80rem] mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
+          
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-3">
+              <img alt="Pen & Page Academia Logo" className="h-12 w-auto object-contain" src="/logo.png" />
+              <span className="font-title-md text-[20px] text-white font-bold tracking-tight">PPAcademia AI</span>
+            </div>
+            <p className="font-body-sm text-[14px] text-slate-400 leading-relaxed">
+              Rigorous, adaptive multi-agent AI preparation engineered to evaluate and elevate your language proficiency score with institutional precision.
+            </p>
+            <div className="flex items-center gap-2 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-300 font-caption text-[12px] font-medium tracking-wide">
+                Band 7.5+ Target Focus
+              </span>
+            </div>
+          </div>
 
-<footer className="bg-surface-container-lowest mt-space-3xl shadow-[0_-1px_3px_rgba(15,23,42,0.04)]"><div className="max-w-[80rem] mx-auto px-3 py-space-2xl"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-xl lg:gap-space-2xl"><div className="flex flex-col gap-space-sm"><div className="flex items-center gap-space-xs"><img alt="IELTS.AI Logo" className="h-7 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VWTXMwVevMJ1a9l9n6UleQgerLrmTBA1p-JoiT81doSJT3T8EIekpZhmsrB_Hrx5ccWZ0aPJ6Gz7uCbvJRbcuX0KyMEhiShnECevyURH6QzJPScPVP0wKUwS-ihB6kInl5yhlagzehnoiMRc-zTWIvbCECnHq79XtJHd-OJ7F-0OqGrw5IItR0iuVlZsxZRyV8380JUEORzOoIRL1FTCiLoAVCR0dmZAB7Vpon_1X0E29892rj4RT9SVEo" /><span className="font-title-md text-title-md text-on-surface font-semibold">IELTS.AI</span></div><p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Rigorous, adaptive multi-agent AI preparation engineered to evaluate and elevate your IELTS band score with institutional precision.</p><div className="flex items-center gap-space-xs pt-space-xs"><span className="inline-flex items-center gap-space-xxs px-space-xs py-space-xxs rounded bg-surface-container text-on-surface-variant font-caption text-caption">Band 7.5+ Target Focus</span></div></div><div className="flex flex-col gap-space-xs"><h3 className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-space-xs">Learning</h3><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="courses" href="/courses">Courses Overview</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="how-it-works" href="/how-it-works">Adaptive Engine</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="courses" href="/courses">Academic Modules</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="courses" href="/courses">Diagnostic Evaluation</Link></div><div className="flex flex-col gap-space-xs"><h3 className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-space-xs">Company</h3><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="about" href="/about">About Us</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="how-it-works" href="/how-it-works">How It Works</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="contact" href="/contact">Contact Support</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="about" href="/about">Academic Research</Link></div><div className="flex flex-col gap-space-xs"><h3 className="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-space-xs">Legal &amp; Security</h3><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="contact" href="/contact">Privacy Policy</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="contact" href="/contact">Terms of Service</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="contact" href="/contact">Security &amp; Compliance</Link><Link className="font-body-sm text-body-sm text-on-surface-variant hover:text-secondary transition-colors py-space-xxs" data-path="contact" href="/contact">Candidate Integrity</Link></div></div><div className="pt-space-xl mt-space-xl border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between gap-space-sm"><p className="font-caption text-caption text-on-surface-variant">© 2026 IELTS.AI Adaptive Assessment Technologies Inc. All rights reserved.</p><p className="font-caption text-caption text-on-surface-variant">Strict alignment with official IELTS band descriptor rubrics.</p></div></div></footer>
+          <div className="flex flex-col gap-4">
+            <h3 className="font-label-md text-[13px] text-white font-bold uppercase tracking-widest mb-2">Learning</h3>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/courses">Courses Overview</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/how-it-works">Adaptive Engine</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/courses">Academic Modules</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/courses">Diagnostic Evaluation</Link>
+          </div>
 
+          <div className="flex flex-col gap-4">
+            <h3 className="font-label-md text-[13px] text-white font-bold uppercase tracking-widest mb-2">Company</h3>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/about">About Us</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/how-it-works">How It Works</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/contact">Contact Support</Link>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <h3 className="font-label-md text-[13px] text-white font-bold uppercase tracking-widest mb-2">Legal & Security</h3>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/contact">Privacy Policy</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/contact">Terms of Service</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/contact">Security & Compliance</Link>
+            <Link className="font-body-sm text-[14px] text-slate-400 hover:text-amber-400 transition-colors" href="/contact">Candidate Integrity</Link>
+          </div>
+
+        </div>
+
+        <div className="pt-8 mt-12 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-caption text-[13px] text-slate-500">© 2026 PPAcademia AI Adaptive Assessment Technologies Inc. All rights reserved.</p>
+          <p className="font-caption text-[13px] text-slate-500">Strict alignment with official language proficiency descriptor rubrics.</p>
+        </div>
+      </div>
+    </footer>
   );
 }

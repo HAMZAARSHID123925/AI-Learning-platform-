@@ -25,97 +25,102 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="w-full pt-16 bg-surface">
+    <div className="w-full pt-20 bg-surface">
 
 <div className="flex flex-col w-full">
-{/* Subtle ambient decorative glow */}
-<div className="relative w-full overflow-hidden">
-<div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-secondary-fixed/50 via-surface-container/30 to-transparent blur-3xl pointer-events-none -z-10"></div>
-{/* 1. Header Banner & Filter Strip */}
-<section className="max-w-[80rem] mx-auto px-4 pt-space-xl pb-space-lg w-full">
-{/* Breadcrumb & Top Indicator */}
-<div className="flex items-center gap-space-xs text-on-surface-variant mb-space-sm">
-<span className="font-caption text-caption uppercase tracking-wider text-secondary font-semibold">Catalog</span>
-<span className="font-caption text-caption text-outline-variant">/</span>
-<span className="font-caption text-caption text-on-surface-variant">Structured Preparation Programs</span>
-</div>
-<div className="flex flex-col lg:flex-row lg:items-end justify-between gap-space-lg pb-space-xl">
-<div className="max-w-3xl flex flex-col gap-space-xs">
-<div className="inline-flex items-center gap-space-xs px-space-sm py-space-xxs rounded-full bg-surface-container-high w-fit">
-<span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-<span className="font-label-sm text-label-sm text-on-surface font-semibold tracking-wide uppercase">Examiner-Curated Curriculum</span>
-</div>
-<h1 className="font-display-lg text-display-lg text-on-surface tracking-tight mt-space-xs">
-            Explore Our IELTS Preparation Courses
-          </h1>
-<p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed mt-space-xxs">
-            Curriculum designed by former British Council &amp; IDP IELTS examiners, powered by adaptive AI diagnostic testing and real-time rubric telemetry.
-          </p>
-</div>
-{/* Metric pill cluster */}
-<div className="flex items-center gap-space-sm p-space-sm rounded-xl bg-surface-container-lowest shadow-sm self-start lg:self-auto">
-<div className="flex -space-x-2 overflow-hidden">
-<div className="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-lowest bg-surface-variant flex items-center justify-center font-caption text-caption font-bold text-on-surface">MV</div>
-<div className="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-lowest bg-secondary-fixed flex items-center justify-center font-caption text-caption font-bold text-secondary">EL</div>
-<div className="inline-block h-8 w-8 rounded-full ring-2 ring-surface-container-lowest bg-tertiary-fixed flex items-center justify-center font-caption text-caption font-bold text-on-tertiary-fixed">JC</div>
-</div>
-<div className="flex flex-col">
-<span className="font-label-sm text-label-sm text-on-surface font-semibold">Senior Board Evaluators</span>
-<span className="font-caption text-caption text-on-surface-variant">Calibrated to 2026 Band Specifications</span>
-</div>
-</div>
-</div>
-{/* Search and Filter Controller */}
-<div className="flex flex-col gap-space-md p-space-md md:p-space-lg rounded-xl bg-surface-container-lowest shadow-md">
-<div className="grid grid-cols-1 lg:grid-cols-12 gap-space-sm items-center">
-{/* Search input */}
-<div className="lg:col-span-8 relative flex items-center">
-<span className="material-symbols-outlined absolute left-space-md text-on-surface-variant pointer-events-none text-[20px]">search</span>
-<input className="w-full pl-12 pr-space-md py-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary/30 transition-all" id="course-search-input" placeholder="Search topics, skills, or tasks (e.g. Writing Task 2, Speaking Fluency, Band 8.0 Collocations)..." type="text" />
-</div>
-{/* Sort dropdown selector */}
-<div className="lg:col-span-4 flex items-center justify-end gap-space-xs">
-<label className="font-label-sm text-label-sm text-on-surface-variant whitespace-nowrap" htmlFor="sort-dropdown">Sort by:</label>
-<div className="relative w-full">
-<select className="w-full appearance-none pl-space-sm pr-space-xl py-space-sm rounded-lg bg-surface-container text-on-surface font-label-md text-label-md cursor-pointer focus:outline-none" id="sort-dropdown" defaultValue="Recommended for Band 7.5+">
-<option value="Recommended for Band 7.5+">Recommended for Band 7.5+</option>
-<option value="Highest Rated">Highest Rated (4.95+)</option>
-<option value="Fastest Target Completion">Fastest Target Completion</option>
-<option value="Most Intensive Diagnostic Load">Most Intensive Diagnostic Load</option>
-</select>
-<span className="material-symbols-outlined absolute right-space-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[18px]">expand_more</span>
-</div>
-</div>
-</div>
-{/* Filter category tabs */}
-<div className="flex items-center gap-space-xs overflow-x-auto pb-space-xxs pt-space-xxs no-scrollbar" id="filter-tabs-container">
-<button className={`filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md shadow-sm transition-all whitespace-nowrap flex items-center gap-space-xxs ${activeFilter === 'all' ? 'bg-secondary text-on-secondary' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}`} onClick={() => setActiveFilter('all')}>
-<span>All Courses</span>
-<span className="px-1.5 py-0.5 bg-white/20 rounded-full font-caption text-caption">6</span>
-</button>
-<button className={`filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all whitespace-nowrap ${activeFilter === 'academic' ? 'bg-secondary text-on-secondary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}`} onClick={() => setActiveFilter('academic')}>
-            IELTS Academic
-          </button>
-<button className={`filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all whitespace-nowrap ${activeFilter === 'general' ? 'bg-secondary text-on-secondary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}`} onClick={() => setActiveFilter('general')}>
-            IELTS General Training
-          </button>
-<button className={`filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all whitespace-nowrap ${activeFilter === 'skills' ? 'bg-secondary text-on-secondary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}`} onClick={() => setActiveFilter('skills')}>
-            Skill Crash Courses
-          </button>
-<button className={`filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all whitespace-nowrap ${activeFilter === 'advanced' ? 'bg-secondary text-on-secondary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}`} onClick={() => setActiveFilter('advanced')}>
-            Band 8.0+ Advanced
-          </button>
-</div>
-</div>
+{/* 1. Premium Full-Width Header */}
+<section className="relative w-full bg-[#001F3F] text-white pt-16 pb-32 overflow-hidden border-b border-white/10">
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#027FFF]/20 via-transparent to-transparent"></div>
+  <div className="max-w-[80rem] mx-auto px-4 relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+    
+    <div className="max-w-3xl flex flex-col gap-4 animate-fade-in-up">
+      <div className="flex items-center gap-2 text-white/60 mb-2">
+        <span className="font-caption text-[12px] uppercase tracking-wider text-amber-400 font-bold">Catalog</span>
+        <span className="font-caption text-[12px] opacity-50">/</span>
+        <span className="font-caption text-[12px] font-medium">Structured Preparation Programs</span>
+      </div>
+      
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 w-fit backdrop-blur-md">
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span className="font-label-sm text-[12px] text-white font-bold tracking-wide uppercase">Examiner-Curated Curriculum</span>
+      </div>
+      
+      <h1 className="font-display-lg text-[40px] md:text-[56px] leading-[1.1] font-bold tracking-tight text-white">
+        Explore Our English & Test Prep Courses
+      </h1>
+      <p className="font-body-lg text-[18px] md:text-[20px] text-white/80 max-w-2xl leading-relaxed">
+        Curriculum designed by former British Council & IDP English Language examiners, powered by adaptive AI diagnostic testing and real-time rubric telemetry.
+      </p>
+    </div>
+
+    {/* Metric pill cluster */}
+    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 self-start lg:self-auto animate-fade-in-up delay-100">
+      <div className="flex -space-x-3 overflow-hidden">
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-blue-600 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">MV</div>
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-amber-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">EL</div>
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-emerald-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">JC</div>
+      </div>
+      <div className="flex flex-col">
+        <span className="font-label-md text-[14px] text-white font-bold">Senior Board Evaluators</span>
+        <span className="font-caption text-[12px] text-white/60">Calibrated to 2026 Band Specifications</span>
+      </div>
+    </div>
+  </div>
 </section>
+
+{/* Search and Filter Controller (Floating) */}
+<div className="max-w-[80rem] mx-auto px-4 -mt-16 relative z-20 w-full mb-12">
+  <div className="flex flex-col gap-6 p-6 md:p-8 rounded-2xl bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-outline-variant/20 animate-fade-in-up delay-200">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+      {/* Search input */}
+      <div className="lg:col-span-8 relative flex items-center">
+        <span className="material-symbols-outlined absolute left-4 text-on-surface-variant pointer-events-none text-[24px]">search</span>
+        <input className="w-full pl-12 pr-4 py-4 rounded-xl bg-surface border-2 border-outline-variant/30 text-on-surface font-body-md placeholder:text-outline focus:outline-none focus:border-secondary focus:bg-white transition-all" id="course-search-input" placeholder="Search topics, skills, or tasks (e.g. Writing Task 2, Speaking Fluency, Band 8.0 Collocations)..." type="text" />
+      </div>
+      {/* Sort dropdown selector */}
+      <div className="lg:col-span-4 flex items-center justify-end gap-3">
+        <label className="font-label-sm text-[14px] font-bold text-on-surface-variant uppercase tracking-wider whitespace-nowrap" htmlFor="sort-dropdown">Sort by:</label>
+        <div className="relative w-full">
+          <select className="w-full appearance-none pl-4 pr-12 py-4 rounded-xl border-2 border-outline-variant/30 bg-surface text-on-surface font-label-md text-[14px] font-bold cursor-pointer focus:outline-none focus:border-secondary transition-all" id="sort-dropdown" defaultValue="Recommended for Band 7.5+">
+            <option value="Recommended for Band 7.5+">Recommended for Band 7.5+</option>
+            <option value="Highest Rated">Highest Rated (4.95+)</option>
+            <option value="Fastest Target Completion">Fastest Target Completion</option>
+            <option value="Most Intensive Diagnostic Load">Most Intensive Diagnostic Load</option>
+          </select>
+          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+        </div>
+      </div>
+    </div>
+    {/* Filter category tabs */}
+    <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-2 no-scrollbar" id="filter-tabs-container">
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap flex items-center gap-2 ${activeFilter === 'all' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('all')}>
+        <span>All Courses</span>
+        <span className={`px-2 py-0.5 rounded-full font-caption text-[12px] ${activeFilter === 'all' ? 'bg-white/20' : 'bg-surface-container-high'}`}>6</span>
+      </button>
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'academic' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('academic')}>
+        Academic English & IELTS Prep
+      </button>
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'general' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('general')}>
+        General English & Test Prep
+      </button>
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'skills' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('skills')}>
+        Skill Crash Courses
+      </button>
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'advanced' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('advanced')}>
+        Band 8.0+ Advanced
+      </button>
+    </div>
+  </div>
+</div>
+
 {/* 2. Main Course Grid (3-column layout) */}
 <section className="max-w-[80rem] mx-auto px-4 py-space-lg w-full">
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
-{/* Course Card 1: IELTS Academic Masterclass */}
+{/* Course Card 1: Academic English & Test Prep Masterclass */}
 <div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
 {/* Thumbnail / Visual Banner */}
 <div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
-<img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Editorial close-up of a student analyzing IELTS academic charts and thesis statements on a modern slate surface desk with Cambridge rubric documents in soft natural daylight, academic prestigious tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxXsnnwEJopXO4z_q_-wS6_iEJ68hLZldZVIAYHBvKZvT6BEWw1i9miUB4j374zP9h3C0_tLN0VdpzYa7MI-ROo9fmgSGZi_MO-GCIEzER7s6qhcjhNfOXd8lSz4fFNOAYizt9k5ke8Bfd2spRxAVMvhhZ_l_RskGn-BUlSIT6NgYwqL_C6c1xKN7rhmHdQozEXWwgycRcUGGYdOGTWwT8JDaaE7igriMeRFlNJwvpKXUUvFBvo4XLTQ" />
+<img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Editorial close-up of a student analyzing academic charts and thesis statements on a modern slate surface desk with Cambridge rubric documents in soft natural daylight, academic prestigious tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxXsnnwEJopXO4z_q_-wS6_iEJ68hLZldZVIAYHBvKZvT6BEWw1i9miUB4j374zP9h3C0_tLN0VdpzYa7MI-ROo9fmgSGZi_MO-GCIEzER7s6qhcjhNfOXd8lSz4fFNOAYizt9k5ke8Bfd2spRxAVMvhhZ_l_RskGn-BUlSIT6NgYwqL_C6c1xKN7rhmHdQozEXWwgycRcUGGYdOGTWwT8JDaaE7igriMeRFlNJwvpKXUUvFBvo4XLTQ" />
 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 {/* Badges overlay */}
 <div className="absolute top-space-sm left-space-sm right-space-sm flex items-center justify-between gap-space-xs">
@@ -136,7 +141,7 @@ export default function CoursesPage() {
 <div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
 <div className="flex flex-col gap-space-sm">
 <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                IELTS Academic Masterclass
+                Academic English & Test Prep Masterclass
               </h2>
 <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
                 All-in-one immersive pathway engineered for university matriculation and medical accreditation candidates needing high band performance.
@@ -198,7 +203,7 @@ export default function CoursesPage() {
 </div>
 </div>
 </div>
-{/* Course Card 2: IELTS General Training Fast-Track */}
+{/* Course Card 2: General English Fast-Track */}
 <div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
 {/* Thumbnail / Visual Banner */}
 <div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
@@ -222,7 +227,7 @@ export default function CoursesPage() {
 <div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
 <div className="flex flex-col gap-space-sm">
 <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                IELTS General Training Fast-Track
+                General English Fast-Track
               </h2>
 <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
                 Rapid target-band alignment tailored for skilled migration, formal correspondence, and daily conversational English competence.
@@ -284,7 +289,7 @@ export default function CoursesPage() {
 </div>
 </div>
 </div>
-{/* Course Card 3: Intensive IELTS Writing & Grammar Bootcamp */}
+{/* Course Card 3: Intensive English Writing & Grammar Bootcamp */}
 <div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
 {/* Thumbnail / Visual Banner */}
 <div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
@@ -308,7 +313,7 @@ export default function CoursesPage() {
 <div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
 <div className="flex flex-col gap-space-sm">
 <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                Intensive IELTS Writing &amp; Grammar Bootcamp
+                Intensive English Writing &amp; Grammar Bootcamp
               </h2>
 <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
                 Hyper-focused precision training tackling complex complex sentences, detractor argumentation, and paragraph coherence metrics.
@@ -383,12 +388,12 @@ export default function CoursesPage() {
 <span className="font-caption text-caption text-on-surface-variant">Self-Paced or Accelerated Cohort</span>
 </div>
 <h2 className="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">
-              Syllabus Preview: IELTS Academic Masterclass
+              Syllabus Preview: Academic English & Test Prep Masterclass
             </h2>
 <div className="flex flex-wrap items-center gap-x-space-md gap-y-space-xxs text-on-surface-variant font-body-sm text-body-sm pt-space-xxs">
 <span className="flex items-center gap-1">
 <span className="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
-                Curated by Dr. Marcus Vance, Ex-Senior IELTS Examiner
+                Curated by Dr. Marcus Vance, Ex-Senior Language Examiner
               </span>
 <span>•</span>
 <span className="flex items-center gap-1">
@@ -652,7 +657,6 @@ export default function CoursesPage() {
 </div>
 </div>
 </section>
-</div>
 </div>
     </div>
   );

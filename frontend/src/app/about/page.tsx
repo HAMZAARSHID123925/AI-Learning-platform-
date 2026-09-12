@@ -7,50 +7,54 @@ export default function AboutPage() {
   return (
     <>
 
-<main className="min-h-screen bg-surface text-on-surface selection:bg-secondary-container selection:text-on-secondary-container relative overflow-hidden py-16 px-4 sm:px-6 lg:px-8">
-  {/* Ambient Glow Effects matching theme */}
-  <div className="absolute top-20 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[46rem] h-[26rem] bg-secondary-fixed-dim/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
-  <div className="absolute top-[45%] right-8 w-[32rem] h-[24rem] bg-secondary/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
-  <div className="absolute bottom-40 left-12 w-[34rem] h-[22rem] bg-secondary-fixed-dim/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<main className="min-h-screen bg-surface text-on-surface selection:bg-secondary-container selection:text-on-secondary-container relative overflow-hidden pb-16">
 
-  <div className="max-w-[80rem] mx-auto space-y-24">
+    {/* 1. PREMIUM DARK HERO SECTION */}
+    <section className="relative w-full pt-20 md:pt-32 pb-40 overflow-hidden bg-gradient-to-b from-[#001F3F] via-[#003366] to-[#027FFF] text-white">
+      {/* Abstract Background Elements */}
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent bg-[length:30px_30px] opacity-20"></div>
 
-    {/* 1. Hero Header */}
-    <section className="text-center max-w-3xl mx-auto pt-6 space-y-6">
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold tracking-wide uppercase">
-        <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-        Institutional Mission &amp; Pedagogy
-      </div>
-
-      <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-on-surface leading-tight">
-        Democratizing Elite<br />
-        <span className="text-secondary">Institutional Prep.</span>
-      </h1>
-
-      <p className="text-base sm:text-lg text-on-surface-variant font-normal leading-relaxed max-w-2xl mx-auto">
-        We are on a mission to replace subjective, cost-prohibitive human tutoring with autonomous multi-agent intelligence—calibrated strictly to official Cambridge, British Council, and IDP rubrics with zero examiner bias.
-      </p>
-
-      {/* Key Quantitative Metrics Strip */}
-      <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
-        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm text-center">
-          <span className="font-serif text-2xl sm:text-3xl font-bold text-on-surface">98.4%</span>
-          <p className="text-xs text-on-surface-variant mt-1 font-medium">Rubric Consensus</p>
+      <div className="max-w-[80rem] mx-auto text-center px-4 relative z-10 animate-fade-in-up flex flex-col items-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-amber-400 font-label-sm text-[13px] font-bold shadow-sm mb-8 uppercase tracking-widest">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          Institutional Mission & Pedagogy
         </div>
-        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm text-center">
-          <span className="font-serif text-2xl sm:text-3xl font-bold text-secondary">45,000+</span>
-          <p className="text-xs text-on-surface-variant mt-1 font-medium">Audited Transcripts</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm text-center">
-          <span className="font-serif text-2xl sm:text-3xl font-bold text-on-surface">&lt;10s</span>
-          <p className="text-xs text-on-surface-variant mt-1 font-medium">Evaluation Latency</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm text-center">
-          <span className="font-serif text-2xl sm:text-3xl font-bold text-secondary">85%</span>
-          <p className="text-xs text-on-surface-variant mt-1 font-medium">Cost Reduction</p>
-        </div>
+        
+        <h1 className="font-display-lg text-[40px] md:text-[64px] leading-[1.1] font-bold tracking-tight text-white max-w-4xl mb-6">
+          Democratizing Elite <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">Institutional Prep.</span>
+        </h1>
+        
+        <p className="font-body-lg text-[18px] md:text-[20px] leading-relaxed text-white/80 max-w-3xl mx-auto">
+          We are on a mission to replace subjective, cost-prohibitive human tutoring with autonomous multi-agent intelligence—calibrated strictly to official Cambridge, British Council, and IDP rubrics with zero examiner bias.
+        </p>
       </div>
     </section>
+
+    {/* Key Quantitative Metrics Strip - Floating overlapping card */}
+    <div className="max-w-[80rem] mx-auto px-4 relative z-20 -mt-20 mb-20">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 rounded-3xl bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-outline-variant/30 text-center">
+        <div className="p-4">
+          <span className="font-display-md text-3xl sm:text-4xl font-bold text-on-surface">98.4%</span>
+          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Rubric Consensus</p>
+        </div>
+        <div className="p-4 border-l border-outline-variant/30">
+          <span className="font-display-md text-3xl sm:text-4xl font-bold text-[#027FFF]">45,000+</span>
+          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Audited Transcripts</p>
+        </div>
+        <div className="p-4 sm:border-l border-outline-variant/30">
+          <span className="font-display-md text-3xl sm:text-4xl font-bold text-on-surface">&lt;10s</span>
+          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Evaluation Latency</p>
+        </div>
+        <div className="p-4 border-l border-outline-variant/30">
+          <span className="font-display-md text-3xl sm:text-4xl font-bold text-[#027FFF]">85%</span>
+          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Cost Reduction</p>
+        </div>
+      </div>
+    </div>
+
+  <div className="max-w-[80rem] mx-auto px-4 space-y-24">
 
     {/* 2. Our Story / The Problem (Split-Pane Section) */}
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-4">
@@ -64,13 +68,13 @@ export default function AboutPage() {
         </h2>
         <div className="space-y-4 text-base text-on-surface-variant leading-relaxed">
           <p>
-            For decades, high-stakes IELTS candidates had only two flawed choices: pay upwards of <strong>$50 to $100 per hour</strong> for private tutoring that takes days to return marked essays, or resort to static video courses and generic answer keys with zero actionable feedback.
+            For decades, high-stakes English & Test Prep candidates had only two flawed choices: pay upwards of <strong>$50 to $100 per hour</strong> for private tutoring that takes days to return marked essays, or resort to static video courses and generic answer keys with zero actionable feedback.
           </p>
           <p>
             Worse yet, human assessment suffers from subjective variance. A candidate might receive a Band 6.5 from one tutor on Monday and a Band 7.5 from another on Tuesday. The inconsistency turns immigration, medical licensing, and university matriculation into a gamble.
           </p>
           <p>
-            In 2024, former senior IELTS examiners partnered with NLP research scientists to build <strong>IELTS.AI</strong>: an ensemble of four specialized neural agents executing discrete rubric evaluations in parallel, backed by dynamic vector retrieval of verified examiner notes.
+            In 2024, former senior English & Test Prep examiners partnered with NLP research scientists to build <strong>PPAcademia AI</strong>: an ensemble of four specialized neural agents executing discrete rubric evaluations in parallel, backed by dynamic vector retrieval of verified examiner notes.
           </p>
         </div>
 
@@ -117,7 +121,7 @@ export default function AboutPage() {
 
               <div className="p-4 rounded-2xl bg-secondary-container/40 border border-secondary/30 space-y-2">
                 <div className="flex justify-between items-center text-xs font-semibold text-on-secondary-container">
-                  <span>IELTS.AI Multi-Agent Consensus</span>
+                  <span>PPAcademia AI Multi-Agent Consensus</span>
                   <span className="text-secondary font-bold">&lt;10s Latency • 98.4% Consensus</span>
                 </div>
                 <div className="w-full bg-secondary-container h-2 rounded-full overflow-hidden">
@@ -160,7 +164,7 @@ export default function AboutPage() {
               <h3 className="font-serif text-2xl font-bold text-on-surface">Zero Examiner Bias</h3>
             </div>
             <p className="text-sm text-on-surface-variant leading-relaxed">
-              Human scorers fluctuate with fatigue, accent familiarity, and cognitive heuristics. IELTS.AI executes parallel multi-agent evaluation where individual rubric criteria are independently verified and reconciled by referee nodes.
+              Human scorers fluctuate with fatigue, accent familiarity, and cognitive heuristics. PPAcademia AI executes parallel multi-agent evaluation where individual rubric criteria are independently verified and reconciled by referee nodes.
             </p>
           </div>
           <div className="pt-6 border-t border-outline-variant/40 mt-6">
@@ -222,7 +226,7 @@ export default function AboutPage() {
         </div>
         <h2 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface">Built by Examiners &amp; AI Researchers</h2>
         <p className="text-sm sm:text-base text-on-surface-variant">
-          Our cross-disciplinary board unites decades of certified IELTS marking with frontier neural language evaluation.
+          Our cross-disciplinary board unites decades of certified English & Test Prep marking with frontier neural language evaluation.
         </p>
       </div>
 
@@ -317,7 +321,7 @@ export default function AboutPage() {
           Strict Cambridge Rubric Alignment
         </div>
         <h2 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Experience the IELTS.AI Difference.
+          Experience the PPAcademia AI Difference.
         </h2>
         <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
           Discover your authentic band score across all 4 criteria in under 10 minutes. Receive a customized adaptive remediation roadmap with zero credit card required.

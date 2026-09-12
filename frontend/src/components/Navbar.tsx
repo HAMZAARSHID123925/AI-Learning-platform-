@@ -20,8 +20,8 @@ export default function Navbar() {
     { name: 'Home', href: '/' },
     { name: 'Courses', href: '/courses' },
     { name: 'Pricing', href: '/pricing' },
+    { name: 'About Us', href: '/about' },
     { name: 'How It Works', href: '/how-it-works' },
-    { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -32,9 +32,9 @@ export default function Navbar() {
         <div className="flex items-center gap-space-sm">
           <Link href="/" onClick={closeMobileMenu}>
             <img 
-              alt="Brand logo." 
-              className="h-8 w-auto object-contain" 
-              src="https://lh3.googleusercontent.com/aida/AEtjO1VWTXMwVevMJ1a9l9n6UleQgerLrmTBA1p-JoiT81doSJT3T8EIekpZhmsrB_Hrx5ccWZ0aPJ6Gz7uCbvJRbcuX0KyMEhiShnECevyURH6QzJPScPVP0wKUwS-ihB6kInl5yhlagzehnoiMRc-zTWIvbCECnHq79XtJHd-OJ7F-0OqGrw5IItR0iuVlZsxZRyV8380JUEORzOoIRL1FTCiLoAVCR0dmZAB7Vpon_1X0E29892rj4RT9SVEo"
+              alt="Pen & Page Academia Logo" 
+              className="h-12 w-auto object-contain" 
+              src="/logo.png"
             />
           </Link>
         </div>

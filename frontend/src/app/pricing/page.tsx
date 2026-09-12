@@ -7,40 +7,53 @@ export default function PricingPage() {
   const [isQuarterly, setIsQuarterly] = useState(false);
 
   return (
-    <div className="w-full pt-16 bg-surface flex flex-col">
+    <div className="w-full pt-20 bg-surface flex flex-col">
 
-<section className="relative px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop pt-space-2xl pb-space-3xl overflow-hidden">
-<div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[340px] bg-secondary-fixed-dim/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
-<div className="absolute -top-12 right-10 w-72 h-72 bg-tertiary-fixed-dim/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-<div className="max-w-[80rem] mx-auto flex flex-col items-center text-center px-4">
-<div className="inline-flex items-center gap-space-xs px-space-sm py-space-xxs rounded-full bg-surface-container text-secondary font-label-sm text-label-sm shadow-sm mb-space-md">
-<span className="material-symbols-outlined text-label-md" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-<span className="">Institutional Band Descriptors v4.2 Calibrated</span>
-</div>
-<h1 className="font-display-lg text-display-lg text-on-surface tracking-tight max-w-4xl">
-        Transparent Pricing. Institutional Precision.
-      </h1>
-<p className="mt-space-md max-w-3xl font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-        85% less expensive than private human tutoring, calibrated against 45,000+ British Council &amp; IDP exam transcripts with an audited 98.4% examiner consensus accuracy.
-      </p>
-<div className="mt-space-xl flex flex-col sm:flex-row items-center gap-space-sm p-space-xxs bg-surface-container-high rounded-full shadow-sm">
-<div className="flex items-center p-space-xxs bg-surface-container-lowest rounded-full shadow-sm">
-<button className={`px-space-md py-space-xs rounded-full font-label-md text-label-md transition-all duration-200 shadow-sm ${!isQuarterly ? 'bg-primary text-on-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`} onClick={() => setIsQuarterly(false)}>
-            Monthly Billing
-          </button>
-<button className={`px-space-md py-space-xs rounded-full font-label-md text-label-md transition-all duration-200 flex items-center gap-space-xs ${isQuarterly ? 'bg-primary text-on-primary font-semibold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`} onClick={() => setIsQuarterly(true)}>
-<span className="">Quarterly</span>
-<span className="px-space-xs py-0.5 rounded-full bg-surface-container text-secondary font-caption text-caption font-semibold">Save 28%</span>
-</button>
-</div>
-<span className="text-on-surface-variant font-caption text-caption pr-space-sm hidden sm:inline-flex items-center gap-space-xxs">
-<span className="material-symbols-outlined text-caption" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span> Zero hidden commitment
-        </span>
-</div>
-</div>
+{/* 1. PREMIUM PRICING HERO SECTION */}
+<section className="relative w-full pt-16 md:pt-24 pb-32 overflow-hidden bg-gradient-to-b from-[#001F3F] via-[#003366] to-[#027FFF] text-white">
+  {/* Abstract Background Elements */}
+  <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent bg-[length:30px_30px] opacity-20"></div>
+
+  <div className="max-w-[80rem] mx-auto flex flex-col items-center text-center px-4 relative z-10 animate-fade-in-up">
+    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-amber-400 font-label-sm text-[13px] font-bold shadow-sm mb-8">
+      <span className="material-symbols-outlined text-[16px]">verified</span>
+      <span className="tracking-widest uppercase">Institutional Band Descriptors v4.2 Calibrated</span>
+    </div>
+    
+    <h1 className="font-display-lg text-[40px] md:text-[64px] leading-[1.1] font-bold tracking-tight text-white max-w-4xl mb-6">
+      Transparent Pricing. Institutional Precision.
+    </h1>
+    
+    <p className="max-w-3xl font-body-lg text-[18px] md:text-[20px] text-white/80 leading-relaxed mb-10">
+      85% less expensive than private human tutoring, calibrated against 45,000+ British Council & IDP exam transcripts with an audited 98.4% examiner consensus accuracy.
+    </p>
+    
+    {/* Toggle Switch */}
+    <div className="flex flex-col sm:flex-row items-center gap-4 p-2 bg-black/20 backdrop-blur-md rounded-full shadow-inner border border-white/10">
+      <div className="flex items-center p-1 bg-white/10 rounded-full">
+        <button 
+          className={`px-6 py-3 rounded-full font-label-md text-[16px] font-bold transition-all duration-300 shadow-sm ${!isQuarterly ? 'bg-white text-[#003366]' : 'text-white/70 hover:text-white'}`} 
+          onClick={() => setIsQuarterly(false)}
+        >
+          Monthly Billing
+        </button>
+        <button 
+          className={`px-6 py-3 rounded-full font-label-md text-[16px] font-bold transition-all duration-300 flex items-center gap-2 ${isQuarterly ? 'bg-white text-[#003366] shadow-sm' : 'text-white/70 hover:text-white'}`} 
+          onClick={() => setIsQuarterly(true)}
+        >
+          <span>Quarterly</span>
+          <span className={`px-2 py-0.5 rounded-full font-caption text-[12px] font-bold ${isQuarterly ? 'bg-amber-400 text-[#003366]' : 'bg-white/20 text-white'}`}>Save 28%</span>
+        </button>
+      </div>
+      <span className="text-white/60 font-caption text-[13px] pr-4 hidden sm:inline-flex items-center gap-1 font-medium">
+        <span className="material-symbols-outlined text-[16px]">lock</span> Zero hidden commitment
+      </span>
+    </div>
+  </div>
 </section>
 
-<section className="px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop pb-space-3xl px-4">
+<section className="max-w-[80rem] mx-auto px-4 pb-20 w-full relative z-20 -mt-20">
 <div className="max-w-[80rem] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-space-lg items-stretch">
 
 <div className="flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-xl shadow-md transition-transform duration-300 hover:-translate-y-1">
@@ -171,7 +184,7 @@ export default function PricingPage() {
 </div>
 <div className="flex items-start gap-space-xs">
 <span className="material-symbols-outlined text-secondary text-title-md shrink-0">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface"><strong>Human-in-the-Loop Examiner Review:</strong> 4 deep audits from former IELTS examiners</span>
+<span className="font-body-sm text-body-sm text-on-surface"><strong>Human-in-the-Loop Examiner Review:</strong> 4 deep audits from former English Language examiners</span>
 </div>
 <div className="flex items-start gap-space-xs">
 <span className="material-symbols-outlined text-secondary text-title-md shrink-0">check_circle</span>
@@ -215,7 +228,7 @@ export default function PricingPage() {
 <thead>
 <tr className="bg-surface-container text-on-surface font-label-md text-label-md">
 <th className="py-space-md px-space-lg font-semibold w-1/4">Evaluation Metric</th>
-<th className="py-space-md px-space-lg font-semibold text-secondary w-1/4 bg-surface-container-high/60">IELTS.AI Platform</th>
+<th className="py-space-md px-space-lg font-semibold text-secondary w-1/4 bg-surface-container-high/60">PPAcademia AI Platform</th>
 <th className="py-space-md px-space-lg font-semibold text-on-surface-variant w-1/4">Private Human Tutors</th>
 <th className="py-space-md px-space-lg font-semibold text-on-surface-variant w-1/4">Static Video Courses</th>
 </tr>
@@ -302,7 +315,7 @@ export default function PricingPage() {
 <span className="material-symbols-outlined text-on-surface-variant group-open:rotate-180 transition-transform duration-200">expand_more</span>
 </summary>
 <div className="mt-space-md font-body-md text-body-md text-on-surface-variant leading-relaxed">
-            Our neural infrastructure distributes your writing or speech sample to four specialized evaluators simultaneously: Task Achievement Agent, Coherence &amp; Cohesion Agent, Lexical Resource Agent, and Grammatical Range &amp; Accuracy Agent. In an independent double-blind evaluation of 2,400 Cambridge IELTS papers, the system demonstrated a 98.4% inter-rater agreement score compared to Cambridge Senior Team Leaders.
+            Our neural infrastructure distributes your writing or speech sample to four specialized evaluators simultaneously: Task Achievement Agent, Coherence &amp; Cohesion Agent, Lexical Resource Agent, and Grammatical Range &amp; Accuracy Agent. In an independent double-blind evaluation of 2,400 Cambridge Language papers, the system demonstrated a 98.4% inter-rater agreement score compared to Cambridge Senior Team Leaders.
           </div>
 </details>
 <details className="group bg-surface-container-lowest rounded-xl p-space-lg shadow-sm transition-all open:shadow-md">
@@ -339,7 +352,7 @@ export default function PricingPage() {
             Not sure which plan matches your target date?
           </h2>
 <p className="font-body-md text-body-md text-on-primary-container mt-space-xs leading-relaxed">
-            Take our 10-minute diagnostic check to discover your current baseline, or consult directly with an accredited IELTS curriculum specialist.
+            Take our 10-minute diagnostic check to discover your current baseline, or consult directly with an accredited English curriculum specialist.
           </p>
 </div>
 <div className="flex flex-col sm:flex-row items-center gap-space-sm shrink-0 w-full sm:w-auto">
