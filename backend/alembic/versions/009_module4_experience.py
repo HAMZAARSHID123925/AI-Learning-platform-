@@ -2,7 +2,7 @@
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
 
 revision = '009'
 down_revision = '008'
@@ -31,7 +31,7 @@ def upgrade() -> None:
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('student_id', UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('lesson_id', UUID(as_uuid=True), sa.ForeignKey('lessons.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('state', sa.Enum('unlocked', 'in_progress', 'mastered', 'locked', name='path_state', create_type=False), nullable=False, server_default='unlocked'),
+        sa.Column('state', ENUM('unlocked', 'in_progress', 'mastered', 'locked', name='path_state', create_type=False), nullable=False, server_default='unlocked'),
         sa.Column('locked_reason', sa.Text, nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),
         sa.UniqueConstraint('student_id', 'lesson_id', name='uq_learning_path_state'),
@@ -43,7 +43,7 @@ def upgrade() -> None:
         'notifications',
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('student_id', UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('notification_type', sa.Enum(
+        sa.Column('notification_type', ENUM(
             'remediation_plan_created', 'retest_ready', 'instructor_escalation',
             'session_reminder', 'course_published', 'general',
             name='notification_type', create_type=False

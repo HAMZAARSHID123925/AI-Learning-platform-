@@ -21,8 +21,8 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.config import get_settings
 from app.shared.exceptions import (
@@ -35,30 +35,17 @@ from app.shared.logging_config import get_logger
 logger = get_logger(__name__)
 
 # =============================================================================
-# Password Hashing
+# Password Hashing (Direct bcrypt with cost factor 12)
 # =============================================================================
-
-# WHY bcrypt with cost=12?
-#   Cost=12 means 2^12 = 4096 iterations. Each hash takes ~250ms on modern CPU.
-#   This makes brute-force attacks extremely slow.
-#   Lower cost (8): faster but weaker. Higher cost (14): too slow for users.
-#   12 is the industry sweet spot as of 2024.
-_pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-)
-
 
 def hash_password(plain_password: str) -> str:
     """
-    Hash a plaintext password using bcrypt.
-
-    CRITICAL: This is a CPU-intensive operation.
-    In async context, this SHOULD be run in a thread pool executor
-    to avoid blocking the event loop. We handle this in auth_service.py.
+    Hash a plaintext password using bcrypt with work factor 12.
+    Truncates to 72 bytes per bcrypt standard specification.
     """
-    return _pwd_context.hash(plain_password)
+    pwd_bytes = plain_password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -66,7 +53,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Verify a plaintext password against its bcrypt hash.
     Returns True if match, False if not. Never raises on mismatch.
     """
-    return _pwd_context.verify(plain_password, hashed_password)
+    try:
+        pwd_bytes = plain_password.encode("utf-8")[:72]
+        return bcrypt.checkpw(pwd_bytes, hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 
 # =============================================================================

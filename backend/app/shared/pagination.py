@@ -54,9 +54,25 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page_size: int
     pages: int
 
+    @property
+    def total_pages(self) -> int:
+        return self.pages
+
+    @property
+    def has_next(self) -> bool:
+        return self.page < self.pages
+
+    @property
+    def has_prev(self) -> bool:
+        return self.page > 1
+
+    @property
+    def has_previous(self) -> bool:
+        return self.page > 1
+
     @classmethod
     def create(cls, items: list[T], total: int, params: PaginationParams) -> "PaginatedResponse[T]":
-        pages = max(1, -(-total // params.page_size))  # Ceiling division
+        pages = 0 if total == 0 else -(-total // params.page_size)  # Ceiling division
         return cls(
             items=items,
             total=total,

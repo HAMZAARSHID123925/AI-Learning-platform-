@@ -13,7 +13,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.modules.module1_auth.models import User
+import uuid
+from app.modules.module1_auth.models import User, UserStatus
 from app.modules.module2_content.models import (
     Course,
     CourseModule,
@@ -27,6 +28,17 @@ from app.modules.module2_content.services.lesson_service import publish_lesson
 from app.shared.exceptions import InvalidStateTransitionError, PermissionDeniedError
 
 
+def make_test_user(email: str | None = None) -> User:
+    return User(
+        email=email or f"instructor_{uuid.uuid4().hex[:8]}@test.elarion.io",
+        password_hash="dummy_hash_for_tests",
+        first_name="Test",
+        last_name="Instructor",
+        status=UserStatus.active,
+        email_verified=True,
+    )
+
+
 @pytest.mark.asyncio
 class TestLessonPublish:
     async def test_publish_lesson_outbox_transaction(self, seeded_db: AsyncSession):
@@ -36,9 +48,10 @@ class TestLessonPublish:
         2. Set published_at timestamp
         3. Insert an EmbeddingOutbox row in the SAME transaction with status='pending'
         """
-        # Fetch an instructor user from seeded_db or create one
-        result = await seeded_db.execute(select(User).limit(1))
-        user = result.scalar_one()
+        # Create an instructor user
+        user = make_test_user()
+        seeded_db.add(user)
+        await seeded_db.flush()
 
         # Create Course -> Module -> Lesson
         course = Course(
@@ -89,12 +102,13 @@ class TestLessonPublish:
         outbox = outbox_res.scalar_one_or_none()
         assert outbox is not None
         assert outbox.status == OutboxStatus.pending
-        assert outbox.content_version == 1
+        assert outbox.lesson_version == 1
 
     async def test_republish_increments_version(self, seeded_db: AsyncSession):
         """Re-publishing an already published lesson increments content_version."""
-        result = await seeded_db.execute(select(User).limit(1))
-        user = result.scalar_one()
+        user = make_test_user()
+        seeded_db.add(user)
+        await seeded_db.flush()
 
         course = Course(
             instructor_id=user.id,
@@ -136,8 +150,9 @@ class TestLessonPublish:
 
     async def test_cannot_publish_archived_lesson(self, seeded_db: AsyncSession):
         """Archived lessons cannot transition to published."""
-        result = await seeded_db.execute(select(User).limit(1))
-        user = result.scalar_one()
+        user = make_test_user()
+        seeded_db.add(user)
+        await seeded_db.flush()
 
         course = Course(
             instructor_id=user.id,
@@ -160,6 +175,7 @@ class TestLessonPublish:
             module_id=module.id,
             title="Old Lesson",
             slug="old-lesson",
+            sequence_order=1,
             status=LessonStatus.archived,
             content_version=1,
         )

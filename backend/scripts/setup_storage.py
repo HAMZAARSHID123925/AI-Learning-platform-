@@ -15,6 +15,11 @@ Run this ONCE after starting MinIO for the first time.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
+import sys
+
+# Ensure backend root is on sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import aiobotocore.session
 from botocore.exceptions import ClientError
@@ -26,11 +31,11 @@ async def setup_buckets() -> None:
     settings = get_settings()
 
     if not settings.S3_ENDPOINT_URL:
-        print("⚠  S3_ENDPOINT_URL not set — assuming real AWS S3. Bucket creation skipped.")
-        print("   Create the bucket manually in the AWS console.")
+        print("[!] S3_ENDPOINT_URL not set -- assuming real AWS S3. Bucket creation skipped.")
+        print("    Create the bucket manually in the AWS console.")
         return
 
-    print(f"🪣 Setting up MinIO buckets at {settings.S3_ENDPOINT_URL}...")
+    print(f"[*] Setting up MinIO buckets at {settings.S3_ENDPOINT_URL}...")
 
     session = aiobotocore.session.get_session()
     async with session.create_client(
@@ -43,16 +48,16 @@ async def setup_buckets() -> None:
         bucket = settings.S3_BUCKET_NAME
         try:
             await s3.head_bucket(Bucket=bucket)
-            print(f"  ✓ Bucket '{bucket}' already exists.")
+            print(f"  [+] Bucket '{bucket}' already exists.")
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             if error_code in ("404", "NoSuchBucket"):
                 await s3.create_bucket(Bucket=bucket)
-                print(f"  ✓ Bucket '{bucket}' created.")
+                print(f"  [+] Bucket '{bucket}' created.")
             else:
                 raise
 
-    print("✅ Storage setup complete.")
+    print("[SUCCESS] Storage setup complete.")
     print()
     print("MinIO Console: http://localhost:9001")
     print(f"  Username: {settings.S3_ACCESS_KEY_ID}")

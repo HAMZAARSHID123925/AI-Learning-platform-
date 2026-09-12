@@ -33,66 +33,61 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-# Use a dedicated test database URL
-TEST_DATABASE_URL = os.environ.get(
-    "TEST_DATABASE_URL",
-    "postgresql+asyncpg://elarion_user:elarion_pass@localhost:5432/elarion_test",
-)
+from sqlalchemy.pool import NullPool
+
+def _get_test_db_url() -> str:
+    if os.environ.get("TEST_DATABASE_URL"):
+        return os.environ["TEST_DATABASE_URL"]
+    db_url = os.environ.get("DATABASE_URL", "")
+    if "@postgres:" in db_url or os.path.exists("/.dockerenv"):
+        return "postgresql+asyncpg://elarion_user:elarion_pass@postgres_test:5432/elarion_test"
+    return "postgresql+asyncpg://elarion_user:elarion_pass@localhost:5433/elarion_test"
+
+TEST_DATABASE_URL = _get_test_db_url()
 
 
-@pytest.fixture(scope="session")
-def event_loop():
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def init_test_db():
     """
-    Create a single event loop for the entire test session.
-    Required for session-scoped async fixtures.
-    """
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
-async def test_engine():
-    """
-    Create the async engine for the test database.
-    Session-scoped: created once, shared across all tests.
+    Initialize test database schema and seeds once per test session.
     """
     from app.database import Base
+    import app.modules.shared_models.skill_taxonomy  # noqa: F401
+    import app.modules.module1_auth.models  # noqa: F401
+    import app.modules.module2_content.models  # noqa: F401
+    import app.modules.module3_live.models  # noqa: F401
+    import app.modules.module4_experience.models  # noqa: F401
+    import app.modules.module5_assessment.models  # noqa: F401
+    import app.modules.module6_adaptive.models  # noqa: F401
 
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-
-    # Create all tables at session start
+    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
     async with engine.begin() as conn:
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
-    yield engine
-
-    # Drop all tables at session end
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+    async with session_factory() as session:
+        from scripts.seed_data import seed_roles_and_permissions, seed_skill_taxonomy
+        await seed_roles_and_permissions(session)
+        await seed_skill_taxonomy(session)
+        await session.commit()
 
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def db(test_engine) -> AsyncGenerator[AsyncSession, None]:
+async def db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Provide a transactional database session for each test.
-
-    Pattern: Savepoint-based rollback
-        1. Begin an outer transaction (never committed)
-        2. Create a SAVEPOINT for nested transaction support
-        3. Test runs within the savepoint
-        4. After test: rollback to savepoint → outer transaction rolled back
-        5. Database is clean for the next test
-
-    WHY SAVEPOINT?
-        SQLAlchemy uses SAVEPOINT internally for nested transactions.
-        Without this, session.begin_nested() would fail in tests.
+    Provide an isolated transactional database session for each test.
+    Rolls back at the end of every test to ensure zero pollution.
     """
-    connection = await test_engine.connect()
+    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
+    connection = await engine.connect()
     trans = await connection.begin()
     session_factory = async_sessionmaker(bind=connection, expire_on_commit=False)
     session = session_factory()
@@ -103,22 +98,41 @@ async def db(test_engine) -> AsyncGenerator[AsyncSession, None]:
         await session.close()
         await trans.rollback()
         await connection.close()
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture
 async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
-    Async HTTP test client with database session override.
-
-    Uses FastAPI's dependency override to inject the test db session.
-    This means: every API call during a test uses the same rolled-back session.
-    All test data is isolated and never committed to the real database.
+    Async HTTP test client with database session override and isolated Redis client.
     """
     from app.database import get_db
     from app.main import create_app
+    from app.shared.redis_client import get_redis
+    from app.config import get_settings
+    import redis.asyncio as aioredis
 
     app = create_app()
-    app.dependency_overrides[get_db] = lambda: db
+
+    async def _override_get_db():
+        yield db
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    settings = get_settings()
+    test_redis = aioredis.from_url(
+        settings.REDIS_URL,
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=3,
+    )
+
+    async def _override_get_redis():
+        yield test_redis
+
+    app.dependency_overrides[get_redis] = _override_get_redis
+
+    await test_redis.flushdb()
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -126,6 +140,8 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     ) as ac:
         yield ac
 
+    await test_redis.flushdb()
+    await test_redis.aclose()
     app.dependency_overrides.clear()
 
 
@@ -133,9 +149,5 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 async def seeded_db(db: AsyncSession) -> AsyncSession:
     """
     A db session with roles and permissions pre-seeded.
-    Use this in tests that need auth (login, protected endpoints).
     """
-    from scripts.seed_data import seed_roles_and_permissions
-    await seed_roles_and_permissions(db)
-    await db.flush()
     return db

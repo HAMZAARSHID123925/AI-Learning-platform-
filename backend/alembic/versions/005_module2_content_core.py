@@ -2,7 +2,7 @@
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 
 revision = '005'
 down_revision = '004'
@@ -18,7 +18,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(500), nullable=False),
         sa.Column('slug', sa.String(500), nullable=False),
         sa.Column('description', sa.Text, nullable=True),
-        sa.Column('status', sa.Enum('draft', 'published', 'archived', name='course_status', create_type=False), nullable=False, server_default='draft'),
+        sa.Column('status', ENUM('draft', 'published', 'archived', name='course_status', create_type=False), nullable=False, server_default='draft'),
         sa.Column('thumbnail_url', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),
@@ -45,7 +45,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(500), nullable=False),
         sa.Column('slug', sa.String(500), nullable=False),
         sa.Column('body_markdown', sa.Text, nullable=True),
-        sa.Column('status', sa.Enum('draft', 'published', 'archived', name='lesson_status', create_type=False), nullable=False, server_default='draft'),
+        sa.Column('status', ENUM('draft', 'published', 'archived', name='lesson_status', create_type=False), nullable=False, server_default='draft'),
         sa.Column('sequence_order', sa.Integer, nullable=False),
         sa.Column('content_version', sa.Integer, nullable=False, server_default='1'),
         sa.Column('estimated_minutes', sa.Integer, nullable=True),

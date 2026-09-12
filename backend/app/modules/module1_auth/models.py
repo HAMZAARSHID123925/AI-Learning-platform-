@@ -285,11 +285,16 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     target_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     target_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    metadata_: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
+
+    def __init__(self, *args, **kw):
+        if "metadata" in kw:
+            kw["metadata_"] = kw.pop("metadata")
+        super().__init__(*args, **kw)
 
     actor: Mapped[User | None] = relationship(
         "User", back_populates="audit_logs", foreign_keys=[actor_id]

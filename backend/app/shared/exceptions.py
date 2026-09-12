@@ -88,7 +88,8 @@ class EmailNotVerifiedError(ElarionError):
 class PermissionDeniedError(ElarionError):
     """User lacks required permission for this action. Maps to 403."""
     def __init__(self, required_permission: str | None = None) -> None:
-        msg = "You do not have permission to perform this action."
+        self.permission = required_permission
+        msg = f"You do not have permission '{required_permission}' to perform this action." if required_permission else "You do not have permission to perform this action."
         super().__init__(message=msg, code="PERMISSION_DENIED")
 
 

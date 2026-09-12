@@ -5,7 +5,7 @@ Core auth tables. Must exist before courses (instructor FK) and all other module
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
+from sqlalchemy.dialects.postgresql import UUID, JSONB, INET, ENUM
 
 revision = '003'
 down_revision = '002'
@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column('password_hash', sa.Text, nullable=False),
         sa.Column('first_name', sa.String(100), nullable=False),
         sa.Column('last_name', sa.String(100), nullable=False),
-        sa.Column('status', sa.Enum('active', 'suspended', 'pending_verification', name='user_status', create_type=False), nullable=False, server_default='pending_verification'),
+        sa.Column('status', ENUM('active', 'suspended', 'pending_verification', name='user_status', create_type=False), nullable=False, server_default='pending_verification'),
         sa.Column('email_verified', sa.Boolean, nullable=False, server_default='false'),
         sa.Column('parental_consent', sa.Boolean, nullable=True),
         sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),

@@ -2,7 +2,7 @@
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
 
 revision = '010'
 down_revision = '009'
@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('test_id', UUID(as_uuid=True), sa.ForeignKey('tests.id', ondelete='CASCADE'), nullable=False),
         sa.Column('skill_id', UUID(as_uuid=True), sa.ForeignKey('skill_taxonomy.id', ondelete='RESTRICT'), nullable=False),
-        sa.Column('question_type', sa.Enum('mcq', 'short_answer', name='question_type', create_type=False), nullable=False),
+        sa.Column('question_type', ENUM('mcq', 'short_answer', name='question_type', create_type=False), nullable=False),
         sa.Column('prompt', sa.Text, nullable=False),
         sa.Column('options', JSONB, nullable=True),
         sa.Column('rubric', sa.Text, nullable=True),
@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column('test_id', UUID(as_uuid=True), sa.ForeignKey('tests.id', ondelete='RESTRICT'), nullable=False),
         sa.Column('student_id', UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False),
         sa.Column('attempt_number', sa.Integer, nullable=False, server_default='1'),
-        sa.Column('status', sa.Enum('pending', 'grading', 'graded', 'error', name='submission_status', create_type=False), nullable=False, server_default='pending'),
+        sa.Column('status', ENUM('pending', 'grading', 'graded', 'error', name='submission_status', create_type=False), nullable=False, server_default='pending'),
         sa.Column('answers', JSONB, nullable=True),
         sa.Column('overall_score', sa.Numeric(5, 4), nullable=True),
         sa.Column('graded_at', sa.DateTime(timezone=True), nullable=True),
@@ -60,7 +60,7 @@ def upgrade() -> None:
         sa.Column('skill_id', UUID(as_uuid=True), sa.ForeignKey('skill_taxonomy.id', ondelete='RESTRICT'), nullable=False),
         sa.Column('score', sa.Numeric(5, 4), nullable=False),
         sa.Column('max_score', sa.Numeric(5, 4), nullable=False, server_default='1.0'),
-        sa.Column('grader_type', sa.Enum('deterministic', 'llm', name='grader_type', create_type=False), nullable=False),
+        sa.Column('grader_type', ENUM('deterministic', 'llm', name='grader_type', create_type=False), nullable=False),
         sa.Column('llm_feedback', sa.Text, nullable=True),
         sa.UniqueConstraint('submission_id', 'skill_id', name='uq_skill_score'),
     )

@@ -258,12 +258,11 @@ async def create_lesson(
         body_markdown=body.body_markdown, sequence_order=body.sequence_order,
         estimated_minutes=body.estimated_minutes, skill_ids=body.skill_ids,
     )
-    skill_ids = [ls.skill_id for ls in lesson.lesson_skills]
     return LessonResponse(
         id=lesson.id, module_id=lesson.module_id, title=lesson.title,
         slug=lesson.slug, status=lesson.status.value, sequence_order=lesson.sequence_order,
         content_version=lesson.content_version, estimated_minutes=lesson.estimated_minutes,
-        skill_ids=skill_ids, published_at=lesson.published_at,
+        skill_ids=body.skill_ids or [], published_at=lesson.published_at,
         created_at=lesson.created_at, updated_at=lesson.updated_at,
     )
 
@@ -319,7 +318,7 @@ async def update_lesson(
         body_markdown=body.body_markdown, sequence_order=body.sequence_order,
         estimated_minutes=body.estimated_minutes, skill_ids=body.skill_ids,
     )
-    skill_ids = [ls.skill_id for ls in lesson.lesson_skills]
+    skill_ids = body.skill_ids if body.skill_ids is not None else ([ls.skill_id for ls in lesson.lesson_skills] if "lesson_skills" in lesson.__dict__ else [])
     return LessonResponse(
         id=lesson.id, module_id=lesson.module_id, title=lesson.title,
         slug=lesson.slug, status=lesson.status.value, sequence_order=lesson.sequence_order,
@@ -348,7 +347,7 @@ async def publish_lesson(
     lesson = await lesson_service.publish_lesson(
         db=db, lesson_id=lesson_id, actor_id=current_user.id, is_admin=_is_admin(current_user)
     )
-    skill_ids = [ls.skill_id for ls in lesson.lesson_skills]
+    skill_ids = [ls.skill_id for ls in lesson.lesson_skills] if "lesson_skills" in lesson.__dict__ else []
     return LessonResponse(
         id=lesson.id, module_id=lesson.module_id, title=lesson.title,
         slug=lesson.slug, status=lesson.status.value, sequence_order=lesson.sequence_order,

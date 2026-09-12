@@ -24,7 +24,12 @@ Idempotent: Safe to run multiple times (INSERT ... ON CONFLICT DO NOTHING).
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
+import sys
 import uuid
+
+# Ensure backend root is on sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
@@ -187,8 +192,8 @@ async def seed_skill_taxonomy(db) -> None:
             continue  # Skip children in first pass
         skill_id = uuid.uuid4()
         await db.execute(text("""
-            INSERT INTO skill_taxonomy (id, slug, name, parent_id, version)
-            VALUES (:id, :slug, :name, NULL, 1)
+            INSERT INTO skill_taxonomy (id, slug, name, parent_id, version, created_at)
+            VALUES (:id, :slug, :name, NULL, 1, NOW())
             ON CONFLICT (slug) DO NOTHING
         """), {"id": skill_id, "slug": skill_data["slug"], "name": skill_data["name"]})
 
@@ -207,32 +212,32 @@ async def seed_skill_taxonomy(db) -> None:
             continue
         skill_id = uuid.uuid4()
         await db.execute(text("""
-            INSERT INTO skill_taxonomy (id, slug, name, parent_id, version)
-            VALUES (:id, :slug, :name, :parent_id, 1)
+            INSERT INTO skill_taxonomy (id, slug, name, parent_id, version, created_at)
+            VALUES (:id, :slug, :name, :parent_id, 1, NOW())
             ON CONFLICT (slug) DO NOTHING
         """), {"id": skill_id, "slug": skill_data["slug"], "name": skill_data["name"], "parent_id": parent_id})
 
 
 async def main():
-    print("🌱 ELARION Seed Script Starting...")
+    print("[*] ELARION Seed Script Starting...")
 
     async with get_db_session() as db:
-        print("  → Seeding roles and permissions...")
+        print("  -> Seeding roles and permissions...")
         id_map = await seed_roles_and_permissions(db)
-        print(f"  ✓ {len(ROLES)} roles, {len(PERMISSIONS)} permissions seeded.")
+        print(f"  [+] {len(ROLES)} roles, {len(PERMISSIONS)} permissions seeded.")
 
-        print("  → Seeding skill taxonomy...")
+        print("  -> Seeding skill taxonomy...")
         await seed_skill_taxonomy(db)
-        print(f"  ✓ {len(SAMPLE_SKILLS)} skill taxonomy entries seeded.")
+        print(f"  [+] {len(SAMPLE_SKILLS)} skill taxonomy entries seeded.")
 
         await db.commit()
 
-    print("✅ Seed complete.")
+    print("[SUCCESS] Seed complete.")
     print()
     print("Next steps:")
-    print("  1. python scripts/setup_storage.py   → create MinIO buckets")
-    print("  2. uvicorn app.main:app --reload      → start API server")
-    print("  3. http://localhost:8000/docs          → open Swagger UI")
+    print("  1. python scripts/setup_storage.py   -> create MinIO buckets")
+    print("  2. uvicorn app.main:app --reload      -> start API server")
+    print("  3. http://localhost:8000/docs          -> open Swagger UI")
 
 
 if __name__ == "__main__":
