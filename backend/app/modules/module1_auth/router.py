@@ -277,6 +277,17 @@ async def get_me(current_user=Depends(get_current_user)):
     )
 
 
+@router.get(
+    "/auth/me",
+    response_model=UserResponse,
+    summary="Get current user profile (Authentication alias)",
+    tags=["Authentication"],
+)
+async def get_auth_me(current_user=Depends(get_current_user)):
+    """Alias for /users/me under Authentication tag."""
+    return await get_me(current_user=current_user)
+
+
 @router.patch(
     "/users/me",
     response_model=UserResponse,

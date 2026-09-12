@@ -73,8 +73,7 @@ async def get_current_user(
         401: Token invalid/expired/revoked
         403: Account suspended
     """
-    # Import here to avoid circular imports (models depend on shared, shared doesn't depend on models)
-    from app.modules.module1_auth.models import User
+    from app.modules.module1_auth.models import Role, RolePermission, User, UserRole
 
     settings = get_settings()
     token = credentials.credentials
@@ -96,7 +95,10 @@ async def get_current_user(
         select(User)
         .where(User.id == user_id)
         .options(
-            selectinload(User.user_roles).selectinload("role").selectinload("permissions")
+            selectinload(User.user_roles)
+            .selectinload(UserRole.role)
+            .selectinload(Role.role_permissions)
+            .selectinload(RolePermission.permission)
         )
     )
     user = result.scalar_one_or_none()

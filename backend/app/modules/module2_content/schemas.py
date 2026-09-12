@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator, model_config
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # =============================================================================
@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, field_validator, model_config
 # =============================================================================
 
 class CreateCourseRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=3, max_length=500)
     description: str | None = None
@@ -35,7 +35,7 @@ class CreateCourseRequest(BaseModel):
 
 
 class UpdateCourseRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str | None = Field(default=None, min_length=3, max_length=500)
     description: str | None = None
@@ -54,7 +54,7 @@ class CourseResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =============================================================================
@@ -62,7 +62,7 @@ class CourseResponse(BaseModel):
 # =============================================================================
 
 class CreateModuleRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=500)
     description: str | None = None
@@ -70,7 +70,7 @@ class CreateModuleRequest(BaseModel):
 
 
 class UpdateModuleRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = None
@@ -86,7 +86,7 @@ class ModuleResponse(BaseModel):
     lesson_count: int = 0
     created_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =============================================================================
@@ -94,7 +94,7 @@ class ModuleResponse(BaseModel):
 # =============================================================================
 
 class CreateLessonRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=500)
     slug: str | None = None
@@ -113,7 +113,7 @@ class CreateLessonRequest(BaseModel):
 
 
 class UpdateLessonRequest(BaseModel):
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str | None = Field(default=None, min_length=1, max_length=500)
     body_markdown: str | None = None
@@ -136,7 +136,7 @@ class LessonResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LessonDetailResponse(LessonResponse):
@@ -158,4 +158,4 @@ class AssetResponse(BaseModel):
     presigned_url: str | None = None  # Generated on-demand
     created_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)

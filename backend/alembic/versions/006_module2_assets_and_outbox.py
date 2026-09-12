@@ -2,7 +2,7 @@
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 
 revision = '006'
 down_revision = '005'
@@ -15,7 +15,7 @@ def upgrade() -> None:
         'content_assets',
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('lesson_id', UUID(as_uuid=True), sa.ForeignKey('lessons.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('asset_type', sa.Enum('pdf', 'video', 'image', 'audio', name='asset_type', create_type=False), nullable=False),
+        sa.Column('asset_type', ENUM('pdf', 'video', 'image', 'audio', name='asset_type', create_type=False), nullable=False),
         sa.Column('original_filename', sa.String(500), nullable=False),
         sa.Column('storage_key', sa.Text, nullable=False),
         sa.Column('file_size_bytes', sa.Integer, nullable=True),
@@ -29,7 +29,7 @@ def upgrade() -> None:
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('lesson_id', UUID(as_uuid=True), sa.ForeignKey('lessons.id', ondelete='CASCADE'), nullable=False),
         sa.Column('lesson_version', sa.Integer, nullable=False),
-        sa.Column('status', sa.Enum('pending', 'processing', 'completed', 'failed', name='outbox_status', create_type=False), nullable=False, server_default='pending'),
+        sa.Column('status', ENUM('pending', 'processing', 'completed', 'failed', name='outbox_status', create_type=False), nullable=False, server_default='pending'),
         sa.Column('attempts', sa.Integer, nullable=False, server_default='0'),
         sa.Column('last_error', sa.Text, nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),

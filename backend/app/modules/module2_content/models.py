@@ -110,7 +110,7 @@ class Course(Base):
     # Relationships
     modules: Mapped[list[CourseModule]] = relationship(
         "CourseModule", back_populates="course", cascade="all, delete-orphan",
-        order_by="CourseModule.sequence_order"
+        order_by="CourseModule.sequence_order", lazy="selectin"
     )
 
     def __repr__(self) -> str:
@@ -141,7 +141,7 @@ class CourseModule(Base):
     course: Mapped[Course] = relationship("Course", back_populates="modules")
     lessons: Mapped[list[Lesson]] = relationship(
         "Lesson", back_populates="module", cascade="all, delete-orphan",
-        order_by="Lesson.sequence_order"
+        order_by="Lesson.sequence_order", lazy="selectin"
     )
 
     def __repr__(self) -> str:
@@ -189,10 +189,10 @@ class Lesson(Base):
     # Relationships
     module: Mapped[CourseModule] = relationship("CourseModule", back_populates="lessons")
     lesson_skills: Mapped[list[LessonSkill]] = relationship(
-        "LessonSkill", back_populates="lesson", cascade="all, delete-orphan"
+        "LessonSkill", back_populates="lesson", cascade="all, delete-orphan", lazy="selectin"
     )
     assets: Mapped[list[ContentAsset]] = relationship(
-        "ContentAsset", back_populates="lesson", cascade="all, delete-orphan"
+        "ContentAsset", back_populates="lesson", cascade="all, delete-orphan", lazy="selectin"
     )
     outbox_entries: Mapped[list[EmbeddingOutbox]] = relationship(
         "EmbeddingOutbox", back_populates="lesson"

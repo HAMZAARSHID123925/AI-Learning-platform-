@@ -24,7 +24,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_config
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 # =============================================================================
@@ -33,7 +33,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_config
 
 class RegisterRequest(BaseModel):
     """POST /api/v1/auth/register"""
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -157,12 +157,12 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UpdateUserRequest(BaseModel):
     """PATCH /api/v1/users/me — partial update."""
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
@@ -170,7 +170,7 @@ class UpdateUserRequest(BaseModel):
 
 class AdminUpdateUserRequest(BaseModel):
     """PATCH /api/v1/users/:id — Admin can update more fields."""
-    model_config = model_config(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
@@ -194,7 +194,7 @@ class RoleResponse(BaseModel):
     description: str | None
     permissions: list[str]
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =============================================================================
@@ -207,8 +207,8 @@ class AuditLogResponse(BaseModel):
     action: str
     target_type: str | None
     target_id: uuid.UUID | None
-    metadata: dict | None
+    metadata: dict | None = Field(default=None, validation_alias="metadata_")
     ip_address: str | None
     created_at: datetime
 
-    model_config = model_config(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
