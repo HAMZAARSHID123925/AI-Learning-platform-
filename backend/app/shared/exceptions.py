@@ -115,6 +115,9 @@ class ResourceNotFoundError(ElarionError):
         super().__init__(message=msg, code="NOT_FOUND")
 
 
+NotFoundError = ResourceNotFoundError
+
+
 class DuplicateResourceError(ElarionError):
     """Resource already exists (unique constraint violation). Maps to 409."""
     def __init__(self, resource: str, field: str) -> None:
@@ -176,3 +179,8 @@ class StorageError(ElarionError):
             message=f"Storage {operation} failed: {reason}",
             code="STORAGE_ERROR"
         )
+
+
+# Aliases
+AuthorizationError = PermissionDeniedError
+ForbiddenError = PermissionDeniedError

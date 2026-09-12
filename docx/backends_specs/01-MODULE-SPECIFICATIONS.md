@@ -630,6 +630,10 @@ Module 6 is the closed-loop intelligence engine. It consumes `TestGraded` events
 | `student_id` | UUID | FK → users.id | |
 | `weakness_flag_id` | UUID | FK → weakness_flags.id | |
 | `status` | ENUM | NOT NULL | `active`, `completed`, `abandoned` |
+| `remedial_course_title` | VARCHAR(255) | nullable | Title of AI-generated remedial course document |
+| `remedial_course_markdown` | TEXT | nullable | Full AI-generated written course content (Markdown — NOT video) |
+| `study_completed` | BOOLEAN | NOT NULL, default FALSE | True once student completes reading the remedial document |
+| `study_completed_at` | TIMESTAMPTZ | nullable | When student finished reading remedial content |
 | `retest_attempt_count` | INTEGER | NOT NULL, default 0 | |
 | `instructor_escalated` | BOOLEAN | default FALSE | Set on 3rd failed retest |
 | `created_at` | TIMESTAMPTZ | NOT NULL | |
@@ -663,11 +667,12 @@ Module 6 is the closed-loop intelligence engine. It consumes `TestGraded` events
 1. **Weakness threshold is `score < 0.60`** (60%). This is rule-based — no ML model. The threshold is a platform constant, configurable by Admin.
 2. **Only one active weakness flag per skill per student.** If a new `TestGraded` event arrives for a skill already flagged, the existing flag is updated rather than a duplicate created.
 3. **Weakness resolution:** A `weakness_flag.status = 'resolved'` when a subsequent `TestGraded` event shows `score >= 0.60` for the same skill. The `resolution_submission_id` is set.
-4. **Remediation plan items are ordered.** The system queries the SkillTaxonomy to find lessons tagged with the weak skill, ordered by `lessons.sequence_order`.
-5. **Content gating is backend-enforced.** When a weakness flag is `active`, subsequent lessons in the same module are transitioned to `state = 'locked'`. The `GET /lessons/:id` endpoint returns `403` for locked lessons.
-6. **Retest is bounded.** `remediation_plans.retest_attempt_count` is incremented on each focused retest. At `count = 3` (3rd failed retest), `instructor_escalated = true` is set and no further retests are auto-triggered.
-7. **Focused retest scope.** When Module 6 triggers a retest, it calls Module 5's generation service with a `skill_filter = [weak_skill_id]`. The generated test covers only the flagged skills.
-8. **Remediation completion.** When all `remediation_plan_items` are `completed`, the plan moves to `completed` and a focused retest is triggered.
+4. **AI-Generated Written Remedial Course (Document / Reading Format — NOT video):** When a weakness is flagged, the AI engine calls Claude API (`claude-sonnet-4-5`) to dynamically generate a targeted written course in clean Markdown. It directly breaks down the student's test errors, explains core principles, and provides step-by-step worked examples.
+5. **Mandatory Study Completion Before Retesting:** The system does NOT immediately generate another test. The student must study and acknowledge completion of the AI-generated remedial course document (`study_completed = true`) before Module 5 is unlocked or triggered to generate the focused retest.
+6. **Content gating is backend-enforced.** When a weakness flag is `active`, subsequent lessons in the same module are transitioned to `state = 'locked'`. The `GET /lessons/:id` endpoint returns `403` for locked lessons.
+7. **Retest is bounded.** `remediation_plans.retest_attempt_count` is incremented on each focused retest. At `count = 3` (3rd failed retest), `instructor_escalated = true` is set and no further retests are auto-triggered.
+8. **Focused retest scope.** When Module 6 triggers a retest (after study completion), it calls Module 5's generation service with a `skill_filter = [weak_skill_id]`. The generated test covers only the flagged skills.
+9. **Remediation completion.** When the remedial study is finished and the subsequent focused retest is passed (`score >= 0.60`), the plan moves to `completed` and blocked lessons are unlocked.
 
 ---
 
@@ -675,8 +680,9 @@ Module 6 is the closed-loop intelligence engine. It consumes `TestGraded` events
 
 ```
 GET    /api/v1/students/me/weakness-flags        [Student]
-GET    /api/v1/students/me/remediation-plan      [Student]
+GET    /api/v1/students/me/remediation-plan      [Student — includes remedial course Markdown]
 POST   /api/v1/remediation-plans/:id/acknowledge [Student — acknowledge receipt]
+POST   /api/v1/remediation-plans/:id/complete-study [Student — confirm remedial document studied → triggers retest]
 GET    /api/v1/students/me/learning-path         [Student — full state per lesson]
 GET    /api/v1/students/:id/weakness-flags       [Instructor, Admin]
 GET    /api/v1/students/:id/remediation-plan     [Instructor, Admin]

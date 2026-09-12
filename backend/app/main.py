@@ -177,11 +177,17 @@ def create_app() -> FastAPI:
     # -------------------------------------------------------------------------
     from app.modules.module1_auth.router import router as auth_router
     from app.modules.module2_content.router import router as content_router
+    from app.modules.module3_live.router import router as live_router
     from app.modules.module4_experience.router import router as experience_router
+    from app.modules.module5_assessment.router import router as assessment_router
+    from app.modules.module6_adaptive.router import router as adaptive_router
 
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(content_router, prefix="/api/v1")
+    app.include_router(live_router, prefix="/api/v1")
     app.include_router(experience_router, prefix="/api/v1")
+    app.include_router(assessment_router, prefix="/api/v1")
+    app.include_router(adaptive_router, prefix="/api/v1")
 
     # -------------------------------------------------------------------------
     # Health Check Endpoint

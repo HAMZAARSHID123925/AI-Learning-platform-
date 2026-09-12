@@ -160,32 +160,82 @@ async def process_embedding_outbox():
             logger.error("Embedding job failed", lesson_id=outbox.lesson_id, error=str(e))
 ```
 
-### 2.3 Text Extraction
+### 2.3 Text & Video Transcript Extraction Pipeline
 
 ```python
 # services/content_extractor.py
 
-async def extract_and_chunk_lesson(lesson: Lesson) -> list[TextChunk]:
+async def extract_and_chunk_lesson(lesson: Lesson, db: AsyncSession) -> list[TextChunk]:
+    """
+    Extracts authoritative learning text from all attached lesson assets:
+    - Text/Markdown: Lesson body text
+    - PDF: Extracted via PyMuPDF/pdfplumber
+    - Video: Audio transcription via Whisper / speech-to-text or attached transcript files (.vtt/.srt/.txt)
+    """
     chunks = []
-    for asset in lesson.content_assets:
-        if asset.type == AssetType.text:
-            text = asset.raw_text  # Stored as plain text
-        elif asset.type == AssetType.pdf:
-            text = await extract_pdf_text(asset.storage_key)  # Uses pdfplumber or pymupdf
-        elif asset.type == AssetType.video:
-            # Transcripts must be uploaded separately as text assets
-            # Video files are not directly extracted — too expensive
-            continue
-
-        # Semantic chunking: ~512 tokens per chunk, 50-token overlap
-        raw_chunks = chunk_text(text, max_tokens=512, overlap=50)
+    
+    # 1. Extract from lesson's primary markdown body text
+    if lesson.body_text:
+        raw_chunks = chunk_text(lesson.body_text, max_tokens=512, overlap=50)
         for chunk_text_content in raw_chunks:
             chunks.append(TextChunk(
                 text=chunk_text_content,
-                skill_ids=[s.skill_id for s in lesson.lesson_skills]
+                skill_ids=[s.skill_id for s in lesson.lesson_skills],
+                source_type="lesson_text"
             ))
 
+    # 2. Extract from attached content assets
+    for asset in lesson.assets:
+        text = ""
+        source_type = asset.asset_type.value
+
+        if asset.asset_type == AssetType.pdf:
+            text = await extract_pdf_text(asset.storage_key)
+        elif asset.asset_type == AssetType.video:
+            # Video Ingestion Pipeline:
+            # Step A: Check if pre-extracted transcript exists or if .vtt/.srt transcript was uploaded
+            # Step B: Otherwise, extract audio and transcribe via Whisper API
+            text = await extract_video_transcript(asset.storage_key, asset.id, db)
+
+        if text:
+            raw_chunks = chunk_text(text, max_tokens=512, overlap=50)
+            for chunk_text_content in raw_chunks:
+                chunks.append(TextChunk(
+                    text=chunk_text_content,
+                    skill_ids=[s.skill_id for s in lesson.lesson_skills],
+                    source_type=source_type
+                ))
+
     return chunks
+
+
+async def extract_video_transcript(storage_key: str, asset_id: UUID, db: AsyncSession) -> str:
+    """
+    Video Transcription Pipeline:
+    1. Downloads video audio stream from S3/MinIO.
+    2. Invokes OpenAI Whisper / Speech-to-Text API (or local fast-whisper).
+    3. Normalizes timestamp markers (e.g., [02:30] Discussion of IELTS paragraph structure).
+    4. Caches transcript in database/S3 so re-indexing does not re-transcribe.
+    """
+    # Check cache first
+    cached_transcript = await get_cached_transcript(asset_id, db)
+    if cached_transcript:
+        return cached_transcript
+
+    # Fetch presigned URL or download stream from MinIO/S3
+    audio_stream = await download_audio_from_storage(storage_key)
+    
+    # Transcribe via Whisper
+    client = openai.AsyncOpenAI()
+    transcription = await client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_stream,
+        response_format="text"
+    )
+    
+    # Store for future idempotency
+    await cache_transcript(asset_id, transcription, db)
+    return transcription
 ```
 
 ### 2.4 Embedding API
@@ -688,6 +738,96 @@ async def run_grading_pipeline(submission_id: UUID, db: AsyncSession):
         await db.commit()
         logger.error("Grading pipeline failed", submission_id=submission_id, error=str(e))
         raise
+```
+
+---
+
+## 6. AI Remedial Course Generator (Written Document / Reading Format)
+
+### 6.1 Architectural Mandate: Document Generation vs. Premature Retesting
+
+When a student demonstrates weakness on an assessment (sub-skill score < 0.60):
+1. **The system DOES NOT immediately generate another test.** Re-testing a student without remediation reinforces failure and causes test frustration.
+2. **The system DOES NOT generate video tutorials.** Video generation is high-latency, uneditable, and inefficient for precise conceptual repair.
+3. **The system DYNAMICALLY GENERATES A TARGETED WRITTEN COURSE / STUDY DOCUMENT** using Claude API (`claude-sonnet-4-5` or `claude-opus-4-5`). This is a structured, comprehensive written guide (in Markdown format) specifically tailored to the student's exact test mistakes and misconceptions.
+4. **Mandatory Study Gate:** The student must read and acknowledge this AI-generated written course before Module 5 unlocks or generates the follow-up targeted retest.
+
+### 6.2 Remedial Course Generation Prompt & Contract
+
+```python
+# services/remedial_course_generator.py
+
+REMEDIAL_COURSE_SYSTEM_PROMPT = """
+You are an expert pedagogical remediation specialist for the ELARION Adaptive Learning Platform.
+A student has failed an assessment in a specific skill area. Your task is to generate a custom,
+in-depth, highly structured WRITTEN REMEDIAL COURSE DOCUMENT (in clean GitHub-flavored Markdown).
+
+DO NOT generate video scripts or superficial bullet lists.
+Generate an exhaustive, highly readable, and encouraging written tutorial that:
+1. Breaks down the core concept from first principles.
+2. Directly analyzes the student's specific test mistakes and diagnoses their exact cognitive misconception.
+3. Provides side-by-side contrastive examples ("Common Pitfall" vs. "Mastery Approach").
+4. Walks through 3 realistic step-by-step worked examples with annotations.
+5. Concludes with a concise "Rules of Thumb & Mental Checklist" for the student to remember before their retest.
+
+Respond ONLY with valid JSON matching the specified schema.
+"""
+
+REMEDIAL_COURSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "target_skill": {"type": "string"},
+        "estimated_reading_minutes": {"type": "integer"},
+        "summary": {"type": "string"},
+        "content_markdown": {
+            "type": "string",
+            "description": "Full written remedial course formatted in Markdown, with headings, callouts, and code/text examples."
+        },
+        "key_takeaways": {
+            "type": "array",
+            "items": {"type": "string"}
+        }
+    },
+    "required": ["title", "target_skill", "estimated_reading_minutes", "summary", "content_markdown", "key_takeaways"]
+}
+
+async def generate_remedial_course_document(
+    skill_name: str,
+    skill_description: str,
+    student_score: float,
+    mistakes_context: list[dict],
+    rag_chunks: list[str]
+) -> dict:
+    """
+    Calls Claude API to generate a written remedial course tailored to the student's mistakes.
+    """
+    user_prompt = f"""
+    TARGET SKILL: {skill_name}
+    SKILL DESCRIPTION: {skill_description}
+    STUDENT ASSESSMENT SCORE: {student_score * 100:.1f}% (Threshold: 60%)
+
+    STUDENT TEST MISTAKES & REASONING:
+    {json.dumps(mistakes_context, indent=2)}
+
+    AUTHORITATIVE COURSE CONTEXT (RAG EXCERPTS):
+    {chr(10).join(f"- {chunk}" for chunk in rag_chunks)}
+
+    Generate a complete, written remedial course document in Markdown addressing these specific weaknesses.
+    """
+
+    client = anthropic.AsyncAnthropic()
+    message = await client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=4000,
+        temperature=0.2,
+        system=REMEDIAL_COURSE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}]
+    )
+
+    # Parse and validate JSON output
+    content = json.loads(message.content[0].text)
+    return content
 ```
 
 ---

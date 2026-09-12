@@ -109,6 +109,12 @@ class RemediationPlan(Base):
     status: Mapped[PlanStatus] = mapped_column(
         Enum(PlanStatus, name="plan_status"), nullable=False, default=PlanStatus.active
     )
+    # AI-generated written remedial course (structured Markdown document, NOT video)
+    remedial_course_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    remedial_course_markdown: Mapped[str | None] = mapped_column(Text, nullable=True)
+    study_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    study_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     retest_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     instructor_escalated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(

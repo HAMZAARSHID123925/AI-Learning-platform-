@@ -159,6 +159,7 @@ class Settings(BaseSettings):
     AGORA_APP_ID: str = ""
     AGORA_APP_CERTIFICATE: str = ""
     DAILY_API_KEY: str = ""
+    WEBHOOK_SECRET: str = "elarion_default_webhook_secret_key"
 
     # -------------------------------------------------------------------------
     # Email (Phase 1: console, Prod: real SMTP)

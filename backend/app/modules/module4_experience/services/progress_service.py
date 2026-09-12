@@ -118,7 +118,13 @@ async def mark_lesson_complete(
             state=PathState.mastered,
         ))
 
+    await db.commit()
     logger.info("lesson_completed", student_id=str(student_id), lesson_id=str(lesson_id))
+
+    # Invalidate cached student dashboard
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(student_id)
+
     return progress
 
 

@@ -63,21 +63,25 @@ async def init_test_db():
     import app.modules.module5_assessment.models  # noqa: F401
     import app.modules.module6_adaptive.models  # noqa: F401
 
-    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
-    async with engine.begin() as conn:
-        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
+        async with engine.begin() as conn:
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
 
-    session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
-    async with session_factory() as session:
-        from scripts.seed_data import seed_roles_and_permissions, seed_skill_taxonomy
-        await seed_roles_and_permissions(session)
-        await seed_skill_taxonomy(session)
-        await session.commit()
+        session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with session_factory() as session:
+            from scripts.seed_data import seed_roles_and_permissions, seed_skill_taxonomy
+            await seed_roles_and_permissions(session)
+            await seed_skill_taxonomy(session)
+            await session.commit()
 
-    await engine.dispose()
+        await engine.dispose()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("PostgreSQL test database not reachable at %s. Integration tests requiring DB will fail: %s", TEST_DATABASE_URL, e)
 
 
 @pytest_asyncio.fixture

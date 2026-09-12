@@ -178,18 +178,19 @@ Phase 5: BFF Aggregation, Real-Time & Hardening (Days 21–25)
 | 12 | Module 6: WeaknessFlag, RemediationPlan, RemediationPlanItem, LearningPathState models + migration | M6 | Backend |
 | 12 | Module 6: `TestGraded` event consumer (Redis Streams consumer group) | M6 | Backend |
 | 13 | Module 6: Rule-based weakness detector (sub-skill score `< 60%` → `WeaknessFlag`) | M6 | Backend |
-| 13 | Module 6: Remediation plan generator (SkillTaxonomy lookup → lesson mapping → ordered plan) | M6 | Backend |
+| 13 | Module 6: AI Remedial Course Generator (Claude API synthesizes written Markdown course/study guide on weak points — NOT video) | M6/AI | Backend |
 | 14 | Module 6: `LearningPathState` transitions (`locked → unlocked → in_progress → mastered`) | M6 | Backend |
 | 14 | Backend gating: `GET /lessons/:id` checks `LearningPathState` — returns `403` if locked | M6 | Backend |
-| 15 | Module 6: Focused retest trigger on remediation completion (calls M5 generate with skill scope) | M6 | Backend |
+| 15 | Module 6: Study completion endpoint (`POST /remediation-plans/:id/complete-study`) gating the retest | M6 | Backend |
+| 15 | Module 6: Focused retest trigger ONLY after remedial study completed (calls M5 generate with skill scope) | M6 | Backend |
 | 15 | Retest attempt counter: max 3 → 4th failure sets `instructor_escalation = true` | M6 | Backend |
 | 16 | `GET /students/:id/remediation-plan` + `POST /remediation-plans/:id/acknowledge` | M6 | Backend |
-| 16 | Full loop integration test: Fail skill → see plan → complete remediation → retest triggered | All | Backend |
+| 16 | Full loop integration test: Fail skill → AI generates written course → study document → retest triggered | All | Backend |
 
 **Phase 3 Deliverable (What You See):**
-- Fail a skill below 60% → remediation plan automatically created
-- Advanced lesson returns `403 Forbidden` until remediation complete
-- Complete remediation → focused retest auto-triggers on weak skills only
+- Fail a skill below 60% → AI synthesizes a personalized written remedial course in Markdown targeting student's exact errors (no video)
+- Advanced lesson returns `403 Forbidden` until remedial course is studied and retest is passed
+- Student reads remedial document and marks study complete → focused retest auto-triggers on weak skills
 - After 3 failures: student marked for instructor intervention (flag visible in admin panel)
 
 ---

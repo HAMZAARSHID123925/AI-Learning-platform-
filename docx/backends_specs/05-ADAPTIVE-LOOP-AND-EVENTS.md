@@ -35,24 +35,31 @@
 ┌────────────────────────────────────────────────────────────────────┐
 │                 Module 6 Consumer (Adaptive Engine)                │
 │                                                                    │
-│   1. Read skill_scores from event payload                          │
+│   1. Read skill_scores & student errors from event payload         │
 │   2. For each skill_score < 0.60 → weakness_flags.create/update   │
-│   3. For each new weakness → create remediation_plan               │
-│   4. Map weak skills → remediation lessons via SkillTaxonomy       │
+│   3. Trigger Claude API: Generate Tailored Remedial Course         │
+│      (Structured written document/Markdown — NOT video)            │
+│      Synthesizes student's specific misconceptions, root concepts, │
+│      and targeted reading explanations                             │
+│   4. Create remediation_plan storing generated course document     │
 │   5. Set subsequent lessons in module to state = 'locked'          │
-│   6. Emit remediation.updated event → Module 4                     │
+│   6. Emit remediation.created event → Module 4                     │
 └───────────────────────────────┬────────────────────────────────────┘
                                 │
                                 ▼
 ┌────────────────────────────────────────────────────────────────────┐
-│              Student sees remediation plan (Module 4)              │
-│              Completes remedial lessons                            │
+│              Student Studies AI Remedial Course (Module 4)         │
+│                                                                    │
+│   • Reads customized written remedial document                     │
+│   • Reviews worked examples addressing their specific test errors  │
+│   • Confirms completion: POST /remediation-plans/:id/complete-study│
 └───────────────────────────────┬────────────────────────────────────┘
-                                │ POST /lessons/:id/complete (remedial)
+                                │ Study completed & acknowledged
                                 ▼
 ┌────────────────────────────────────────────────────────────────────┐
-│           Module 6: all plan items completed?                      │
-│           → Trigger focused retest via Module 5                    │
+│           Module 6: Student finished remedial study?               │
+│           → Trigger Module 5: Generate focused retest on weak skill│
+│           → Student completes retest                               │
 │           → Increment remediation_plans.retest_attempt_count       │
 │           → If count = 3 and still failing → instructor_escalated  │
 └───────────────────────────────┬────────────────────────────────────┘
@@ -342,7 +349,7 @@ async def resolve_weakness_if_active(
 
 ---
 
-## 4. Remediation Plan Generator
+## 4. Remediation Plan & AI Remedial Course Generator
 
 ```python
 # services/remediation_planner.py
@@ -350,54 +357,70 @@ async def resolve_weakness_if_active(
 async def create_remediation_plan(
     db: AsyncSession,
     student_id: UUID,
-    weakness_flag: WeaknessFlag
+    weakness_flag: WeaknessFlag,
+    failed_submission_id: UUID
 ) -> RemediationPlan:
     """
-    Builds an ordered list of remediation lessons for a specific weak skill.
-    Lessons are selected from Module 2's content library tagged with the weak skill.
+    Synthesizes a customized, written remedial course specifically addressing
+    the student's weak sub-skills and test misconceptions.
+    
+    IMPORTANT ARCHITECTURAL RULE:
+    Instead of simply generating another test right away or only referencing old static lessons,
+    the AI engine invokes the Claude API to dynamically generate a comprehensive 
+    WRITTEN REMEDIAL COURSE / STUDY DOCUMENT (structured Markdown - NOT video).
+    
+    The student must read and study this remedial document first.
+    Only after completing this remedial study does Module 5 generate the focused retest.
     """
-    # Find lessons tagged with this skill, ordered by sequence
-    result = await db.execute(
-        select(Lesson)
-        .join(LessonSkill, LessonSkill.lesson_id == Lesson.id)
-        .where(
-            LessonSkill.skill_id == weakness_flag.skill_id,
-            Lesson.status == LessonStatus.published
-        )
-        .order_by(Lesson.sequence_order)
-        .limit(5)  # Cap at 5 remediation items
+    # 1. Fetch skill details and student's failed answers from the submission
+    skill = await db.get(SkillTaxonomy, weakness_flag.skill_id)
+    submission_errors = await get_student_mistakes_for_skill(db, failed_submission_id, weakness_flag.skill_id)
+    
+    # 2. Invoke Claude API to synthesize a written remedial course document
+    remedial_course_doc = await ai_generator.generate_remedial_course_document(
+        skill_name=skill.name,
+        skill_description=skill.description,
+        student_score=float(weakness_flag.score_at_flag),
+        mistakes_context=submission_errors
     )
-    remedial_lessons = result.scalars().all()
-
-    if not remedial_lessons:
-        logger.warning(
-            "No remedial lessons found for skill",
-            skill_id=weakness_flag.skill_id,
-            student_id=student_id
-        )
-        # Still create the plan (it may be populated manually by instructor)
 
     plan = RemediationPlan(
         student_id=student_id,
         weakness_flag_id=weakness_flag.id,
         status=PlanStatus.active,
-        retest_attempt_count=0
+        retest_attempt_count=0,
+        remedial_course_title=remedial_course_doc["title"],
+        remedial_course_markdown=remedial_course_doc["content_markdown"],
+        study_completed=False  # Student must complete reading before retest
     )
     db.add(plan)
     await db.flush()
 
-    for i, lesson in enumerate(remedial_lessons):
-        item = RemediationPlanItem(
-            plan_id=plan.id,
-            lesson_id=lesson.id,
-            sequence_order=i + 1,
-            status=PlanItemStatus.pending
-        )
-        db.add(item)
-
-    # Lock subsequent content in the module
+    # Lock subsequent content in the module until remediation is cleared
     await lock_lessons_for_weakness(db, student_id, weakness_flag)
 
+    return plan
+
+
+async def complete_remedial_study(
+    db: AsyncSession,
+    student_id: UUID,
+    plan_id: UUID
+) -> RemediationPlan:
+    """
+    Called when student confirms they have finished studying the AI-generated remedial course.
+    Unlocks and triggers Module 5 to generate the targeted follow-up retest.
+    """
+    plan = await db.get(RemediationPlan, plan_id)
+    if not plan or plan.student_id != student_id:
+        raise HTTPException(status_code=404, detail="Remediation plan not found")
+        
+    plan.study_completed = True
+    plan.study_completed_at = datetime.utcnow()
+    await db.flush()
+
+    # Trigger Module 5 to generate the focused retest for this weak skill
+    await trigger_focused_retest(db, plan)
     return plan
 ```
 

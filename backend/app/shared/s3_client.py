@@ -147,6 +147,25 @@ async def generate_presigned_url(storage_key: str, expires_in: int = 3600) -> st
         raise StorageError("presigned_url", str(e)) from e
 
 
+async def download_file_bytes(storage_key: str) -> bytes:
+    """
+    Download a file's raw bytes from object storage.
+    Used by extraction workers to parse PDFs and audio files.
+    """
+    settings = get_settings()
+    try:
+        async with _get_s3_client() as s3:
+            response = await s3.get_object(
+                Bucket=settings.S3_BUCKET_NAME,
+                Key=storage_key,
+            )
+            async with response["Body"] as stream:
+                return await stream.read()
+    except ClientError as e:
+        logger.error("s3_download_failed", key=storage_key, error=str(e))
+        raise StorageError("download", str(e)) from e
+
+
 async def delete_file(storage_key: str) -> None:
     """
     Delete a file from object storage.

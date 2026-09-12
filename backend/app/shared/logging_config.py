@@ -23,7 +23,11 @@ from __future__ import annotations
 import logging
 import sys
 
-import structlog
+try:
+    import structlog
+    _HAS_STRUCTLOG = True
+except ImportError:
+    _HAS_STRUCTLOG = False
 
 
 def configure_logging(environment: str = "development") -> None:
@@ -33,6 +37,10 @@ def configure_logging(environment: str = "development") -> None:
     In development: pretty-printed console output (human-readable)
     In staging/production: JSON output (machine-readable, searchable)
     """
+    if not _HAS_STRUCTLOG:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        return
+
     is_dev = environment == "development"
 
     # Configure standard Python logging to route through structlog
@@ -64,23 +72,36 @@ def configure_logging(environment: str = "development") -> None:
     )
 
 
-def get_logger(name: str = __name__) -> structlog.stdlib.BoundLogger:
+class _StandardFallbackLogger:
+    """Fallback logger that mimics structlog's key-value logging using standard logging."""
+    def __init__(self, name: str):
+        self._logger = logging.getLogger(name)
+
+    def _fmt(self, event: str, **kwargs) -> str:
+        if kwargs:
+            extra = " ".join(f"{k}={v}" for k, v in kwargs.items())
+            return f"{event} {extra}"
+        return event
+
+    def info(self, event: str, **kwargs):
+        self._logger.info(self._fmt(event, **kwargs))
+
+    def warning(self, event: str, **kwargs):
+        self._logger.warning(self._fmt(event, **kwargs))
+
+    def error(self, event: str, **kwargs):
+        self._logger.error(self._fmt(event, **kwargs))
+
+    def debug(self, event: str, **kwargs):
+        self._logger.debug(self._fmt(event, **kwargs))
+
+
+def get_logger(name: str = __name__):
     """
     Get a structured logger with the given name.
-
-    Usage:
-        from app.shared.logging_config import get_logger
-        logger = get_logger(__name__)
-
-        # Log with structured fields (not string interpolation)
-        logger.info("user_login", user_id=str(user.id), email=user.email)
-        logger.error("grading_failed", submission_id=str(sub.id), error=str(e))
-
-    WHY not f-strings in log calls?
-        logger.error(f"Grading failed for {submission_id}")
-            → Plain text, not searchable by field
-
-        logger.error("grading_failed", submission_id=submission_id)
-            → JSON field, searchable by exact value
+    Falls back to standard logger if structlog is not installed.
     """
-    return structlog.get_logger(name)
+    if _HAS_STRUCTLOG:
+        return structlog.get_logger(name)
+    return _StandardFallbackLogger(name)
+
