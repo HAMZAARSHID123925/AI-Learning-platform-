@@ -16,37 +16,37 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-
     try {
-      // TEMPORARY MOCK LOGIN FOR UI TESTING
-      if (email === "test@123.com" && password === "test123") {
+      // UI TESTING MOCK
+      if (false) {
         setTimeout(() => {
-          localStorage.setItem('access_token', 'fake_mock_token_for_ui_testing');
+          localStorage.setItem('access_token', 'mock_ui_token');
           router.push('/dashboard');
-        }, 1000);
+        }, 800);
         return;
       }
 
       const response = await fetch('http://localhost:8000/api/v1/auth/login', {
-
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Login failed. Please check your credentials.');
+        throw new Error(data.message || 'Invalid credentials');
       }
 
-      // Success! Save token and redirect
       localStorage.setItem('access_token', data.access_token);
       router.push('/dashboard');
     } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError(String(err));
-
+      setError((err as Error).message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -278,7 +278,7 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
                 Password
               </label>
-              <Link href="#forgot-password" className="text-xs font-semibold text-[#027FFF] hover:text-[#026bd6] focus-visible:outline-none focus-visible:underline transition-colors">
+              <Link href="/forgot-password" className="text-xs font-semibold text-[#027FFF] hover:text-[#026bd6] focus-visible:outline-none focus-visible:underline transition-colors">
                 Forgot Password?
               </Link>
             </div>

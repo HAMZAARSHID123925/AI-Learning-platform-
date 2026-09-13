@@ -10,30 +10,15 @@ import {
 } from 'recharts';
 import { 
   LayoutDashboard, BookOpen, Headphones, PenTool, Mic, 
-  LineChart as LineChartIcon, Settings, LogOut, Bell, User,
-  BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight
+  LineChart as LineChartIcon, Settings, Video, LogOut, Bell, User,
+  BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight,
+  Globe2, GraduationCap
 } from 'lucide-react';
-
-const mockPerformanceData = [
-  { name: 'Week 1', score: 5.5 },
-  { name: 'Week 2', score: 6.0 },
-  { name: 'Week 3', score: 6.0 },
-  { name: 'Week 4', score: 6.5 },
-  { name: 'Week 5', score: 7.0 },
-  { name: 'Week 6', score: 7.5 },
-];
-
-const mockRadarData = [
-  { subject: 'Lexical Resource', A: 85, fullMark: 100 },
-  { subject: 'Grammar', A: 70, fullMark: 100 },
-  { subject: 'Coherence', A: 80, fullMark: 100 },
-  { subject: 'Pronunciation', A: 65, fullMark: 100 },
-  { subject: 'Fluency', A: 75, fullMark: 100 },
-];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [isAuth, setIsAuth] = useState(false);
+  const [courseTrack, setCourseTrack] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -41,8 +26,19 @@ export default function DashboardPage() {
       router.push('/login');
     } else {
       setTimeout(() => setIsAuth(true), 0);
+      
+      // Load user's selected track
+      const savedTrack = localStorage.getItem('courseTrack');
+      if (savedTrack) {
+        setTimeout(() => setCourseTrack(savedTrack), 0);
+      }
     }
   }, [router]);
+
+  const handleSelectTrack = (track: string) => {
+    localStorage.setItem('courseTrack', track);
+    setCourseTrack(track);
+  };
 
   if (!isAuth) {
     return (
@@ -52,6 +48,93 @@ export default function DashboardPage() {
     );
   }
 
+  // --- DYNAMIC CONTENT BASED ON SELECTED TRACK ---
+  const isIELTS = courseTrack === 'ielts';
+
+  const mockPerformanceData = isIELTS ? [
+    { name: 'Week 1', score: 5.5 }, { name: 'Week 2', score: 6.0 }, { name: 'Week 3', score: 6.0 },
+    { name: 'Week 4', score: 6.5 }, { name: 'Week 5', score: 7.0 }, { name: 'Week 6', score: 7.5 },
+  ] : [
+    { name: 'Week 1', score: 30 }, { name: 'Week 2', score: 45 }, { name: 'Week 3', score: 55 },
+    { name: 'Week 4', score: 65 }, { name: 'Week 5', score: 75 }, { name: 'Week 6', score: 85 },
+  ];
+
+  const mockRadarData = isIELTS ? [
+    { subject: 'Lexical Resource', A: 85, fullMark: 100 },
+    { subject: 'Grammar', A: 70, fullMark: 100 },
+    { subject: 'Coherence', A: 80, fullMark: 100 },
+    { subject: 'Pronunciation', A: 65, fullMark: 100 },
+    { subject: 'Task Achievement', A: 75, fullMark: 100 },
+  ] : [
+    { subject: 'Vocabulary', A: 85, fullMark: 100 },
+    { subject: 'Grammar', A: 75, fullMark: 100 },
+    { subject: 'Conversation', A: 60, fullMark: 100 },
+    { subject: 'Listening', A: 80, fullMark: 100 },
+    { subject: 'Reading', A: 90, fullMark: 100 },
+  ];
+
+  // ============================================================================
+  // ONBOARDING MODAL (Renders if no course track is selected)
+  // ============================================================================
+  if (!courseTrack) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B1221] p-4 font-sans relative overflow-hidden">
+        {/* Ambient Lights */}
+        <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] bg-[#027FFF] rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-[#5BC0EB] rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+
+        <div className="w-full max-w-4xl z-10">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#027FFF] to-[#5BC0EB] p-0.5 shadow-lg shadow-[#027FFF]/30 mb-6">
+              <div className="w-full h-full bg-[#0B1221] rounded-[14px] flex items-center justify-center">
+                <BrainCircuit className="w-8 h-8 text-[#5BC0EB]" />
+              </div>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-4">Welcome to PPAcademia AI</h1>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">To personalize your adaptive learning engine, please select your primary focus. The AI will completely recalibrate your dashboard based on this choice.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* General English Option */}
+            <button 
+              onClick={() => handleSelectTrack('general')}
+              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-[#0f182c] border border-white/5 hover:border-[#5BC0EB]/50 transition-all duration-300 hover:shadow-[0_0_40px_rgba(91,192,235,0.15)] hover:-translate-y-2 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#5BC0EB]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="w-16 h-16 rounded-full bg-[#5BC0EB]/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Globe2 className="w-8 h-8 text-[#5BC0EB]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">General English</h2>
+              <p className="text-sm text-slate-400 mb-6 leading-relaxed">Master everyday conversational and professional English. Track your progress across global CEFR levels (A1 to C2).</p>
+              <div className="mt-auto px-6 py-2.5 rounded-full bg-white/5 text-slate-300 font-medium text-sm group-hover:bg-[#5BC0EB] group-hover:text-[#0B1221] transition-colors duration-300">
+                Select General English
+              </div>
+            </button>
+
+            {/* IELTS Option */}
+            <button 
+              onClick={() => handleSelectTrack('ielts')}
+              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-[#0f182c] border border-white/5 hover:border-[#027FFF]/50 transition-all duration-300 hover:shadow-[0_0_40px_rgba(2,127,255,0.15)] hover:-translate-y-2 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#027FFF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="w-16 h-16 rounded-full bg-[#027FFF]/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <GraduationCap className="w-8 h-8 text-[#027FFF]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">IELTS Preparation</h2>
+              <p className="text-sm text-slate-400 mb-6 leading-relaxed">Intensive, multi-agent evaluation for Academic or General Training. Target a specific Band Score with examiner-calibrated precision.</p>
+              <div className="mt-auto px-6 py-2.5 rounded-full bg-white/5 text-slate-300 font-medium text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-colors duration-300">
+                Select IELTS Track
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // MAIN DASHBOARD (Rendered once a track is selected)
+  // ============================================================================
   return (
     <div className="flex h-screen overflow-hidden bg-[#0B1221] text-slate-300 font-sans">
       
@@ -76,21 +159,44 @@ export default function DashboardPage() {
               <LayoutDashboard className="w-5 h-5" />
               Overview
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
+            
+            {/* Dynamic Sidebar Links */}
+            {isIELTS ? (
+              <>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><BookOpen className="w-5 h-5" />Reading</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><Headphones className="w-5 h-5" />Listening</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><PenTool className="w-5 h-5" />Writing</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><Mic className="w-5 h-5" />Speaking</Link>
+              </>
+            ) : (
+              <>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><BookOpen className="w-5 h-5" />Vocabulary</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><PenTool className="w-5 h-5" />Grammar</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><Mic className="w-5 h-5" />Conversation</Link>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors"><Headphones className="w-5 h-5" />Comprehension</Link>
+              </>
+            )}
+            
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-8 px-4">Platform</div>
+            <Link href="/dashboard/simulator" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-emerald-400 font-medium transition-colors group">
+              <Mic className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              AI Speaking Simulator
+            </Link>
+            <Link href="/dashboard/results" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-[#5BC0EB] font-medium transition-colors">
+              <LineChartIcon className="w-5 h-5" />
+              Past Results
+            </Link>
+            <Link href="/dashboard/live" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-purple-400 font-medium transition-colors">
+              <Video className="w-5 h-5" />
+              Live Classes
+            </Link>
+            <Link href="/dashboard/lesson" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-rose-400 font-medium transition-colors">
               <BookOpen className="w-5 h-5" />
-              Reading
+              Lesson Player
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
-              <Headphones className="w-5 h-5" />
-              Listening
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
-              <PenTool className="w-5 h-5" />
-              Writing
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
-              <Mic className="w-5 h-5" />
-              Speaking
+            <Link href="/admin/courses" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-amber-400 font-medium transition-colors mt-4">
+              <Settings className="w-5 h-5" />
+              Admin Studio
             </Link>
             
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-8 px-4">Account</div>
@@ -108,7 +214,7 @@ export default function DashboardPage() {
         
         <div className="p-4 border-t border-white/5">
           <button 
-            onClick={() => { localStorage.removeItem('access_token'); router.push('/login'); }}
+            onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('courseTrack'); router.push('/login'); }}
             className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-medium transition-colors"
           >
             <LogOut className="w-5 h-5" />
@@ -126,11 +232,17 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-white">Dashboard Overview</h1>
             <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              AI Engine Online
+              {isIELTS ? "IELTS Engine Online" : "General English Engine Online"}
             </span>
           </div>
           
           <div className="flex items-center gap-5">
+            <button 
+              onClick={() => { localStorage.removeItem('courseTrack'); setCourseTrack(null); }}
+              className="text-xs font-semibold text-slate-400 hover:text-[#5BC0EB] underline mr-2"
+            >
+              Switch Track
+            </button>
             <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-[#0f182c]"></span>
@@ -139,7 +251,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-white group-hover:text-[#5BC0EB] transition-colors">Candidate</p>
-                <p className="text-xs text-slate-500">IELTS Academic</p>
+                <p className="text-xs text-slate-500">{isIELTS ? "IELTS Academic" : "CEFR B2 Level"}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#027FFF] to-[#5BC0EB] p-0.5">
                 <div className="w-full h-full rounded-full bg-[#0B1221] flex items-center justify-center border-2 border-[#0B1221]">
@@ -163,11 +275,11 @@ export default function DashboardPage() {
                 <div className="p-2 rounded-lg bg-[#027FFF]/20 text-[#5BC0EB]">
                   <TrendingUp className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-400">Current Est. Band</h3>
+                <h3 className="text-sm font-semibold text-slate-400">{isIELTS ? "Current Est. Band" : "Current CEFR Level"}</h3>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-white">7.5</span>
-                <span className="text-sm text-emerald-400 font-medium mb-1">+0.5 from last week</span>
+                <span className="text-4xl font-extrabold text-white">{isIELTS ? "7.5" : "B2"}</span>
+                <span className="text-sm text-emerald-400 font-medium mb-1">{isIELTS ? "+0.5 from last week" : "85% to C1"}</span>
               </div>
             </div>
 
@@ -178,11 +290,11 @@ export default function DashboardPage() {
                 <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
                   <Target className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-400">Target Band</h3>
+                <h3 className="text-sm font-semibold text-slate-400">{isIELTS ? "Target Band" : "Target Level"}</h3>
               </div>
               <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-white">8.0</span>
-                <span className="text-sm text-slate-500 font-medium mb-1">Academic</span>
+                <span className="text-4xl font-extrabold text-white">{isIELTS ? "8.0" : "C1"}</span>
+                <span className="text-sm text-slate-500 font-medium mb-1">{isIELTS ? "Academic" : "Advanced"}</span>
               </div>
             </div>
 
@@ -233,9 +345,9 @@ export default function DashboardPage() {
                   <p className="text-sm text-slate-500">Your AI-graded mock test results over time.</p>
                 </div>
                 <select className="bg-[#0B1221] border border-white/10 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#027FFF]">
-                  <option>Overall Band</option>
-                  <option>Reading</option>
-                  <option>Writing</option>
+                  <option>{isIELTS ? "Overall Band" : "Overall Score"}</option>
+                  <option>{isIELTS ? "Reading" : "Grammar"}</option>
+                  <option>{isIELTS ? "Writing" : "Vocabulary"}</option>
                 </select>
               </div>
               <div className="h-[300px] w-full">
@@ -243,7 +355,7 @@ export default function DashboardPage() {
                   <LineChart data={mockPerformanceData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                     <XAxis dataKey="name" stroke="#ffffff40" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis domain={[4, 9]} stroke="#ffffff40" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
+                    <YAxis domain={isIELTS ? [4, 9] : [0, 100]} stroke="#ffffff40" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
                     <RechartsTooltip 
                       contentStyle={{ backgroundColor: '#0B1221', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
                       itemStyle={{ color: '#5BC0EB' }}
@@ -289,11 +401,15 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-xs font-semibold text-slate-500 bg-white/5 px-2 py-1 rounded">Module 1</span>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Speaking Simulator</h3>
-                  <p className="text-sm text-slate-400 mb-4 line-clamp-2">Real-time voice evaluation with the Examiner AI agent.</p>
-                  <div className="flex items-center text-sm font-semibold text-[#5BC0EB] group-hover:text-white transition-colors">
+                  <h3 className="text-lg font-bold text-white mb-1">
+                    {isIELTS ? "Speaking Simulator" : "Conversation Drill"}
+                  </h3>
+                  <p className="text-sm text-slate-400 mb-4 line-clamp-2">
+                    {isIELTS ? "Real-time voice evaluation with the Examiner AI agent." : "Practice real-life dialogues with responsive AI avatars."}
+                  </p>
+                  <Link href="/dashboard/simulator" className="flex items-center text-sm font-semibold text-[#5BC0EB] group-hover:text-white transition-colors">
                     Start Drill <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </div>
+                  </Link>
                 </div>
 
                 <div className="group bg-[#0f182c] hover:bg-[#15203b] border border-white/5 hover:border-[#027FFF]/30 rounded-2xl p-5 cursor-pointer transition-all duration-300">
@@ -303,11 +419,15 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-xs font-semibold text-slate-500 bg-white/5 px-2 py-1 rounded">Module 2</span>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Writing Evaluator</h3>
-                  <p className="text-sm text-slate-400 mb-4 line-clamp-2">Submit Task 1 & 2 for instant rubric-based grading.</p>
-                  <div className="flex items-center text-sm font-semibold text-amber-400 group-hover:text-white transition-colors">
+                  <h3 className="text-lg font-bold text-white mb-1">
+                    {isIELTS ? "Writing Evaluator" : "Grammar & Vocab"}
+                  </h3>
+                  <p className="text-sm text-slate-400 mb-4 line-clamp-2">
+                    {isIELTS ? "Submit Task 1 & 2 for instant rubric-based grading." : "Expand your professional lexicon and sentence structures."}
+                  </p>
+                  <Link href="/dashboard/simulator" className="flex items-center text-sm font-semibold text-amber-400 group-hover:text-white transition-colors">
                     Start Drill <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </div>
+                  </Link>
                 </div>
 
               </div>
@@ -330,7 +450,9 @@ export default function DashboardPage() {
                     <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-sm font-bold text-red-100 mb-1">Grammar Warning</h4>
-                      <p className="text-xs text-red-200/70 leading-relaxed mb-2">You consistently misuse the Past Perfect continuous tense during Part 2 Speaking.</p>
+                      <p className="text-xs text-red-200/70 leading-relaxed mb-2">
+                        {isIELTS ? "You consistently misuse the Past Perfect continuous tense during Part 2 Speaking." : 'You frequently mix up "in" and "on" when describing locations.'}
+                      </p>
                       <button className="text-xs font-bold text-red-400 hover:text-red-300">Fix now &rarr;</button>
                     </div>
                   </div>
@@ -340,8 +462,12 @@ export default function DashboardPage() {
                   <div className="flex gap-3">
                     <TrendingUp className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-sm font-bold text-emerald-100 mb-1">Lexical Resource Improved</h4>
-                      <p className="text-xs text-emerald-200/70 leading-relaxed">Your use of advanced idioms increased by 14% in your last essay. Keep it up!</p>
+                      <h4 className="text-sm font-bold text-emerald-100 mb-1">
+                        {isIELTS ? "Lexical Resource Improved" : "Vocabulary Expanding"}
+                      </h4>
+                      <p className="text-xs text-emerald-200/70 leading-relaxed">
+                        {isIELTS ? "Your use of advanced idioms increased by 14% in your last essay. Keep it up!" : "You correctly used 10 new professional phrases this week. Great job!"}
+                      </p>
                     </div>
                   </div>
                 </div>
