@@ -1,0 +1,200 @@
+# =============================================================================
+# ELARION AI Learning Platform — Docker Compose (Local Development)
+# =============================================================================
+# Services:
+#   postgres          — Primary dev database (pgvector enabled)
+#   postgres_test     — Isolated test database (never shared with dev data)
+#   redis             — Cache + session store + event streams
+#   minio             — S3-compatible local object storage
+#   api               — FastAPI backend (hot-reload in dev)
+#   embedding_worker  — Async embedding pipeline worker (Phase 2)
+#   adaptive_consumer — Redis Streams event consumer for M6 (Phase 3)
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL with pgvector extension
+  # Image: pgvector/pgvector:pg16 includes the vector extension pre-installed.
+  # Using pg16 for stability + pgvector support.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: elarion_postgres
+    environment:
+      POSTGRES_DB: elarion
+      POSTGRES_USER: elarion_user
+      POSTGRES_PASSWORD: elarion_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elarion_user -d elarion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Dedicated test database — completely separate from dev
+  # Tests run against elarion_test. Dev data is never touched.
+  # ---------------------------------------------------------------------------
+  postgres_test:
+    image: pgvector/pgvector:pg16
+    container_name: elarion_postgres_test
+    environment:
+      POSTGRES_DB: elarion_test
+      POSTGRES_USER: elarion_user
+      POSTGRES_PASSWORD: elarion_pass
+    ports:
+      - "5433:5432"    # Different host port — dev and test can run simultaneously
+    tmpfs:
+      - /var/lib/postgresql/data    # In-memory — test DB resets on container restart
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 — Cache, Rate Limiting, Sessions, Streams, SSE buffer
+  # appendonly yes: write-ahead log for durability (survives restarts)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: elarion_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible local object storage
+  # Simulates AWS S3 / Cloudflare R2 locally.
+  # Console UI available at http://localhost:9001
+  # ---------------------------------------------------------------------------
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: elarion_minio
+    ports:
+      - "9000:9000"    # API endpoint (same as S3)
+      - "9001:9001"    # Browser console
+    environment:
+      MINIO_ROOT_USER: minio_access_key
+      MINIO_ROOT_PASSWORD: minio_secret_key
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # FastAPI Backend (Development — hot-reload enabled)
+  # In production, remove --reload and set workers=4
+  # Keys are mounted as a read-only volume (never baked into image)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elarion_api
+    ports:
+      - "8000:8000"
+    environment:
+      # Database
+      DATABASE_URL: "postgresql+asyncpg://elarion_user:elarion_pass@postgres:5432/elarion"
+      # Redis
+      REDIS_URL: "redis://redis:6379/0"
+      # Object Storage (MinIO in dev — AWS S3 in prod)
+      S3_ENDPOINT_URL: "http://minio:9000"
+      S3_ACCESS_KEY_ID: "minio_access_key"
+      S3_SECRET_ACCESS_KEY: "minio_secret_key"
+      S3_BUCKET_NAME: "elarion-assets"
+      S3_REGION: "us-east-1"
+      # JWT Keys
+      JWT_PRIVATE_KEY_PATH: "/app/keys/private.pem"
+      JWT_PUBLIC_KEY_PATH: "/app/keys/public.pem"
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      JWT_ALGORITHM: "RS256"
+      # CORS
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001"
+      # Environment
+      ENVIRONMENT: "development"
+      # AI Keys (Phase 2 — not used in Phase 1)
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      # Embedding config
+      EMBEDDING_MODEL: "BAAI/bge-small-en-v1.5"
+      EMBEDDING_DIM: "384"
+    volumes:
+      - ./keys:/app/keys:ro      # RSA key pair (read-only)
+      - .:/home/elarion/app      # Source mount for hot-reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Embedding Worker — Async background job (Phase 2 — stub in Phase 1)
+  # Polls embedding_outbox and processes new published lessons
+  # ---------------------------------------------------------------------------
+  embedding_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elarion_embedding_worker
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://elarion_user:elarion_pass@postgres:5432/elarion"
+      REDIS_URL: "redis://redis:6379/0"
+      S3_ENDPOINT_URL: "http://minio:9000"
+      S3_ACCESS_KEY_ID: "minio_access_key"
+      S3_SECRET_ACCESS_KEY: "minio_secret_key"
+      EMBEDDING_MODEL: "BAAI/bge-small-en-v1.5"
+      EMBEDDING_DIM: "384"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+    volumes:
+      - .:/home/elarion/app
+    depends_on:
+      - postgres
+      - redis
+    command: python -m app.workers.embedding_worker
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Adaptive Consumer — Redis Streams consumer for TestGraded events (Phase 3)
+  # ---------------------------------------------------------------------------
+  adaptive_consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elarion_adaptive_consumer
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://elarion_user:elarion_pass@postgres:5432/elarion"
+      REDIS_URL: "redis://redis:6379/0"
+    volumes:
+      - .:/home/elarion/app
+    depends_on:
+      - postgres
+      - redis
+    command: python -m app.workers.adaptive_consumer
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
