@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
+
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -46,15 +47,14 @@ export default function SimulatorPage() {
     // Fetch Assessment
     const fetchAssessment = async () => {
       try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
+  
+  
         
         // Hardcoding the lesson ID since the dashboard is returning null
         const lessonId = 'c063f41d-afc3-43b6-9ef5-980a0cb4c3c5';
 
         // 2. Fetch/Generate Assessment for this lesson
-        const assRes = await fetch(`http://localhost:8000/api/v1/lessons/${lessonId}/assessment`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const assRes = await fetchWithAuth(`/lessons/${lessonId}/assessment`, {
         });
         const assData = await assRes.json();
         
@@ -93,10 +93,9 @@ export default function SimulatorPage() {
     setPhase('analyzing');
     
     try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`http://localhost:8000/api/v1/assessments/${testId}/submit`, {
+
+      const res = await fetchWithAuth(`/assessments/${testId}/submit`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           answers: [{ question_id: questionId, selected_option_id: null, text_answer: transcript || "No answer provided." }]
         })

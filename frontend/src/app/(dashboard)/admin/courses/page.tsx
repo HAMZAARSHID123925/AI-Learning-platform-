@@ -4,28 +4,40 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, MoreVertical, Video, FileText, 
-  CheckCircle, Clock, BookOpen, BrainCircuit, UploadCloud, ChevronRight 
+  CheckCircle, Clock, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
+  Users, BarChart2, TrendingUp, Globe, LogOut
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function AdminCoursesPage() {
-  const [activeTab, setActiveTab] = useState<'published' | 'drafts'>('published');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'analytics'>('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Mock data representing Module 2 content
-  
-  const [courses, setCourses] = useState<{id: string, title: string, status: string, module_count: number}[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Analytics state
+  const [analytics, setAnalytics] = useState({
+    totalUsers: 0,
+    totalStudents: 0,
+    totalInstructors: 0,
+    totalAdmins: 0,
+    totalCourses: 0,
+    publishedCourses: 0,
+    draftCourses: 0,
+    totalSessions: 0,
+  });
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   const fetchCourses = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-      const res = await fetch('http://localhost:8000/api/v1/courses?page_size=100', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth('/courses?page_size=100');
       const data = await res.json();
       if (data.items) {
         setCourses(data.items);
@@ -37,50 +49,74 @@ export default function AdminCoursesPage() {
     }
   }, []);
 
+  const fetchAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const [usersRes, coursesRes, sessionsRes] = await Promise.all([
+        fetchWithAuth('/users'),
+        fetchWithAuth('/courses?page_size=1000'),
+        fetchWithAuth('/live-sessions'),
+      ]);
+
+      if (usersRes.ok) {
+        const users = await usersRes.json();
+        const arr = Array.isArray(users) ? users : [];
+        const students = arr.filter((u: { roles?: string[] }) => u.roles?.includes('Student') && !u.roles?.includes('Admin') && !u.roles?.includes('Instructor'));
+        const instructors = arr.filter((u: { roles?: string[] }) => u.roles?.includes('Instructor'));
+        const admins = arr.filter((u: { roles?: string[] }) => u.roles?.includes('Admin'));
+        setAnalytics(prev => ({ ...prev, totalUsers: arr.length, totalStudents: students.length, totalInstructors: instructors.length, totalAdmins: admins.length }));
+      }
+      if (coursesRes.ok) {
+        const data = await coursesRes.json();
+        const items = data.items || [];
+        const published = items.filter((c: { status?: string }) => c.status === 'published').length;
+        const drafts = items.filter((c: { status?: string }) => c.status !== 'published').length;
+        setAnalytics(prev => ({ ...prev, totalCourses: items.length, publishedCourses: published, draftCourses: drafts }));
+      }
+      if (sessionsRes.ok) {
+        const sessions = await sessionsRes.json();
+        setAnalytics(prev => ({ ...prev, totalSessions: Array.isArray(sessions) ? sessions.length : 0 }));
+      }
+    } catch (err) {
+      console.error('Analytics load error:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    
-    /* eslint-disable react-hooks/set-state-in-effect */
-    fetchCourses().then(() => {
-      // Done
-    });
+    fetchCourses();
   }, [fetchCourses]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics') fetchAnalytics();
+  }, [activeTab, fetchAnalytics]);
 
   
   const handlePublishCourse = async (e: React.MouseEvent, courseId: string) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-      // We must add a module and lesson first otherwise backend rejects publishing!
-      const modRes = await fetch(`http://localhost:8000/api/v1/courses/${courseId}/modules`, {
+      const modRes = await fetchWithAuth(`/courses/${courseId}/modules`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: "Introduction", sequence_order: 1 })
+        body: JSON.stringify({ title: 'Introduction', sequence_order: 1 }),
       });
       const modData = await modRes.json();
       if (modRes.ok) {
-        const lesRes = await fetch(`http://localhost:8000/api/v1/modules/${modData.id}/lessons`, {
+        const lesRes = await fetchWithAuth(`/modules/${modData.id}/lessons`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: "Welcome Lesson", sequence_order: 1 })
+          body: JSON.stringify({ title: 'Welcome Lesson', sequence_order: 1 }),
         });
         const lesData = await lesRes.json();
         if (lesRes.ok) {
-          await fetch(`http://localhost:8000/api/v1/lessons/${lesData.id}/publish`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          await fetchWithAuth(`/lessons/${lesData.id}/publish`, { method: 'POST' });
         }
       }
-      const res = await fetch(`http://localhost:8000/api/v1/courses/${courseId}/publish`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetchWithAuth(`/courses/${courseId}/publish`, { method: 'POST' });
       if (res.ok) {
         fetchCourses();
       }
     } catch (error) {
-      console.error("Failed to publish", error);
+      console.error('Failed to publish', error);
     }
   };
 
@@ -88,54 +124,35 @@ export default function AdminCoursesPage() {
     if (!newTitle) return;
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-      const res = await fetch('http://localhost:8000/api/v1/courses', {
+      const res = await fetchWithAuth('/courses', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ title: newTitle, description: "A new AI-powered course." })
+        body: JSON.stringify({ title: newTitle, description: 'A new AI-powered course.' }),
       });
       if (res.ok) {
         const data = await res.json();
-        
-        // 2. Create a Module inside the Course
-        const modRes = await fetch(`http://localhost:8000/api/v1/courses/${data.id}/modules`, {
+
+        const modRes = await fetchWithAuth(`/courses/${data.id}/modules`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: "Introduction", sequence_order: 1 })
+          body: JSON.stringify({ title: 'Introduction', sequence_order: 1 }),
         });
         const modData = await modRes.json();
 
-        // 3. Create a Lesson inside the Module
         if (modRes.ok) {
-          const lesRes = await fetch(`http://localhost:8000/api/v1/modules/${modData.id}/lessons`, {
+          const lesRes = await fetchWithAuth(`/modules/${modData.id}/lessons`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: "Welcome to the Course", sequence_order: 1 })
+            body: JSON.stringify({ title: 'Welcome to the Course', sequence_order: 1 }),
           });
-          
           if (lesRes.ok) {
             const lesData = await lesRes.json();
-            // Publish the lesson
-            await fetch(`http://localhost:8000/api/v1/lessons/${lesData.id}/publish`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await fetchWithAuth(`/lessons/${lesData.id}/publish`, { method: 'POST' });
           }
         }
 
-        // 4. Auto-publish the course so it shows up in the 'Published' tab immediately!
-        await fetch(`http://localhost:8000/api/v1/courses/${data.id}/publish`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
+        await fetchWithAuth(`/courses/${data.id}/publish`, { method: 'POST' });
+
         setShowCreateModal(false);
         setNewTitle('');
-        fetchCourses(); // refresh the list
+        fetchCourses();
       } else {
         const err = await res.json();
         alert('Failed to create course: ' + JSON.stringify(err));
@@ -218,24 +235,35 @@ export default function AdminCoursesPage() {
               >
                 Drafts
               </button>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input 
-                  type="text" 
-                  placeholder="Search courses..." 
-                  className="pl-9 pr-4 py-2 bg-[#0f182c] border border-white/5 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 w-64"
-                />
-              </div>
-              <button className="p-2 bg-[#0f182c] border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
-                <Filter className="w-4 h-4" />
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-purple-500/20 text-purple-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <BarChart2 className="w-4 h-4" />
+                Analytics
               </button>
             </div>
+            
+            {activeTab !== 'analytics' && (
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input 
+                    type="text" 
+                    placeholder="Search courses..." 
+                    className="pl-9 pr-4 py-2 bg-[#0f182c] border border-white/5 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 w-64"
+                  />
+                </div>
+                <button className="p-2 bg-[#0f182c] border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
+                  <Filter className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* COURSE LIST (TABLE) */}
+
+          {/* COURSE LIST (TABLE) — only shown on published/drafts tabs */}
+          {activeTab !== 'analytics' && (
           <div className="bg-[#0f182c] border border-white/5 rounded-2xl overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -249,7 +277,12 @@ export default function AdminCoursesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status === 'draft').map((course) => (
+                {isLoading ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">Loading courses…</td></tr>
+                ) : courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">No courses found.</td></tr>
+                ) : (
+                  courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').map((course) => (
                   <tr key={course.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -280,7 +313,7 @@ export default function AdminCoursesPage() {
                       {(course.students || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {course.status === 'draft' && (
+                      {course.status !== 'published' && (
                         <button 
                           onClick={(e) => handlePublishCourse(e, course.id)}
                           className="px-3 py-1 mr-2 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors"
@@ -293,10 +326,91 @@ export default function AdminCoursesPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>
+          )}
+
+          {/* ANALYTICS TAB */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              {analyticsLoading ? (
+                <div className="flex items-center gap-3 text-slate-500 text-sm py-10">
+                  <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  Loading platform analytics…
+                </div>
+              ) : (
+                <>
+                  {/* User Stats */}
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-400" /> User Analytics
+                    </h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Total Users', value: analytics.totalUsers, color: 'blue', icon: <Globe className="w-5 h-5" /> },
+                        { label: 'Students', value: analytics.totalStudents, color: 'emerald', icon: <Users className="w-5 h-5" /> },
+                        { label: 'Instructors', value: analytics.totalInstructors, color: 'indigo', icon: <Users className="w-5 h-5" /> },
+                        { label: 'Admins', value: analytics.totalAdmins, color: 'red', icon: <CheckCircle className="w-5 h-5" /> },
+                      ].map((stat) => (
+                        <div key={stat.label} className="bg-[#0f182c] border border-white/5 rounded-2xl p-5">
+                          <div className={`w-10 h-10 rounded-xl bg-${stat.color}-500/10 text-${stat.color}-400 flex items-center justify-center mb-3`}>
+                            {stat.icon}
+                          </div>
+                          <div className="text-3xl font-extrabold text-white">{stat.value}</div>
+                          <div className="text-sm text-slate-400 mt-1">{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Course Stats */}
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-purple-400" /> Course Analytics
+                    </h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Total Courses', value: analytics.totalCourses, sub: 'All courses' },
+                        { label: 'Published', value: analytics.publishedCourses, sub: 'Live & active' },
+                        { label: 'Drafts', value: analytics.draftCourses, sub: 'Pending review' },
+                        { label: 'Live Sessions', value: analytics.totalSessions, sub: 'All time' },
+                      ].map((stat) => (
+                        <div key={stat.label} className="bg-[#0f182c] border border-white/5 rounded-2xl p-5">
+                          <div className="text-3xl font-extrabold text-white mb-1">{stat.value}</div>
+                          <div className="text-sm font-semibold text-white">{stat.label}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">{stat.sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Publish rate bar */}
+                  <div className="bg-[#0f182c] border border-white/5 rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-emerald-400" /> Course Publish Rate
+                      </h3>
+                      <span className="text-sm text-emerald-400 font-semibold">
+                        {analytics.totalCourses ? Math.round((analytics.publishedCourses / analytics.totalCourses) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-700"
+                        style={{ width: `${analytics.totalCourses ? Math.round((analytics.publishedCourses / analytics.totalCourses) * 100) : 0}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between mt-2 text-xs text-slate-500">
+                      <span>{analytics.publishedCourses} published</span>
+                      <span>{analytics.draftCourses} in draft</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
         </div>
       </main>

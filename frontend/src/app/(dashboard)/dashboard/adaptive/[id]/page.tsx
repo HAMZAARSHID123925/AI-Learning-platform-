@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -15,10 +17,9 @@ export default function RemedialCoursePage() {
   useEffect(() => {
     const fetchPlan = async () => {
       try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-        const res = await fetch(`http://localhost:8000/api/v1/remediation-plans/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+  
+  
+        const res = await fetchWithAuth(`/remediation-plans/${id}`, {
         });
         const data = await res.json();
         if (data.id) {
@@ -36,10 +37,9 @@ export default function RemedialCoursePage() {
   const handleComplete = async () => {
     try {
       setCompleting(true);
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`http://localhost:8000/api/v1/remediation-plans/${id}/complete-study`, {
+
+      const res = await fetchWithAuth(`/remediation-plans/${id}/complete-study`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.retest_id) {

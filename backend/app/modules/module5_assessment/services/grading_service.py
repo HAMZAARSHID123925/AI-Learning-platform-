@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.modules.module5_assessment.models import (
+    Test,
     GraderType,
     Question,
     QuestionType,
@@ -158,7 +159,7 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
     try:
         test = submission.test
         student_answers = submission.answers or {}
-        skill_score_accum: dict[uuid.UUID, list[float]] = {}
+        skill_score_accum: dict[uuid.UUID, list[dict]] = {}
         persisted_skill_scores = []
         total_score = 0.0
         max_possible_score = 0.0
@@ -177,27 +178,41 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
             total_score += score
             max_possible_score += float(question.max_score)
 
-            # Record per-question skill score
+            # Accumulate per-question skill score in memory
+            if question.skill_id not in skill_score_accum:
+                skill_score_accum[question.skill_id] = []
+            skill_score_accum[question.skill_id].append({
+                "score": score,
+                "max_score": question.max_score,
+                "grader_type": grader,
+                "feedback": feedback
+            })
+
+        # Insert aggregated skill scores
+        for s_id, records in skill_score_accum.items():
+            agg_score = sum(r["score"] for r in records)
+            agg_max = sum(r["max_score"] for r in records)
+            agg_feedback = " ".join(str(r["feedback"]) for r in records if r["feedback"])
+            
+            # For grader_type, just take the first one or default to LLM if any was LLM
+            has_llm = any(r["grader_type"] == GraderType.llm for r in records)
+            agg_grader = GraderType.llm if has_llm else GraderType.deterministic
+
             skill_score = SkillScore(
                 submission_id=submission.id,
-                skill_id=question.skill_id,
-                score=score,
-                max_score=question.max_score,
-                grader_type=grader,
-                llm_feedback=feedback
+                skill_id=s_id,
+                score=agg_score,
+                max_score=agg_max,
+                grader_type=agg_grader,
+                llm_feedback=agg_feedback or None
             )
             db.add(skill_score)
 
             persisted_skill_scores.append({
-                "skill_id": question.skill_id,
-                "score": score,
-                "max_score": question.max_score
+                "skill_id": s_id,
+                "score": agg_score,
+                "max_score": agg_max
             })
-
-            # Accumulate for skill percentage
-            if question.skill_id not in skill_score_accum:
-                skill_score_accum[question.skill_id] = []
-            skill_score_accum[question.skill_id].append(score / float(question.max_score or 1.0))
 
         # Calculate final overall score
         overall_pct = (total_score / max_possible_score) if max_possible_score > 0 else 0.0
@@ -217,11 +232,11 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
         # Aggregate skill scores for Redis event
         aggregated_skills = [
             {
-                "skill_id": s_id,
-                "score": sum(scores) / len(scores),
+                "skill_id": str(s_id),
+                "score": sum(r["score"] for r in records) / float(sum(r["max_score"] for r in records) or 1.0),
                 "max_score": 1.0
             }
-            for s_id, scores in skill_score_accum.items()
+            for s_id, records in skill_score_accum.items()
         ]
 
         # Emit TestGraded event onto Redis Streams

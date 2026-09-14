@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -28,8 +30,7 @@ export default function ResultsPage() {
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
-    fetch('http://localhost:8000/api/v1/students/me/weakness-flags', {
-      headers: { 'Authorization': `Bearer ${token}` }
+    fetchWithAuth('/students/me/weakness-flags', {
     })
     .then(res => res.json())
     .then(data => {

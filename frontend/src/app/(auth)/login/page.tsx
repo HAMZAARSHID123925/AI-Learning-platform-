@@ -44,7 +44,19 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('access_token', data.access_token);
-      router.push('/dashboard');
+      
+      const roles: string[] = data.user?.roles || [];
+      const primaryRole = roles[0] || 'Student';
+      localStorage.setItem('user_role', primaryRole);
+      localStorage.setItem('user_name', `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User');
+
+      if (roles.includes('Admin')) {
+        router.push('/admin/courses');
+      } else if (roles.includes('Instructor') || roles.includes('Teacher')) {
+        router.push('/instructor');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       setError((err as Error).message || 'An error occurred. Please try again.');
     } finally {

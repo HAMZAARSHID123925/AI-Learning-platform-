@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
 
 import { useState, useEffect } from 'react';
 import { 
@@ -13,10 +15,9 @@ export default function LiveClassesPage() {
   const handleJoin = async () => {
     try {
       setJoining(true);
-      const token = localStorage.getItem('access_token');
+
       // For the sake of the demo, if we don't have a specific session ID, we fetch the first available one and join it!
-      const sessionsRes = await fetch('http://localhost:8000/api/v1/live-sessions', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const sessionsRes = await fetchWithAuth('/live-sessions', {
       });
       const sessions = await sessionsRes.json();
       if (!sessions || sessions.length === 0) {
@@ -25,9 +26,8 @@ export default function LiveClassesPage() {
       }
       
       const sessionId = sessions[0].id;
-      const res = await fetch(`http://localhost:8000/api/v1/live-sessions/${sessionId}/join`, {
+      const res = await fetchWithAuth(`/live-sessions/${sessionId}/join`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.room_url) {

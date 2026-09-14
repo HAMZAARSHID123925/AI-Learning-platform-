@@ -40,7 +40,7 @@ async def get_embedding(text: str) -> list[float]:
     settings = get_settings()
     dim = settings.EMBEDDING_DIM
 
-    if settings.EMBEDDING_PROVIDER == "openai" and settings.OPENAI_API_KEY:
+    if settings.EMBEDDING_PROVIDER == "openai" and settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith('#'):
         try:
             import openai
             client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -107,7 +107,7 @@ async def generate_llm_completion(
     for attempt in range(max_retries):
         try:
             # 1. Anthropic Claude API
-            if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY:
+            if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY and not settings.ANTHROPIC_API_KEY.startswith('#'):
                 import anthropic
                 client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
                 resp = await client.messages.create(
@@ -120,7 +120,7 @@ async def generate_llm_completion(
                 return resp.content[0].text
 
             # 2. Groq API
-            elif settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY:
+            elif settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY and not settings.GROQ_API_KEY.startswith('#'):
                 import openai
                 client = openai.AsyncOpenAI(
                     base_url="https://api.groq.com/openai/v1",

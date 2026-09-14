@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
 
 import { useEffect, useState } from 'react';
 import { BrainCircuit, Target, AlertCircle, BookOpen, Clock, RefreshCw, CheckCircle } from 'lucide-react';
@@ -12,15 +14,13 @@ export default function AdaptiveLearningPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
+  
+  
         
         const [flagsRes, plansRes] = await Promise.all([
-          fetch('http://localhost:8000/api/v1/students/me/weakness-flags', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          fetchWithAuth('/students/me/weakness-flags', {
           }),
-          fetch('http://localhost:8000/api/v1/students/me/remediation-plans', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          fetchWithAuth('/students/me/remediation-plans', {
           })
         ]);
 

@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithAuth } from "@/lib/api";
+
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -10,6 +12,41 @@ import {
 export default function LessonPlayerPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState<'video' | 'transcript'>('video');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleToggleComplete = async () => {
+    const nextState = !isCompleted;
+    setIsCompleted(nextState);
+    
+    if (nextState) {
+      try {
+        setIsSubmitting(true);
+  
+  
+
+        // Fetch courses to get first available lesson id if none in URL
+        const coursesRes = await fetchWithAuth('/students/me/dashboard', {
+        });
+        const dData = await coursesRes.json();
+        const lessonId = dData?.next_recommended_lesson?.id;
+        
+        if (lessonId) {
+          await fetchWithAuth(`/lessons/${lessonId}/complete`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ time_spent_seconds: 120 })
+          });
+        }
+      } catch (err) {
+        console.error("Failed to mark lesson complete in backend:", err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#050B14] text-slate-200 overflow-hidden font-sans">
@@ -26,9 +63,9 @@ export default function LessonPlayerPage() {
         <div className="p-6 border-b border-white/5">
           <h2 className="text-lg font-bold text-white mb-2">Module 1: Advanced Vocabulary</h2>
           <div className="w-full bg-white/5 rounded-full h-1.5 mb-2">
-            <div className="bg-emerald-500 h-1.5 rounded-full w-[25%] shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+            <div className={`bg-emerald-500 h-1.5 rounded-full ${isCompleted ? 'w-[100%]' : 'w-[25%]'} transition-all duration-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></div>
           </div>
-          <p className="text-xs text-slate-500">25% Completed</p>
+          <p className="text-xs text-slate-500">{isCompleted ? '100% Completed' : '25% Completed'}</p>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -91,7 +128,8 @@ export default function LessonPlayerPage() {
             </div>
             
             <button 
-              onClick={() => setIsCompleted(!isCompleted)}
+              onClick={handleToggleComplete}
+              disabled={isSubmitting}
               className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
                 isCompleted 
                   ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
