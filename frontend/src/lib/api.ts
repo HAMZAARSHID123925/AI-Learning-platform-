@@ -23,10 +23,6 @@ async function tryRefreshToken(): Promise<string | null> {
       },
     });
     if (!res.ok) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('user_name');
-      window.location.href = '/login';
       return null;
     }
     const data = await res.json();

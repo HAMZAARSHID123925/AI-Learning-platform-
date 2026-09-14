@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, BrainCircuit, BookOpen, Headphones, PenTool, Mic, 
-  Video, LineChart as LineChartIcon, Users, Settings, LogOut 
+  Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award 
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -77,16 +77,47 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             Adaptive Engine
           </Link>
 
+          <Link 
+            href="/dashboard/vocabulary" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/vocabulary') 
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' 
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+            }`}
+          >
+            <Sparkles className={`w-4 h-4 ${isActive('/dashboard/vocabulary') ? 'text-white' : 'text-amber-400'}`} />
+            Vocabulary Bank
+          </Link>
+
           {isIELTS ? (
             <>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Reading</Link>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Listening</Link>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Writing</Link>
+              <Link 
+                href="/dashboard/mock-exam" 
+                className={`flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-all ${
+                  isActive('/dashboard/mock-exam') 
+                    ? 'bg-[#027FFF] text-white font-bold shadow-lg shadow-[#027FFF]/30' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+                }`}
+              >
+                <BookOpen className={`w-4 h-4 ${isActive('/dashboard/mock-exam') ? 'text-white' : 'text-slate-500'}`} />
+                Mock Exam Studio
+              </Link>
+              <Link 
+                href="/dashboard/writing" 
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  isActive('/dashboard/writing') 
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <PenTool className={`w-4 h-4 ${isActive('/dashboard/writing') ? 'text-white' : 'text-purple-400'}`} />
+                Writing Studio
+              </Link>
               <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Speaking</Link>
             </>
           ) : (
             <>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Vocabulary</Link>
+              <Link href="/dashboard/mock-exam" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Exam Studio</Link>
               <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Grammar</Link>
               <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Conversation</Link>
               <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Comprehension</Link>
@@ -106,6 +137,17 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             AI Simulator
           </Link>
           <Link 
+            href="/dashboard/analytics" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/analytics') 
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Award className={`w-4 h-4 ${isActive('/dashboard/analytics') ? 'text-white' : 'text-purple-400'}`} />
+            Certificates &amp; Analytics
+          </Link>
+          <Link 
             href="/dashboard/results" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
               isActive('/dashboard/results') 
@@ -115,6 +157,17 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
           >
             <LineChartIcon className={`w-4 h-4 ${isActive('/dashboard/results') ? 'text-white' : 'text-blue-400'}`} />
             Past Results
+          </Link>
+          <Link 
+            href="/dashboard/community" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/community') 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Users className={`w-4 h-4 ${isActive('/dashboard/community') ? 'text-white' : 'text-blue-400'}`} />
+            Community Hub
           </Link>
           <Link 
             href="/dashboard/live" 

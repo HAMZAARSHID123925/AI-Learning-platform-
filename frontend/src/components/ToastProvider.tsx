@@ -148,12 +148,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast, removeToast, isConnected }}>
       {children}
 
-      {/* Global Floating Toast Container (Top-Right / Bottom-Right) */}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      {/* Global Floating Toast Container (Top-Right) */}
+      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto p-4 rounded-2xl border shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl flex items-start gap-3 transition-all animate-in fade-in slide-in-from-bottom-5 duration-300 ${
+            className={`pointer-events-auto p-4 rounded-2xl border shadow-[0_12px_40px_rgba(0,0,0,0.4)] backdrop-blur-xl flex items-start gap-3 transition-all animate-in fade-in slide-in-from-top-5 duration-300 ${
               t.type === 'success'
                 ? 'bg-[#0f241d]/95 border-emerald-500/30'
                 : t.type === 'error'

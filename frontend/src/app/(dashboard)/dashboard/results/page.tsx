@@ -57,7 +57,7 @@ export default function ResultsPage() {
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -67,11 +67,20 @@ export default function ResultsPage() {
             <p className="text-sm text-slate-500 mt-1">IELTS Speaking Mock Test #4 • Completed Today</p>
           </div>
           
-          <div className="hidden sm:flex items-center gap-3 bg-white border border-slate-200/80 px-5 py-3 rounded-2xl shadow-sm">
-            <Clock className="w-5 h-5 text-[#027FFF]" />
-            <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase">Duration</p>
-              <p className="text-sm text-slate-900 font-bold">14m 22s</p>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/analytics"
+              className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-600/20 flex items-center gap-2 transition-all"
+            >
+              <Award className="w-4 h-4" /> View Full Trajectory &amp; Certificate 🎓
+            </Link>
+
+            <div className="hidden sm:flex items-center gap-3 bg-white border border-slate-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
+              <Clock className="w-4 h-4 text-[#027FFF]" />
+              <div>
+                <p className="text-[10px] text-slate-400 font-semibold uppercase">Duration</p>
+                <p className="text-xs text-slate-900 font-bold">14m 22s</p>
+              </div>
             </div>
           </div>
         </div>

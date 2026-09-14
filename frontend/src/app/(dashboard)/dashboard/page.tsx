@@ -459,6 +459,79 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ── 30-DAY AI STUDY PATH & DAILY STREAK MISSION ── */}
+          <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] border border-slate-800 rounded-3xl p-6 lg:p-8 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#027FFF]/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+              
+              {/* Left Column: Mission Progress */}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-black flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 fill-amber-400" />
+                    5-DAY STREAK ACTIVE
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">Target Exam Date: Oct 28, 2026</span>
+                </div>
+
+                <h2 className="text-2xl font-black text-white tracking-tight mb-2">
+                  Day 12 of 30: Academic Argumentation Mastery
+                </h2>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed mb-4">
+                  Today&apos;s AI diagnosis recommends strengthening your <span className="text-amber-400 font-bold">Lexical Cohesion</span> and completing 1 Speaking drill on abstract question expansion.
+                </p>
+
+                {/* Checklist of Daily 15-Minute Missions */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Link 
+                    href="/dashboard/writing" 
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-[#5BC0EB] transition-colors">Task 2 Essay Drill</p>
+                      <p className="text-[10px] text-slate-400">Completed (Band 6.0)</p>
+                    </div>
+                  </Link>
+
+                  <Link 
+                    href="/dashboard/simulator" 
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-[#027FFF]/10 border border-[#027FFF]/30 hover:bg-[#027FFF]/20 transition-colors group"
+                  >
+                    <div className="w-4 h-4 rounded-full border-2 border-[#027FFF] shrink-0"></div>
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-[#5BC0EB] transition-colors">Part 2 Cue Card</p>
+                      <p className="text-[10px] text-blue-300 font-semibold">Ready to start (2 mins)</p>
+                    </div>
+                  </Link>
+
+                  <Link 
+                    href="/dashboard/lesson" 
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group"
+                  >
+                    <div className="w-4 h-4 rounded-full border-2 border-slate-500 shrink-0"></div>
+                    <div>
+                      <p className="text-xs font-bold text-white group-hover:text-[#5BC0EB] transition-colors">Lexical Guide Video</p>
+                      <p className="text-[10px] text-slate-400">Next lesson (8 mins)</p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right Column: Month Progress Radial / Meter */}
+              <div className="shrink-0 flex flex-col items-center bg-white/5 border border-white/10 rounded-2xl p-5 text-center min-w-[180px]">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">30-Day Milestone</span>
+                <span className="text-3xl font-black text-white">40%</span>
+                <span className="text-[11px] text-emerald-400 font-bold mt-1">12 of 30 Days</span>
+                <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mt-3">
+                  <div className="h-full bg-gradient-to-r from-amber-400 to-[#027FFF] rounded-full" style={{ width: '40%' }}></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
           {/* ── METRICS CARDS ROW: High Polish Elevation ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             
