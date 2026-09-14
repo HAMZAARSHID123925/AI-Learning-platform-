@@ -160,6 +160,11 @@ export default function DashboardPage() {
               Overview
             </Link>
             
+            <Link href="/dashboard/adaptive" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white font-medium transition-colors group">
+              <BrainCircuit className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+              Adaptive Engine
+            </Link>
+            
             {/* Dynamic Sidebar Links */}
             {isIELTS ? (
               <>

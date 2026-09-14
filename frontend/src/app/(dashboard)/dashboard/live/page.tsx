@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, Video, Users, Clock, 
   PlayCircle, ChevronRight, CheckCircle2
@@ -8,6 +8,42 @@ import {
 
 export default function LiveClassesPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [joining, setJoining] = useState(false);
+  
+  const handleJoin = async () => {
+    try {
+      setJoining(true);
+      const token = localStorage.getItem('access_token');
+      // For the sake of the demo, if we don't have a specific session ID, we fetch the first available one and join it!
+      const sessionsRes = await fetch('http://localhost:8000/api/v1/live-sessions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const sessions = await sessionsRes.json();
+      if (!sessions || sessions.length === 0) {
+        alert("No active live sessions found in database!");
+        return;
+      }
+      
+      const sessionId = sessions[0].id;
+      const res = await fetch(`http://localhost:8000/api/v1/live-sessions/${sessionId}/join`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.room_url) {
+        window.open(data.room_url, '_blank');
+      } else if (data.token) {
+        alert('WebRTC Room Token: ' + data.token);
+      } else {
+        alert('Could not join room. Is it active?');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to join room.');
+    } finally {
+      setJoining(false);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#050B14] text-slate-200 p-6 lg:p-10">
@@ -48,9 +84,13 @@ export default function LiveClassesPage() {
           </div>
 
           <div className="shrink-0 w-full lg:w-auto">
-            <button className="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]">
+            <button 
+              onClick={handleJoin}
+              disabled={joining}
+              className="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:hover:translate-y-0"
+            >
               <Video className="w-5 h-5" />
-              Join Virtual Room
+              {joining ? 'Connecting...' : 'Join Virtual Room'}
             </button>
           </div>
         </div>

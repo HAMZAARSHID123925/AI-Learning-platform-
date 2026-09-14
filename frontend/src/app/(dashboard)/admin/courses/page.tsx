@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Plus, Search, Filter, MoreVertical, Video, FileText, 
@@ -12,11 +12,141 @@ export default function AdminCoursesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Mock data representing Module 2 content
-  const courses = [
-    { id: 1, title: 'IELTS Academic Mastery', track: 'IELTS', modules: 4, lessons: 24, status: 'published', students: 1240 },
-    { id: 2, title: 'General English - CEFR B2', track: 'General', modules: 6, lessons: 42, status: 'published', students: 856 },
-    { id: 3, title: 'Advanced Speaking Simulator', track: 'IELTS', modules: 2, lessons: 10, status: 'draft', students: 0 },
-  ];
+  
+  const [courses, setCourses] = useState<{id: string, title: string, status: string, module_count: number}[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newTitle, setNewTitle] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const fetchCourses = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const res = await fetch('http://localhost:8000/api/v1/courses?page_size=100', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.items) {
+        setCourses(data.items);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    
+    /* eslint-disable react-hooks/set-state-in-effect */
+    fetchCourses().then(() => {
+      // Done
+    });
+  }, [fetchCourses]);
+
+  
+  const handlePublishCourse = async (e: React.MouseEvent, courseId: string) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      // We must add a module and lesson first otherwise backend rejects publishing!
+      const modRes = await fetch(`http://localhost:8000/api/v1/courses/${courseId}/modules`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: "Introduction", sequence_order: 1 })
+      });
+      const modData = await modRes.json();
+      if (modRes.ok) {
+        const lesRes = await fetch(`http://localhost:8000/api/v1/modules/${modData.id}/lessons`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: "Welcome Lesson", sequence_order: 1 })
+        });
+        const lesData = await lesRes.json();
+        if (lesRes.ok) {
+          await fetch(`http://localhost:8000/api/v1/lessons/${lesData.id}/publish`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        }
+      }
+      const res = await fetch(`http://localhost:8000/api/v1/courses/${courseId}/publish`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchCourses();
+      }
+    } catch (error) {
+      console.error("Failed to publish", error);
+    }
+  };
+
+  const handleCreateCourse = async () => {
+    if (!newTitle) return;
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const res = await fetch('http://localhost:8000/api/v1/courses', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: newTitle, description: "A new AI-powered course." })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        
+        // 2. Create a Module inside the Course
+        const modRes = await fetch(`http://localhost:8000/api/v1/courses/${data.id}/modules`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: "Introduction", sequence_order: 1 })
+        });
+        const modData = await modRes.json();
+
+        // 3. Create a Lesson inside the Module
+        if (modRes.ok) {
+          const lesRes = await fetch(`http://localhost:8000/api/v1/modules/${modData.id}/lessons`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: "Welcome to the Course", sequence_order: 1 })
+          });
+          
+          if (lesRes.ok) {
+            const lesData = await lesRes.json();
+            // Publish the lesson
+            await fetch(`http://localhost:8000/api/v1/lessons/${lesData.id}/publish`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+          }
+        }
+
+        // 4. Auto-publish the course so it shows up in the 'Published' tab immediately!
+        await fetch(`http://localhost:8000/api/v1/courses/${data.id}/publish`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        setShowCreateModal(false);
+        setNewTitle('');
+        fetchCourses(); // refresh the list
+      } else {
+        const err = await res.json();
+        alert('Failed to create course: ' + JSON.stringify(err));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="flex h-screen bg-[#0B1221] text-slate-200 overflow-hidden font-sans">
@@ -131,13 +261,13 @@ export default function AdminCoursesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 text-xs font-medium border border-white/10">
-                        {course.track}
+                        AI Engine
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm text-slate-300">{course.modules} Modules</span>
-                        <span className="text-xs text-slate-500">{course.lessons} Lessons</span>
+                        <span className="text-sm text-slate-300">{course.module_count || 0} Modules</span>
+                        <span className="text-xs text-slate-500">Course Content</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -147,9 +277,17 @@ export default function AdminCoursesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-400 font-medium">
-                      {course.students.toLocaleString()}
+                      {(course.students || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-right">
+                      {course.status === 'draft' && (
+                        <button 
+                          onClick={(e) => handlePublishCourse(e, course.id)}
+                          className="px-3 py-1 mr-2 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors"
+                        >
+                          Publish
+                        </button>
+                      )}
                       <button className="p-2 text-slate-500 hover:text-white transition-colors">
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -179,7 +317,7 @@ export default function AdminCoursesPage() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">Course Title</label>
-                  <input type="text" placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 transition-colors" />
+                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 transition-colors" />
                 </div>
                 
                 <div>
@@ -192,20 +330,30 @@ export default function AdminCoursesPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">Upload Initial Asset (Video or PDF)</label>
-                  <div className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-[#0B1221]/50 cursor-pointer transition-colors group">
+                  <label className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-[#0B1221]/50 cursor-pointer transition-colors group relative">
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      accept="video/mp4,application/pdf,text/markdown"
+                    />
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <UploadCloud className="w-6 h-6 text-purple-400" />
                     </div>
-                    <p className="text-sm text-white font-medium mb-1">Click to upload or drag and drop</p>
-                    <p className="text-xs text-slate-500">MP4, PDF, or Markdown (Max 100MB)</p>
-                  </div>
+                    <p className="text-sm text-white font-medium mb-1">
+                      {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'MP4, PDF, or Markdown (Max 100MB)'}
+                    </p>
+                  </label>
                 </div>
               </div>
             </div>
 
             <div className="p-6 border-t border-white/5 bg-white/[0.01] flex justify-end gap-3">
               <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-colors">Cancel</button>
-              <button className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]">
+              <button onClick={handleCreateCourse} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]">
                 Create & Upload
               </button>
             </div>

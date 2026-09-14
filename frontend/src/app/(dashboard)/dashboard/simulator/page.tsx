@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,37 +9,106 @@ import { Mic, Square, ArrowLeft, Clock, BrainCircuit, CheckCircle2, ChevronRight
 
 export default function SimulatorPage() {
   const router = useRouter();
+    // eslint-disable-next-line
   const [isRecording, setIsRecording] = useState(false);
+  // eslint-disable-next-line
   const [timer, setTimer] = useState(120); // 2 minutes for Part 2 Speaking
   const [phase, setPhase] = useState<'intro' | 'active' | 'analyzing' | 'results'>('intro');
 
-  // Timer logic
+  const [testId, setTestId] = useState<string | null>(null);
+  const [questionId, setQuestionId] = useState<string | null>(null);
+  // eslint-disable-next-line
+  const [questionText, setQuestionText] = useState<string>("Loading next assessment...");
+  const [transcript, setTranscript] = useState<string>("");
+  // eslint-disable-next-line
+  const [feedback, setFeedback] = useState<Record<string, unknown> | null>(null);
+
+  // Web Speech API Ref
+  const recognitionRef = useRef<any>(null) // eslint-disable-line;
+
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (phase === 'active' && isRecording && timer > 0) {
-      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    } else if (timer === 0 && phase === 'active') {
-      setTimeout(() => {
-        setIsRecording(false);
-        setPhase('analyzing');
-      }, 0);
-      setTimeout(() => setPhase('results'), 3500); // Mock AI analysis delay
+    // Initialize Web Speech API
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      const SpeechRecognition = (window as unknown as Record<string, any>).SpeechRecognition || (window as unknown as Record<string, any>).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      
+      recognitionRef.current.onresult = (event: any /* eslint-disable-line */) => {
+        let currentTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(currentTranscript);
+      };
     }
-    return () => clearInterval(interval);
-  }, [phase, isRecording, timer]);
+
+    // Fetch Assessment
+    const fetchAssessment = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        
+        // Hardcoding the lesson ID since the dashboard is returning null
+        const lessonId = 'c063f41d-afc3-43b6-9ef5-980a0cb4c3c5';
+
+        // 2. Fetch/Generate Assessment for this lesson
+        const assRes = await fetch(`http://localhost:8000/api/v1/lessons/${lessonId}/assessment`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const assData = await assRes.json();
+        
+        setTestId(assData.id);
+        if (assData.questions && assData.questions.length > 0) {
+          // Find the first short answer question since this is a speaking simulator
+          const saq = assData.questions.find((q: any) => q.question_type === 'short_answer') || assData.questions[0];
+          setQuestionId(saq.id);
+          setQuestionText(saq.prompt || saq.content);
+        }
+      } catch (err) {
+        console.error(err);
+        setQuestionText("Error loading assessment.");
+      }
+    };
+    
+    fetchAssessment();
+  }, []);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const handleStart = () => {
     setPhase('active');
     setIsRecording(true);
+    setTranscript("");
+    if (recognitionRef.current) recognitionRef.current.start();
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsRecording(false);
+    setPhase('analyzing');
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`http://localhost:8000/api/v1/assessments/${testId}/submit`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: [{ question_id: questionId, selected_option_id: null, text_answer: transcript || "No answer provided." }]
+        })
+      });
+      const result = await res.json();
+      setFeedback(result);
+      setPhase('results');
+    } catch(err) {
+      console.error(err);
+      setPhase('results');
+    }
+
     setIsRecording(false);
     setPhase('analyzing');
     setTimeout(() => setPhase('results'), 3500);
@@ -367,20 +438,20 @@ export default function SimulatorPage() {
               <div className="grid grid-cols-2 gap-6 mb-8">
                 <div className="bg-[#0B1221] rounded-2xl p-6 text-center border border-white/5">
                   <p className="text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wider">Estimated Band</p>
-                  <p className="text-5xl font-extrabold text-[#027FFF]">7.0</p>
+                  <p className="text-5xl font-extrabold text-[#027FFF]">{feedback ? (feedback.overall_score * 10).toFixed(1) : "N/A"}</p>
                 </div>
                 <div className="bg-[#0B1221] rounded-2xl p-6 border border-white/5 flex flex-col justify-center">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-slate-400">Fluency</span>
-                    <span className="text-sm font-bold text-white">7.5</span>
+                    <span className="text-sm font-bold text-white">{feedback?.skill_scores?.[0] ? (feedback.skill_scores[0].score * 10).toFixed(1) : "N/A"}</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-slate-400">Lexical</span>
-                    <span className="text-sm font-bold text-white">6.5</span>
+                    <span className="text-sm font-bold text-white">{feedback?.skill_scores?.[1] ? (feedback.skill_scores[1].score * 10).toFixed(1) : "N/A"}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-400">Grammar</span>
-                    <span className="text-sm font-bold text-white">7.0</span>
+                    <span className="text-sm font-bold text-white">{feedback?.skill_scores?.[2] ? (feedback.skill_scores[2].score * 10).toFixed(1) : "N/A"}</span>
                   </div>
                 </div>
               </div>

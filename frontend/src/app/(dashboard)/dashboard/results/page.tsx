@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Award, Target, BookOpen, AlertCircle, 
   ChevronRight, Brain, Zap, Clock
 } from 'lucide-react';
 import {
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie, Legend, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell
 } from 'recharts';
 
@@ -21,6 +21,33 @@ const skillData = [
 ];
 
 export default function ResultsPage() {
+  const [weaknesses, setWeaknesses] = useState<{ severity?: number, value?: number, name: string, color?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+
+    fetch('http://localhost:8000/api/v1/students/me/weakness-flags', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        setWeaknesses(data);
+      }
+    })
+    .catch(err => console.error(err))
+    .finally(() => setLoading(false));
+  }, []);
+
+  const pieData = [
+    { name: 'Listening', value: 25, color: '#027FFF' },
+    { name: 'Grammar', value: 34, color: '#5BC0EB' },
+    { name: 'Reading', value: 25, color: '#FFB800' },
+    { name: 'Conversation', value: 8, color: '#F43F5E' },
+    { name: 'Vocabulary', value: 8, color: '#8B5CF6' }
+  ];
   const [activeTab, setActiveTab] = useState<'overview' | 'remediation'>('overview');
 
   return (
@@ -50,7 +77,7 @@ export default function ResultsPage() {
         </div>
 
         {/* TOP METRICS ROW */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           
           {/* Main Score Card */}
           <div className="col-span-1 lg:col-span-1 bg-gradient-to-br from-[#027FFF]/20 to-[#0B1221] border border-[#027FFF]/30 rounded-3xl p-8 relative overflow-hidden flex flex-col items-center justify-center text-center shadow-[0_0_40px_rgba(2,127,255,0.1)]">
@@ -96,6 +123,46 @@ export default function ResultsPage() {
                   Your <strong className="text-white">Vocabulary</strong> (Lexical Resource) needs work. You repeat basic words like &quot;good&quot; and &quot;bad&quot;.
                 </p>
               </div>
+            </div>
+          </div>
+          {/* PIE CHART FOR WEAKNESS DISTRIBUTION */}
+          <div className="col-span-1 lg:col-span-1 bg-[#0f182c] border border-white/5 rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+            <h3 className="text-lg font-bold text-white mb-2 self-start w-full text-center">Score Breakdown</h3>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={weaknesses.length > 0 ? weaknesses : pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey={weaknesses.length > 0 ? 'severity' : 'value'}
+                    stroke="none"
+                    labelLine={false}
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                      const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                      const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                      return (
+                        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+                          {`${(percent * 100).toFixed(0)}%`}
+                        </text>
+                      );
+                    }}
+                  >
+                    {(weaknesses.length > 0 ? weaknesses : pieData).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color || ['#027FFF', '#5BC0EB', '#FFB800', '#F43F5E', '#8B5CF6'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0B1221', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend verticalAlign="bottom" height={20} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
