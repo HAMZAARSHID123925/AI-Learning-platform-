@@ -7,6 +7,8 @@ import { CheckCircle, ArrowLeft, Loader2, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from '@/components/ToastProvider';
 
+import DashboardSidebar from '@/components/DashboardSidebar';
+
 export default function RemediationStudyPage() {
   const params = useParams();
   const router = useRouter();
@@ -60,7 +62,7 @@ export default function RemediationStudyPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC] text-slate-500">
+      <div className="flex h-screen items-center justify-center bg-[#F0F4F8] text-slate-500">
         <Loader2 className="w-8 h-8 animate-spin text-[#027FFF]" />
       </div>
     );
@@ -68,26 +70,30 @@ export default function RemediationStudyPage() {
 
   if (!plan) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F8FAFC] text-slate-500">
+      <div className="flex h-screen items-center justify-center bg-[#F0F4F8] text-slate-500">
         Course not found.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans">
-      
-      <div className="mb-8">
-        <Link href="/dashboard/adaptive" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-4">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Adaptive Engine
-        </Link>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold mb-3">
-          <BrainCircuit className="w-3.5 h-3.5" /> AI GENERATED COURSE
+    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
+      {/* SIDEBAR */}
+      <DashboardSidebar />
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+        <div className="mb-8">
+          <Link href="/dashboard/adaptive" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-4">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Adaptive Engine
+          </Link>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold mb-3">
+            <BrainCircuit className="w-3.5 h-3.5" /> AI GENERATED COURSE
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {plan.remedial_course_title}
+          </h1>
         </div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          {plan.remedial_course_title}
-        </h1>
-      </div>
 
       <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-12 mb-10 shadow-sm">
         {plan.remedial_course_markdown.split('\n').map((line: string, i: number) => {
@@ -100,16 +106,17 @@ export default function RemediationStudyPage() {
         })}
       </div>
 
-      <div className="flex justify-end border-t border-slate-200 pt-6">
-        <button 
-          onClick={handleComplete}
-          disabled={completing || plan.study_completed}
-          className="flex items-center gap-2.5 px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm text-sm"
-        >
-          {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-          {plan.study_completed ? "Study Completed" : "Mark as Studied & Take Retest"}
-        </button>
-      </div>
+        <div className="flex justify-end border-t border-slate-200 pt-6">
+          <button 
+            onClick={handleComplete}
+            disabled={completing || plan.study_completed}
+            className="flex items-center gap-2.5 px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm text-sm"
+          >
+            {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            {plan.study_completed ? "Study Completed" : "Mark as Studied & Take Retest"}
+          </button>
+        </div>
+      </main>
     </div>
   );
 }

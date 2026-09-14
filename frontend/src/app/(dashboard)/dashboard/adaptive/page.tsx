@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { BrainCircuit, BookOpen, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+import DashboardSidebar from '@/components/DashboardSidebar';
+
 export default function AdaptiveLearningPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [flags, setFlags] = useState<any[]>([]);
@@ -36,16 +38,21 @@ export default function AdaptiveLearningPage() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans">
-      <div className="mb-8">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
-        </Link>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-          <BrainCircuit className="w-8 h-8 text-[#027FFF]" /> Adaptive Engine
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">AI-generated targeted remediation courses diagnosed from your mock exams and simulators.</p>
-      </div>
+    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
+      {/* SIDEBAR */}
+      <DashboardSidebar />
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+        <div className="mb-8">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
+          </Link>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <BrainCircuit className="w-8 h-8 text-[#027FFF]" /> Adaptive Engine
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">AI-generated targeted remediation courses diagnosed from your mock exams and simulators.</p>
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -124,6 +131,7 @@ export default function AdaptiveLearningPage() {
         </div>
 
       </div>
+      </main>
     </div>
   );
 }

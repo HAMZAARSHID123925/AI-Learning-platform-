@@ -12,6 +12,8 @@ import {
   Cell
 } from 'recharts';
 
+import DashboardSidebar from '@/components/DashboardSidebar';
+
 const skillData = [
   { subject: 'Grammar', A: 85, fullMark: 100 },
   { subject: 'Vocabulary', A: 65, fullMark: 100 },
@@ -47,10 +49,12 @@ export default function ResultsPage() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
-      
+    <div className="flex h-screen bg-[#F0F4F8] text-slate-800 overflow-hidden font-sans">
+      {/* SIDEBAR */}
+      <DashboardSidebar />
+
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F8FAFC]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

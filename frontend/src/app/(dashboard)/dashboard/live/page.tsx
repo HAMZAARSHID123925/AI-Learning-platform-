@@ -8,6 +8,7 @@ import {
   PlayCircle, ChevronRight, CheckCircle2, ArrowLeft
 } from 'lucide-react';
 import { toast } from '@/components/ToastProvider';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 export default function LiveClassesPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
@@ -46,18 +47,22 @@ export default function LiveClassesPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans">
-      
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
-          </Link>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Live Classes</h1>
-          <p className="text-sm text-slate-500 mt-1">Join interactive live audio/video sessions with expert IELTS and English instructors.</p>
+    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
+      {/* SIDEBAR */}
+      <DashboardSidebar />
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
+            </Link>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Live Classes</h1>
+            <p className="text-sm text-slate-500 mt-1">Join interactive live audio/video sessions with expert IELTS and English instructors.</p>
+          </div>
         </div>
-      </div>
 
       {/* ACTIVE/NEXT CLASS SPOTLIGHT */}
       <div className="mb-10">
@@ -196,6 +201,7 @@ export default function LiveClassesPage() {
         </div>
       )}
 
+      </main>
     </div>
   );
 }
