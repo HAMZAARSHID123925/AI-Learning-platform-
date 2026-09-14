@@ -442,13 +442,9 @@ export default function DashboardPage() {
                 <p className="text-sm font-bold text-slate-900 leading-tight">{dashData?.student_name || userName}</p>
                 <p className="text-[11px] text-slate-500 font-semibold">{isIELTS ? 'Candidate' : 'Learner'}</p>
               </div>
-              <button 
-                onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('courseTrack'); router.push('/login'); }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Logout</span>
-              </button>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#027FFF] to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-sm">
+                {(dashData?.student_name || userName || 'U').charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>

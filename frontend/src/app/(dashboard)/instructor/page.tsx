@@ -219,13 +219,9 @@ export default function InstructorDashboardPage() {
               <Video className="w-4 h-4" />
               Schedule Live Class
             </button>
-            <button 
-              onClick={handleSignOut}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
-            </button>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-sm">
+              {instructorName.charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 
