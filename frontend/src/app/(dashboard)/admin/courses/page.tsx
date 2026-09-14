@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
   Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2
@@ -10,8 +11,20 @@ import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 
 export default function AdminCoursesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'analytics' | 'prompts'>('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // RBAC Route Guard: Admin privileges required
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = (localStorage.getItem('user_role') || 'student').toLowerCase();
+      if (role !== 'admin' && role !== 'superadmin') {
+        toast.error("Access Restricted 🔒", "Administrator privileges required to access Admin Studio.");
+        router.push('/dashboard');
+      }
+    }
+  }, [router]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [courses, setCourses] = useState<any[]>([]);

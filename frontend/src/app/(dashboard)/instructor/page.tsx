@@ -40,6 +40,17 @@ export default function InstructorDashboardPage() {
   const [sessionTime, setSessionTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // RBAC Route Guard: Instructor or Admin privileges required
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = (localStorage.getItem('user_role') || 'student').toLowerCase();
+      if (role !== 'instructor' && role !== 'admin' && role !== 'superadmin' && role !== 'teacher') {
+        toast.error("Access Restricted 🔒", "Instructor privileges required to access Instructor Hub.");
+        router.push('/dashboard');
+      }
+    }
+  }, [router]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {

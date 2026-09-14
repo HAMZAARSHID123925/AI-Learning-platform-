@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, BrainCircuit, BookOpen, Headphones, PenTool, Mic, 
-  Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award 
+  Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award,
+  ShieldCheck, User
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -15,6 +17,21 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
   const pathname = usePathname();
   const router = useRouter();
   const isIELTS = courseTrack !== 'general';
+
+  const [userRole, setUserRole] = useState<string>('student');
+  const [userName, setUserName] = useState<string>('Student');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('user_role') || 'student';
+      const name = localStorage.getItem('user_name') || 'Student';
+      setUserRole(role.toLowerCase());
+      setUserName(name);
+    }
+  }, []);
+
+  const isInstructor = userRole === 'instructor' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'teacher';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   const handleSignOut = () => {
     localStorage.removeItem('access_token');
@@ -51,7 +68,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
         
         {/* Navigation */}
         <nav className="p-4 space-y-1.5">
-          <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-3 px-3">Main Menu</div>
+          <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-3 px-3">Student Curriculum</div>
           
           <Link 
             href="/dashboard" 
@@ -113,7 +130,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
                 <PenTool className={`w-4 h-4 ${isActive('/dashboard/writing') ? 'text-white' : 'text-purple-400'}`} />
                 Writing Studio
               </Link>
-              <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Speaking</Link>
+              <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Speaking Studio</Link>
             </>
           ) : (
             <>
@@ -124,7 +141,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             </>
           )}
           
-          <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs</div>
+          <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs &amp; Diagnostics</div>
           <Link 
             href="/dashboard/simulator" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
@@ -191,33 +208,67 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             <BookOpen className={`w-4 h-4 ${isActive('/dashboard/lesson') ? 'text-white' : 'text-rose-400'}`} />
             Lesson Player
           </Link>
-          <Link 
-            href="/instructor" 
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-indigo-400 font-medium transition-colors text-sm"
-          >
-            <Users className="w-4 h-4 text-indigo-400" />
-            Instructor Hub
-          </Link>
-          <Link 
-            href="/admin/courses" 
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-amber-400 font-medium transition-colors text-sm"
-          >
-            <Settings className="w-4 h-4 text-amber-400" />
-            Admin Studio
-          </Link>
+
+          {/* RBAC MANAGEMENT HUBS (ONLY VISIBLE TO INSTRUCTOR / ADMIN) */}
+          {(isInstructor || isAdmin) && (
+            <>
+              <div className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-widest mb-3 mt-6 px-3 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> Staff Management
+              </div>
+              {isInstructor && (
+                <Link 
+                  href="/instructor" 
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                    isActive('/instructor')
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400'
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  Instructor Hub
+                </Link>
+              )}
+              {isAdmin && (
+                <Link 
+                  href="/admin/courses" 
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                    isActive('/admin/courses')
+                      ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-amber-400'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-amber-400" />
+                  Admin Studio
+                </Link>
+              )}
+            </>
+          )}
         </nav>
       </div>
       
-      {/* Sign Out Button at Sidebar Bottom */}
-      <div className="p-4 border-t border-slate-800">
+      {/* User Profile & Sign Out at Sidebar Bottom */}
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div className="w-8 h-8 rounded-lg bg-[#027FFF] text-white font-bold flex items-center justify-center text-xs shadow-sm">
+            {userName ? userName[0].toUpperCase() : 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-white truncate">{userName}</p>
+            <span className="text-[10px] font-semibold text-slate-400 capitalize block">
+              {isAdmin ? '🛡️ Administrator' : isInstructor ? '👨‍🏫 Instructor' : '🎓 Student'}
+            </span>
+          </div>
+        </div>
+
         <button 
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-xs"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5" />
           Sign Out
         </button>
       </div>
     </aside>
   );
 }
+
