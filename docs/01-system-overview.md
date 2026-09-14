@@ -17,17 +17,18 @@ courses and subjects later.
 2. Core Student Journey
 Student → Login / LMS Dashboard → Select / Access Course → Open Module & Study Lesson Material →
 Complete Learning Activity → AI Creates Initial Assessment → Student Takes Test → AI Evaluates Answers →
-Performance & Skill Analysis → Strengths + Weaknesses Identified → AI Creates Personalized Learning
-Recommendation & Test → Student Studies Recommended Material → Student Takes Personalized Test →
-Progress Updated in LMS → Continuous Improvement Loop.
+Performance & Skill Analysis → Strengths + Weaknesses Identified → AI Generates Tailored Written Remedial Course
+(Document / Reading format targeting specific weak points — NOT video) → Student Studies AI-Generated Remedial Course →
+Student Takes Targeted Follow-up Test → Progress Updated in LMS → Continuous Improvement Loop.
 The loop repeats as new learning activity and test results become available, allowing personalization to improve
 over time.
 
 3. Adaptive Learning Engine
 Input data: LMS learning activity, assessments, test attempts, historical performance, and course content.
-Processing flow: Student Performance → AI Skill Analysis → Identify Strong Areas / Weak Areas → Create
-Individual Learning Strategy → Generate Personalized Questions → Evaluate New Attempt → Update Student
-Performance Profile in LMS → Repeat.
+Processing flow: Student Performance → AI Skill Analysis → Identify Strong Areas / Weak Areas → 
+AI Synthesizes & Generates Written Remedial Course (Document form tailored to weak concepts) → 
+Student Studies Remedial Material → AI Generates Targeted Follow-up Assessment → Evaluate New Attempt → 
+Update Student Performance Profile in LMS → Repeat.
 The system should use historical data rather than relying only on the most recent score.
 
 4. Agentic AI Architecture

@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # CORS
     # -------------------------------------------------------------------------
-    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
+    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -174,7 +174,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # Frontend URL (for password reset links)
     # -------------------------------------------------------------------------
-    FRONTEND_URL: str = "http://localhost:3000,http://localhost:3001"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # -------------------------------------------------------------------------
     # Observability

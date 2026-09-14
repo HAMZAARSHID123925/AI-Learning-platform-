@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { toast } from '@/components/ToastProvider';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -21,11 +22,13 @@ export default function ResetPasswordPage() {
     
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      toast.error('Validation Error', 'Passwords do not match');
       return;
     }
     
     if (!token) {
       setError('Invalid or missing reset token');
+      toast.error('Invalid Token', 'Reset token is missing or expired');
       return;
     }
 
@@ -45,12 +48,15 @@ export default function ResetPasswordPage() {
         throw new Error('Failed to reset password. The link may have expired.');
       }
 
+      toast.success('Password Reset Successful!', 'Redirecting you to login...');
       setIsSuccess(true);
       setTimeout(() => {
         router.push('/login?reset=success');
-      }, 3000);
+      }, 2000);
     } catch (err: unknown) {
-      setError((err as Error).message || 'An error occurred. Please try again.');
+      const msg = (err as Error).message || 'An error occurred. Please try again.';
+      setError(msg);
+      toast.error('Reset Failed', msg);
     } finally {
       setIsLoading(false);
     }

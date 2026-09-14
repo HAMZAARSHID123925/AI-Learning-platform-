@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { toast } from '@/components/ToastProvider';
+
 export default function SignupPage() {
 
   const router = useRouter();
@@ -43,12 +45,16 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        const msg = data.message || (data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : 'Registration failed');
+        throw new Error(msg);
       }
 
+      toast.success('Account Created!', 'Please log in with your new credentials.');
       router.push('/login?registered=true');
     } catch (err: unknown) {
-      setError((err as Error).message || 'An error occurred. Please try again.');
+      const msg = (err as Error).message || 'An error occurred. Please try again.';
+      setError(msg);
+      toast.error('Signup Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -73,13 +79,12 @@ export default function SignupPage() {
       {/*  Top Section: Brand Logo & Institutional Tag  */}
       <header className="relative z-10 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group focus:outline-none">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#027FFF] to-[#5BC0EB] p-0.5 shadow-lg shadow-[#027FFF]/30 transition-transform duration-300 group-hover:scale-105">
-            <div className="w-full h-full bg-[#0B1221] rounded-[10px] flex items-center justify-center">
-              <svg className="w-6 h-6 text-[#5BC0EB]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-            </div>
+          <div className="h-12 w-12 rounded-2xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-[#027FFF]/50 transition-all duration-300 group-hover:scale-105 shadow-lg shadow-[#027FFF]/10">
+            <img 
+              src="/logo.png" 
+              alt="Pen & Page Academia" 
+              className="h-10 w-auto object-contain" 
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
