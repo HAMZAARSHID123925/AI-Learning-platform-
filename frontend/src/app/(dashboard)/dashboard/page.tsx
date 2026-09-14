@@ -11,7 +11,7 @@ import {
   LayoutDashboard, BookOpen, Headphones, PenTool, Mic, 
   LineChart as LineChartIcon, Settings, Video, LogOut, Bell, Users,
   BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight,
-  Globe2, GraduationCap, CheckCircle2, X, RefreshCw
+  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 
@@ -69,7 +69,6 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState('Student');
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Close notifications dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
@@ -143,8 +142,8 @@ export default function DashboardPage() {
 
   if (!isAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="w-8 h-8 border-4 border-[#027FFF] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8]">
+        <div className="w-10 h-10 border-4 border-[#027FFF] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -152,42 +151,42 @@ export default function DashboardPage() {
   // ─── ONBOARDING MODAL ────────────────────────────────────────────────────────
   if (!courseTrack) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F1F5F9] p-4 font-sans relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EEF2F6] via-[#E2E8F0] to-[#EEF2F6] p-4 font-sans relative overflow-hidden">
         <div className="w-full max-w-4xl z-10">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-md border border-slate-200 p-2 mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white shadow-xl shadow-slate-200/80 border border-slate-200 p-2.5 mb-6">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">Welcome to PPAcademia AI</h1>
-            <p className="text-base text-slate-600 max-w-2xl mx-auto">To personalize your adaptive learning engine, please select your primary focus. The AI will completely recalibrate your dashboard based on this choice.</p>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-3">Welcome to PPAcademia AI</h1>
+            <p className="text-base text-slate-600 max-w-xl mx-auto font-medium">Select your personalized focus track. The AI engine will dynamically calibrate your modules and metrics.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button 
               onClick={() => handleSelectTrack('general')}
-              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden"
+              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 overflow-hidden"
             >
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
                 <Globe2 className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-3">General English</h2>
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Master everyday conversational and professional English. Track your progress across global CEFR levels (A1 to C2).</p>
-              <div className="mt-auto px-6 py-2.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-colors duration-300">
-                Select General English
+              <h2 className="text-2xl font-black text-slate-900 mb-2">General English</h2>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Master everyday conversational and professional English across global CEFR levels (A1 to C2).</p>
+              <div className="mt-auto px-6 py-3 rounded-full bg-slate-100 text-slate-800 font-bold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-all duration-300 shadow-sm">
+                Select General English Track →
               </div>
             </button>
 
             <button 
               onClick={() => handleSelectTrack('ielts')}
-              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 overflow-hidden"
+              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 overflow-hidden"
             >
-              <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
                 <GraduationCap className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-3">IELTS Preparation</h2>
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Intensive, multi-agent evaluation for Academic or General Training. Target a specific Band Score with examiner-calibrated precision.</p>
-              <div className="mt-auto px-6 py-2.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-colors duration-300">
-                Select IELTS Track
+              <h2 className="text-2xl font-black text-slate-900 mb-2">IELTS Preparation</h2>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Intensive, multi-agent evaluation for Academic or General Training with examiner-calibrated band precision.</p>
+              <div className="mt-auto px-6 py-3 rounded-full bg-slate-100 text-slate-800 font-bold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-all duration-300 shadow-sm">
+                Select IELTS Track →
               </div>
             </button>
           </div>
@@ -247,14 +246,14 @@ export default function DashboardPage() {
 
   // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-slate-800 font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
 
-      {/* ── SIDEBAR ── */}
-      <aside className="w-64 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col justify-between hidden md:flex h-screen overflow-y-auto shadow-sm">
+      {/* ── SIDEBAR: Rich Deep Indigo / Slate ── */}
+      <aside className="w-64 flex-shrink-0 bg-[#0F172A] text-slate-300 flex flex-col justify-between hidden md:flex h-screen overflow-y-auto shadow-xl z-20">
         <div>
-          <div className="h-20 flex items-center px-6 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div className="h-20 flex items-center px-6 border-b border-slate-800 sticky top-0 bg-[#0F172A] z-10">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-slate-50 p-1 flex items-center justify-center border border-slate-200 group-hover:border-[#027FFF] transition-colors shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-white/20 shadow-md">
                 <img 
                   src="/logo.png" 
                   alt="Pen & Page Academia" 
@@ -262,73 +261,73 @@ export default function DashboardPage() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold text-slate-900 tracking-tight group-hover:text-[#027FFF] transition-colors">PPAcademia</span>
-                <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase">AI Platform</span>
+                <span className="text-base font-black text-white tracking-tight group-hover:text-[#5BC0EB] transition-colors">PPAcademia</span>
+                <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">AI Platform</span>
               </div>
             </Link>
           </div>
           
-          <nav className="p-4 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Menu</div>
+          <nav className="p-4 space-y-1.5">
+            <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-3 px-3">Main Menu</div>
             
-            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#027FFF]/10 text-[#027FFF] font-semibold border border-[#027FFF]/20">
+            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#027FFF] text-white font-bold shadow-md shadow-[#027FFF]/20 text-sm">
               <LayoutDashboard className="w-4 h-4" />
               Overview
             </Link>
             
-            <Link href="/dashboard/adaptive" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors group">
-              <BrainCircuit className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+            <Link href="/dashboard/adaptive" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
+              <BrainCircuit className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
               Adaptive Engine
             </Link>
 
             {isIELTS ? (
               <>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><BookOpen className="w-4 h-4 text-slate-400" />Reading</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><Headphones className="w-4 h-4 text-slate-400" />Listening</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><PenTool className="w-4 h-4 text-slate-400" />Writing</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><Mic className="w-4 h-4 text-slate-400" />Speaking</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Reading</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Listening</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Writing</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Speaking</Link>
               </>
             ) : (
               <>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><BookOpen className="w-4 h-4 text-slate-400" />Vocabulary</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><PenTool className="w-4 h-4 text-slate-400" />Grammar</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><Mic className="w-4 h-4 text-slate-400" />Conversation</Link>
-                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors"><Headphones className="w-4 h-4 text-slate-400" />Comprehension</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Vocabulary</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Grammar</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Conversation</Link>
+                <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800/80 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Comprehension</Link>
               </>
             )}
             
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-6 px-3">Platform</div>
-            <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-emerald-600 font-medium transition-colors group">
-              <Mic className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+            <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs</div>
+            <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400 font-medium transition-colors group text-sm">
+              <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
               AI Simulator
             </Link>
-            <Link href="/dashboard/results" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-blue-600 font-medium transition-colors">
-              <LineChartIcon className="w-4 h-4 text-blue-500" />
+            <Link href="/dashboard/results" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-blue-400 font-medium transition-colors text-sm">
+              <LineChartIcon className="w-4 h-4 text-blue-400" />
               Past Results
             </Link>
-            <Link href="/dashboard/live" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-purple-600 font-medium transition-colors">
-              <Video className="w-4 h-4 text-purple-500" />
+            <Link href="/dashboard/live" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-purple-400 font-medium transition-colors text-sm">
+              <Video className="w-4 h-4 text-purple-400" />
               Live Classes
             </Link>
-            <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-rose-600 font-medium transition-colors">
-              <BookOpen className="w-4 h-4 text-rose-500" />
+            <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-rose-400 font-medium transition-colors text-sm">
+              <BookOpen className="w-4 h-4 text-rose-400" />
               Lesson Player
             </Link>
-            <Link href="/instructor" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-indigo-600 font-medium transition-colors">
-              <Users className="w-4 h-4 text-indigo-500" />
+            <Link href="/instructor" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-indigo-400 font-medium transition-colors text-sm">
+              <Users className="w-4 h-4 text-indigo-400" />
               Instructor Hub
             </Link>
-            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-amber-600 font-medium transition-colors">
-              <Settings className="w-4 h-4 text-amber-500" />
+            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-amber-400 font-medium transition-colors text-sm">
+              <Settings className="w-4 h-4 text-amber-400" />
               Admin Studio
             </Link>
           </nav>
         </div>
         
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-slate-800">
           <button 
             onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('courseTrack'); router.push('/login'); }}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-50 text-slate-600 hover:text-red-600 font-semibold transition-colors text-sm"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -336,23 +335,26 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F0F4F8]">
         
-        {/* TOP BAR */}
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
+        {/* TOP BAR: Clean Crisp White with Border Shadow */}
+        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm z-10">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-slate-900">Dashboard Overview</h1>
-            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              {isIELTS ? 'IELTS Engine Online' : 'General English Engine Online'}
+            <div>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">Dashboard Overview</h1>
+              <p className="text-xs text-slate-500 font-semibold">{isIELTS ? 'IELTS Academic Track' : 'General English Mastery'}</p>
+            </div>
+            <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              AI Telemetry Active
             </span>
           </div>
           
           <div className="flex items-center gap-4">
             <button 
               onClick={() => { localStorage.removeItem('courseTrack'); setCourseTrack(null); }}
-              className="text-xs font-semibold text-slate-600 hover:text-[#027FFF] underline"
+              className="text-xs font-bold text-slate-600 hover:text-[#027FFF] px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 transition-colors"
             >
               Switch Track
             </button>
@@ -361,29 +363,29 @@ export default function DashboardPage() {
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen(p => !p)}
-                className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-[9px] font-bold text-white">
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-[9px] font-black text-white shadow-xs">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="absolute right-0 top-12 w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4 text-[#027FFF]" />
-                      <span className="font-bold text-slate-900 text-sm">Notifications</span>
+                      <span className="font-bold text-slate-900 text-sm">Live Notifications</span>
                       {unreadCount > 0 && (
                         <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">{unreadCount}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
                       {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-[#027FFF] hover:underline flex items-center gap-1 font-semibold">
+                        <button onClick={markAllRead} className="text-xs text-[#027FFF] hover:underline flex items-center gap-1 font-bold">
                           <CheckCircle2 className="w-3 h-3" /> Mark all read
                         </button>
                       )}
@@ -404,17 +406,17 @@ export default function DashboardPage() {
                         <div
                           key={n.id}
                           onClick={() => !n.read && markNotificationRead(n.id)}
-                          className={`px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.read ? 'bg-blue-50/40' : ''}`}
+                          className={`px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 {!n.read && <span className="w-2 h-2 rounded-full bg-[#027FFF] flex-shrink-0 mt-0.5"></span>}
-                                <p className="text-sm font-semibold text-slate-900 truncate">{n.title}</p>
+                                <p className="text-sm font-bold text-slate-900 truncate">{n.title}</p>
                               </div>
-                              <p className="text-xs text-slate-600 mt-1 line-clamp-2">{n.body}</p>
+                              <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">{n.body}</p>
                             </div>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5 font-medium">
                               {new Date(n.created_at).toLocaleDateString()}
                             </span>
                           </div>
@@ -424,8 +426,8 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="px-5 py-3 border-t border-slate-100 bg-slate-50">
-                    <button onClick={() => { setNotifOpen(false); loadAllData(); }} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 font-semibold transition-colors">
-                      <RefreshCw className="w-3 h-3" /> Refresh
+                    <button onClick={() => { setNotifOpen(false); loadAllData(); }} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 font-bold transition-colors">
+                      <RefreshCw className="w-3 h-3" /> Refresh Feed
                     </button>
                   </div>
                 </div>
@@ -433,14 +435,16 @@ export default function DashboardPage() {
             </div>
 
             <div className="w-px h-6 bg-slate-200"></div>
+            
+            {/* User Profile Capsule */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-slate-900">{dashData?.student_name || userName}</p>
-                <p className="text-xs text-slate-500 font-medium">{isIELTS ? 'IELTS Academic' : `CEFR ${cefrLevel} Level`}</p>
+                <p className="text-sm font-bold text-slate-900 leading-tight">{dashData?.student_name || userName}</p>
+                <p className="text-[11px] text-slate-500 font-semibold">{isIELTS ? 'Candidate' : 'Learner'}</p>
               </div>
               <button 
                 onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('courseTrack'); router.push('/login'); }}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-xs font-bold transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Logout</span>
@@ -449,91 +453,100 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        {/* SCROLLABLE DASHBOARD FEED */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           
           {loading && (
-            <div className="flex items-center gap-3 text-slate-500 text-sm">
+            <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
               <div className="w-4 h-4 border-2 border-[#027FFF] border-t-transparent rounded-full animate-spin"></div>
-              Loading your learning data…
+              Calibrating adaptive metrics…
             </div>
           )}
 
-          {/* ── METRICS ROW ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* ── METRICS CARDS ROW: High Polish Elevation ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             
             {/* Metric 1: Band / Level */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-blue-50 text-[#027FFF]"><TrendingUp className="w-5 h-5" /></div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{isIELTS ? 'Estimated Band' : 'Current CEFR Level'}</h3>
-              </div>
-              <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-slate-900">
-                  {isIELTS ? (estBand ?? '–') : cefrLevel}
-                </span>
-                <span className="text-sm text-emerald-600 font-semibold mb-1">
-                  {completionPct > 0 ? `${completionPct.toFixed(0)}% complete` : 'Getting started'}
-                </span>
-              </div>
-            </div>
-
-            {/* Metric 2: Target */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600"><Target className="w-5 h-5" /></div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{isIELTS ? 'Target Band' : 'Target Level'}</h3>
-              </div>
-              <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-slate-900">{isIELTS ? '8.0' : 'C1'}</span>
-                <span className="text-sm text-slate-500 font-medium mb-1">{isIELTS ? 'Academic' : 'Advanced'}</span>
-              </div>
-            </div>
-
-            {/* Metric 3: Probability */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600"><BrainCircuit className="w-5 h-5" /></div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Success Probability</h3>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-3xl font-extrabold text-slate-900">{successProbability ?? '–'}%</span>
-                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000"
-                    style={{ width: `${successProbability ?? 0}%` }}
-                  ></div>
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-blue-50 text-[#027FFF] shadow-xs">
+                  <TrendingUp className="w-5 h-5" />
                 </div>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                  {completionPct > 0 ? `${completionPct.toFixed(0)}% Done` : 'New'}
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{isIELTS ? 'Estimated Band' : 'Current CEFR Level'}</h3>
+              <div className="text-4xl font-black text-slate-900 tracking-tight">
+                {isIELTS ? (estBand ?? '–') : cefrLevel}
+              </div>
+            </div>
+
+            {/* Metric 2: Target Band */}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 shadow-xs">
+                  <Target className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200/60 px-2.5 py-0.5 rounded-full">
+                  Target
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{isIELTS ? 'Target Band' : 'Target Level'}</h3>
+              <div className="text-4xl font-black text-slate-900 tracking-tight">{isIELTS ? '8.0' : 'C1'}</div>
+            </div>
+
+            {/* Metric 3: Success Probability */}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 shadow-xs">
+                  <BrainCircuit className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                  Live AI
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Success Probability</h3>
+              <div className="text-3xl font-black text-slate-900 tracking-tight mb-2">{successProbability ?? '–'}%</div>
+              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000"
+                  style={{ width: `${successProbability ?? 0}%` }}
+                ></div>
               </div>
             </div>
 
             {/* Metric 4: Active Remediations */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-orange-50 text-orange-600"><Flame className="w-5 h-5" /></div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Active Remediations</h3>
-              </div>
-              <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-slate-900">{dashData?.active_remediations?.length ?? '0'}</span>
-                <span className="text-sm text-slate-500 font-medium mb-1">
-                  {dashData?.active_remediations?.length === 1 ? 'Skill to fix' : 'Skills to fix'}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-2xl bg-orange-50 text-orange-600 shadow-xs">
+                  <Flame className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-bold text-orange-700 bg-orange-50 border border-orange-200/60 px-2.5 py-0.5 rounded-full">
+                  Urgent
                 </span>
               </div>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Remediations</h3>
+              <div className="text-4xl font-black text-slate-900 tracking-tight">{dashData?.active_remediations?.length ?? '0'}</div>
             </div>
 
           </div>
 
-          {/* ── CHARTS ROW ── */}
+          {/* ── CHARTS ROW: White Cards with Modern Shadow ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Line Chart */}
-            <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+            <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-3xl p-7 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Proficiency Trajectory</h2>
-                  <p className="text-sm text-slate-500">Your progress across enrolled courses over time.</p>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Proficiency Trajectory</h2>
+                  <p className="text-xs text-slate-500 font-medium">Progress timeline calibrated across course milestones.</p>
                 </div>
-                <select className="bg-slate-50 border border-slate-200 text-sm text-slate-700 font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#027FFF]">
+                <select className="bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#027FFF] shadow-xs">
                   <option>{isIELTS ? 'Overall Band' : 'Overall Score'}</option>
                   <option>{isIELTS ? 'Reading' : 'Grammar'}</option>
                   <option>{isIELTS ? 'Writing' : 'Vocabulary'}</option>
@@ -542,61 +555,63 @@ export default function DashboardPage() {
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={progressHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                    <XAxis dataKey="name" stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis domain={isIELTS ? [4, 9] : [0, 100]} stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} dx={-10} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', color: '#0F172A', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} itemStyle={{ color: '#027FFF' }} />
-                    <Line type="monotone" dataKey="score" stroke="#027FFF" strokeWidth={3} dot={{ r: 4, fill: '#FFFFFF', stroke: '#027FFF', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#027FFF' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis domain={isIELTS ? [4, 9] : [0, 100]} stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-10} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '14px', color: '#FFFFFF', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }} itemStyle={{ color: '#5BC0EB', fontWeight: 'bold' }} />
+                    <Line type="monotone" dataKey="score" stroke="#027FFF" strokeWidth={3.5} dot={{ r: 4, fill: '#FFFFFF', stroke: '#027FFF', strokeWidth: 2.5 }} activeDot={{ r: 7, fill: '#027FFF' }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Radar Chart */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col shadow-sm">
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 flex flex-col shadow-sm">
               <div className="mb-2">
-                <h2 className="text-lg font-bold text-slate-900">AI Diagnostic Profile</h2>
-                <p className="text-sm text-slate-500">Live capability breakdown across competencies.</p>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight">Diagnostic Profile</h2>
+                <p className="text-xs text-slate-500 font-medium">Competency breakdown from live AI grading.</p>
               </div>
               <div className="flex-1 min-h-[250px] w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                     <PolarGrid stroke="#E2E8F0" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name="Candidate" dataKey="A" stroke="#027FFF" strokeWidth={2} fill="#027FFF" fillOpacity={0.2} />
+                    <Radar name="Candidate" dataKey="A" stroke="#027FFF" strokeWidth={2.5} fill="#027FFF" fillOpacity={0.18} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
 
-          {/* ── BOTTOM ROW ── */}
+          {/* ── BOTTOM ROW: Courses & Modules ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Enrolled Courses + Quick Modules */}
+            {/* Enrolled Courses & Modules */}
             <div className="lg:col-span-2 space-y-6">
 
               {/* Enrolled Courses */}
               {enrolledCourses.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 mb-4">My Enrolled Courses</h2>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">Enrolled Courses</h2>
                   <div className="space-y-3">
                     {enrolledCourses.map(c => (
-                      <div key={c.course_id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm">
+                      <div key={c.course_id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-[#027FFF]/50 transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-bold text-slate-900">{c.course_title}</span>
-                          <span className="text-xs text-slate-500 font-medium">{c.completed_lessons}/{c.total_lessons} lessons</span>
+                          <span className="text-xs text-slate-500 font-semibold">{c.completed_lessons}/{c.total_lessons} Lessons</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-[#027FFF] to-cyan-400 rounded-full transition-all duration-700"
                             style={{ width: `${c.percentage}%` }}
                           ></div>
                         </div>
-                        <div className="flex justify-between mt-2">
-                          <span className="text-xs text-slate-500">{c.percentage.toFixed(0)}% complete</span>
-                          <Link href="/dashboard/lesson" className="text-xs text-[#027FFF] font-bold hover:underline">Continue →</Link>
+                        <div className="flex justify-between mt-2.5">
+                          <span className="text-xs font-bold text-slate-500">{c.percentage.toFixed(0)}% Complete</span>
+                          <Link href="/dashboard/lesson" className="text-xs font-extrabold text-[#027FFF] hover:underline flex items-center gap-1">
+                            Continue Lesson <ArrowUpRight className="w-3.5 h-3.5" />
+                          </Link>
                         </div>
                       </div>
                     ))}
@@ -604,135 +619,135 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Quick Modules */}
+              {/* Quick Adaptive Modules */}
               <div>
-                <h2 className="text-lg font-bold text-slate-900 mb-4">Adaptive Modules</h2>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">Interactive Modules</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   
-                  <div className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-[#027FFF] rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md">
+                  <Link href="/dashboard/simulator" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-[#027FFF] rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#027FFF] flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Mic className="w-5 h-5" />
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                        <Mic className="w-6 h-6" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Module 1</span>
+                      <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">AI Voice</span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-1">
+                    <h3 className="text-base font-black text-slate-900 mb-1">
                       {isIELTS ? 'Speaking Simulator' : 'Conversation Drill'}
                     </h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-                      {isIELTS ? 'Real-time voice evaluation with the Examiner AI agent.' : 'Practice real-life dialogues with responsive AI avatars.'}
+                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
+                      Real-time audio evaluation with IELTS examiner rubric feedback.
                     </p>
-                    <Link href="/dashboard/simulator" className="flex items-center text-xs font-bold text-[#027FFF] group-hover:translate-x-1 transition-transform">
-                      Start Drill <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Link>
-                  </div>
+                    <span className="inline-flex items-center text-xs font-bold text-[#027FFF] group-hover:translate-x-1 transition-transform">
+                      Launch Simulator <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    </span>
+                  </Link>
 
-                  <div className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-amber-500 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md">
+                  <Link href="/dashboard/adaptive" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-amber-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <BrainCircuit className="w-5 h-5" />
+                      <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                        <BrainCircuit className="w-6 h-6" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Module 2</span>
+                      <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">Adaptive</span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-1">Adaptive Engine</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-                      AI detects your weak areas and generates targeted remediation exercises.
+                    <h3 className="text-base font-black text-slate-900 mb-1">Adaptive Engine</h3>
+                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
+                      Diagnose gaps and generate custom targeted recalibration drills.
                     </p>
-                    <Link href="/dashboard/adaptive" className="flex items-center text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-                      View Plan <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Link>
-                  </div>
+                    <span className="inline-flex items-center text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
+                      View Diagnostics <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    </span>
+                  </Link>
 
-                  <div className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-purple-500 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md">
+                  <Link href="/dashboard/live" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-purple-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Video className="w-5 h-5" />
+                      <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                        <Video className="w-6 h-6" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Module 3</span>
+                      <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">WebRTC</span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-1">Live Classes</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed">
-                      Join interactive live instructor sessions and group practice rooms.
+                    <h3 className="text-base font-black text-slate-900 mb-1">Live Classes</h3>
+                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
+                      Join instructor-led virtual rooms and interactive breakout groups.
                     </p>
-                    <Link href="/dashboard/live" className="flex items-center text-xs font-bold text-purple-600 group-hover:translate-x-1 transition-transform">
-                      Join Session <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Link>
-                  </div>
+                    <span className="inline-flex items-center text-xs font-bold text-purple-600 group-hover:translate-x-1 transition-transform">
+                      Join Classroom <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    </span>
+                  </Link>
 
-                  <div className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-rose-500 rounded-2xl p-5 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md">
+                  <Link href="/dashboard/lesson" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-rose-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <BookOpen className="w-5 h-5" />
+                      <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+                        <BookOpen className="w-6 h-6" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Module 4</span>
+                      <span className="text-[10px] font-black text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">Video</span>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 mb-1">Lesson Player</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed">
+                    <h3 className="text-base font-black text-slate-900 mb-1">Lesson Player</h3>
+                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
                       {dashData?.next_recommended_lesson
                         ? `Next: ${dashData.next_recommended_lesson.lesson_title}`
                         : 'Continue your structured self-paced video courses.'}
                     </p>
-                    <Link href="/dashboard/lesson" className="flex items-center text-xs font-bold text-rose-600 group-hover:translate-x-1 transition-transform">
-                      Continue <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Link>
-                  </div>
+                    <span className="inline-flex items-center text-xs font-bold text-rose-600 group-hover:translate-x-1 transition-transform">
+                      Continue Learning <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    </span>
+                  </Link>
 
                 </div>
               </div>
             </div>
 
-            {/* AI Insights Feed — Real Data */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col shadow-sm">
+            {/* AI Insights Feed */}
+            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 flex flex-col shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <BrainCircuit className="w-5 h-5 text-[#027FFF]" />
+                <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#027FFF]" />
                   AI Insights
                 </h2>
-                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Live
                 </span>
               </div>
               
-              <div className="space-y-3.5 flex-1">
+              <div className="space-y-4 flex-1">
 
                 {/* Active Remediations */}
                 {dashData?.active_remediations?.length ? (
                   dashData.active_remediations.slice(0, 2).map((r, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-red-50/70 border border-red-200/70">
+                    <div key={i} className="p-4 rounded-2xl bg-red-50 border border-red-200/70 shadow-xs">
                       <div className="flex gap-3">
                         <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div>
                           <h4 className="text-sm font-bold text-red-900 mb-1">Weak Area: {r.skill_name}</h4>
-                          <p className="text-xs text-red-700 leading-relaxed mb-2">{r.title}</p>
+                          <p className="text-xs text-red-700 leading-relaxed mb-2 font-medium">{r.title}</p>
                           {r.instructor_escalated && (
-                            <span className="text-[11px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded">⚠ Escalated to instructor</span>
+                            <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-full">⚠ Escalated to instructor</span>
                           )}
-                          <Link href="/dashboard/adaptive" className="block text-xs font-bold text-red-600 hover:underline mt-1.5">Fix now →</Link>
+                          <Link href="/dashboard/adaptive" className="block text-xs font-bold text-red-600 hover:underline mt-1">Fix weakness →</Link>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : insightCards.length ? (
                   insightCards.map((ins, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-red-50/70 border border-red-200/70">
+                    <div key={i} className="p-4 rounded-2xl bg-red-50 border border-red-200/70 shadow-xs">
                       <div className="flex gap-3">
                         <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div>
                           <h4 className="text-sm font-bold text-red-900 mb-1">{ins.title}</h4>
-                          <p className="text-xs text-red-700 leading-relaxed mb-2">{ins.body}</p>
+                          <p className="text-xs text-red-700 leading-relaxed mb-2 font-medium">{ins.body}</p>
                           <Link href="/dashboard/adaptive" className="text-xs font-bold text-red-600 hover:underline">Fix now →</Link>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 shadow-xs">
                     <div className="flex gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-sm font-bold text-emerald-900 mb-1">All Skills Healthy</h4>
-                        <p className="text-xs text-emerald-700 leading-relaxed">No critical weak areas detected. Keep practicing!</p>
+                        <p className="text-xs text-emerald-700 leading-relaxed font-medium">No critical weaknesses detected in recent assessments.</p>
                       </div>
                     </div>
                   </div>
@@ -740,16 +755,16 @@ export default function DashboardPage() {
 
                 {/* Overall Progress Insight */}
                 {completionPct > 0 && (
-                  <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                  <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200/80 shadow-xs">
                     <div className="flex gap-3">
                       <TrendingUp className="w-5 h-5 text-[#027FFF] shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-sm font-bold text-blue-900 mb-1">
-                          {isIELTS ? 'Band Progress' : 'Level Progress'}
+                          {isIELTS ? 'Band Trajectory' : 'Level Mastery'}
                         </h4>
-                        <p className="text-xs text-blue-700 leading-relaxed">
-                          {completionPct.toFixed(0)}% of your course completed.
-                          {dashData?.next_recommended_lesson && ` Next up: ${dashData.next_recommended_lesson.lesson_title}.`}
+                        <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                          {completionPct.toFixed(0)}% course completion recorded.
+                          {dashData?.next_recommended_lesson && ` Next: ${dashData.next_recommended_lesson.lesson_title}.`}
                         </p>
                       </div>
                     </div>
@@ -758,13 +773,13 @@ export default function DashboardPage() {
 
                 {/* Unread notifications prompt */}
                 {unreadCount > 0 && (
-                  <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200">
+                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200/80 shadow-xs">
                     <div className="flex gap-3">
                       <Bell className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                       <div>
                         <h4 className="text-sm font-bold text-indigo-900 mb-1">New Notifications</h4>
-                        <p className="text-xs text-indigo-700 leading-relaxed">You have {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}.</p>
-                        <button onClick={() => setNotifOpen(true)} className="text-xs font-bold text-indigo-600 hover:underline mt-1">View →</button>
+                        <p className="text-xs text-indigo-700 leading-relaxed font-medium">You have {unreadCount} unread update{unreadCount > 1 ? 's' : ''}.</p>
+                        <button onClick={() => setNotifOpen(true)} className="text-xs font-bold text-indigo-600 hover:underline mt-1">View Notifications →</button>
                       </div>
                     </div>
                   </div>

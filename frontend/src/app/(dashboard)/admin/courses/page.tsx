@@ -175,11 +175,11 @@ export default function AdminCoursesPage() {
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
       
       {/* ADMIN SIDEBAR */}
-      <aside className="w-64 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col justify-between hidden md:flex shadow-sm">
+      <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-[#0F172A] flex flex-col justify-between hidden md:flex shadow-2xl z-20">
         <div>
-          <div className="h-20 flex items-center px-6 border-b border-slate-100">
+          <div className="h-20 flex items-center px-6 border-b border-slate-800/80">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-slate-50 p-1 flex items-center justify-center border border-slate-200 group-hover:border-purple-500 transition-colors shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-slate-700 shadow-md">
                 <img 
                   src="/logo.png" 
                   alt="Pen & Page Academia" 
@@ -187,26 +187,26 @@ export default function AdminCoursesPage() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold text-slate-900 tracking-tight group-hover:text-purple-600 transition-colors">Admin Studio</span>
-                <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase">Management</span>
+                <span className="text-base font-bold text-white tracking-tight group-hover:text-purple-400 transition-colors">Admin Studio</span>
+                <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">Management</span>
               </div>
             </Link>
           </div>
           
           <nav className="p-4 space-y-1">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Management</div>
-            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-purple-50 text-purple-700 font-semibold border border-purple-200 text-sm">
+            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-semibold shadow-lg shadow-purple-600/30 text-sm">
               <BookOpen className="w-4 h-4" />
               Courses &amp; Content
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
-              <CheckCircle className="w-4 h-4 text-emerald-500" />
+            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
               AI Prompt Tuning
             </Link>
           </nav>
         </div>
-        <div className="p-4 border-t border-slate-100">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-semibold transition-colors text-sm">
+        <div className="p-4 border-t border-slate-800">
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white font-semibold transition-colors text-sm">
             <ChevronRight className="w-4 h-4 rotate-180" />
             Back to Dashboard
           </Link>
@@ -214,7 +214,7 @@ export default function AdminCoursesPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F0F4F8]">
         
         {/* HEADER */}
         <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">

@@ -136,11 +136,11 @@ export default function InstructorDashboardPage() {
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
       
       {/* INSTRUCTOR SIDEBAR */}
-      <aside className="w-64 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col justify-between hidden md:flex shadow-sm">
+      <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-[#0F172A] flex flex-col justify-between hidden md:flex shadow-2xl z-20">
         <div>
-          <div className="h-20 flex items-center px-6 border-b border-slate-100">
+          <div className="h-20 flex items-center px-6 border-b border-slate-800/80">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-slate-50 p-1 flex items-center justify-center border border-slate-200 group-hover:border-indigo-500 transition-colors shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-slate-700 shadow-md">
                 <img 
                   src="/logo.png" 
                   alt="Pen & Page Academia" 
@@ -148,8 +148,8 @@ export default function InstructorDashboardPage() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">Instructor Hub</span>
-                <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase">Teacher Portal</span>
+                <span className="text-base font-bold text-white tracking-tight group-hover:text-indigo-400 transition-colors">Instructor Hub</span>
+                <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">Teacher Portal</span>
               </div>
             </Link>
           </div>
@@ -158,42 +158,42 @@ export default function InstructorDashboardPage() {
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Instructor Views</div>
             <button 
               onClick={() => setActiveTab('roster')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'roster' ? 'bg-[#027FFF]/10 text-[#027FFF] border border-[#027FFF]/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'roster' ? 'bg-[#027FFF] text-white shadow-lg shadow-[#027FFF]/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <Users className="w-4 h-4" />
               Student Roster
             </button>
             <button 
               onClick={() => setActiveTab('escalations')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'escalations' ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'escalations' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <AlertCircle className="w-4 h-4" />
               Escalated Students
             </button>
             <button 
               onClick={() => setActiveTab('classes')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'classes' ? 'bg-purple-50 text-purple-600 border border-purple-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'classes' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <Video className="w-4 h-4" />
               Live Class Host
             </button>
 
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-6 px-3">Navigation</div>
-            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
-              <BookOpen className="w-4 h-4" />
+            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm">
+              <BookOpen className="w-4 h-4 text-indigo-400" />
               Student View
             </Link>
-            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
-              <BrainCircuit className="w-4 h-4" />
+            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm">
+              <BrainCircuit className="w-4 h-4 text-emerald-400" />
               Admin Studio
             </Link>
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-slate-800">
           <button 
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-50 text-slate-600 hover:text-red-600 font-semibold transition-colors text-sm"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-semibold transition-colors text-sm"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -202,7 +202,7 @@ export default function InstructorDashboardPage() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F0F4F8]">
         
         {/* TOP HEADER */}
         <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
