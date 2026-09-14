@@ -267,14 +267,19 @@ export default function DashboardPage() {
       {/* ── SIDEBAR ── */}
       <aside className="w-64 flex-shrink-0 border-r border-white/5 bg-[#0f182c] flex flex-col justify-between hidden md:flex h-screen overflow-y-auto">
         <div>
-          <div className="h-20 flex items-center px-8 border-b border-white/5 sticky top-0 bg-[#0f182c] z-10">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#027FFF] to-[#5BC0EB] p-0.5">
-                <div className="w-full h-full bg-[#0B1221] rounded-[6px] flex items-center justify-center">
-                  <BrainCircuit className="w-4 h-4 text-[#5BC0EB]" />
-                </div>
+          <div className="h-20 flex items-center px-6 border-b border-white/5 sticky top-0 bg-[#0f182c] z-10">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="h-10 w-10 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-[#027FFF]/50 transition-colors">
+                <img 
+                  src="/logo.png" 
+                  alt="Pen & Page Academia" 
+                  className="h-8 w-auto object-contain" 
+                />
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">PPAcademia</span>
+              <div className="flex flex-col">
+                <span className="text-base font-bold text-white tracking-tight group-hover:text-[#5BC0EB] transition-colors">PPAcademia</span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">AI Platform</span>
+              </div>
             </Link>
           </div>
           

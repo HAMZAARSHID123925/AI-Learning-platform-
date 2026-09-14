@@ -180,14 +180,19 @@ export default function AdminCoursesPage() {
       {/* ADMIN SIDEBAR */}
       <aside className="w-64 flex-shrink-0 border-r border-white/5 bg-[#0f182c] flex flex-col justify-between hidden md:flex">
         <div>
-          <div className="h-20 flex items-center px-8 border-b border-white/5">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 p-0.5">
-                <div className="w-full h-full bg-[#0B1221] rounded-[6px] flex items-center justify-center">
-                  <BrainCircuit className="w-4 h-4 text-pink-400" />
-                </div>
+          <div className="h-20 flex items-center px-6 border-b border-white/5">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="h-10 w-10 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-purple-500/50 transition-colors">
+                <img 
+                  src="/logo.png" 
+                  alt="Pen & Page Academia" 
+                  className="h-8 w-auto object-contain" 
+                />
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">Admin Studio</span>
+              <div className="flex flex-col">
+                <span className="text-base font-bold text-white tracking-tight group-hover:text-purple-400 transition-colors">Admin Studio</span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Management</span>
+              </div>
             </Link>
           </div>
           
