@@ -3,13 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
-  Plus, Search, Filter, MoreVertical, Video, FileText, 
-  CheckCircle, Clock, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
-  Users, BarChart2, TrendingUp, Globe, LogOut
+  Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
+  Users, BarChart2, TrendingUp, Globe, CheckCircle, Clock
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-
 import { toast } from '@/components/ToastProvider';
 
 export default function AdminCoursesPage() {
@@ -173,16 +171,15 @@ export default function AdminCoursesPage() {
     }
   };
 
-
   return (
-    <div className="flex h-screen bg-[#0B1221] text-slate-200 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
       
       {/* ADMIN SIDEBAR */}
-      <aside className="w-64 flex-shrink-0 border-r border-white/5 bg-[#0f182c] flex flex-col justify-between hidden md:flex">
+      <aside className="w-64 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col justify-between hidden md:flex shadow-sm">
         <div>
-          <div className="h-20 flex items-center px-6 border-b border-white/5">
+          <div className="h-20 flex items-center px-6 border-b border-slate-100">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-purple-500/50 transition-colors">
+              <div className="h-10 w-10 rounded-xl bg-slate-50 p-1 flex items-center justify-center border border-slate-200 group-hover:border-purple-500 transition-colors shadow-sm">
                 <img 
                   src="/logo.png" 
                   alt="Pen & Page Academia" 
@@ -190,41 +187,44 @@ export default function AdminCoursesPage() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold text-white tracking-tight group-hover:text-purple-400 transition-colors">Admin Studio</span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Management</span>
+                <span className="text-base font-bold text-slate-900 tracking-tight group-hover:text-purple-600 transition-colors">Admin Studio</span>
+                <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase">Management</span>
               </div>
             </Link>
           </div>
           
           <nav className="p-4 space-y-1">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-4 px-4">Management</div>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 text-purple-400 font-medium border border-purple-500/20">
-              <BookOpen className="w-5 h-5" />
-              Courses & Content
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Management</div>
+            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-purple-50 text-purple-700 font-semibold border border-purple-200 text-sm">
+              <BookOpen className="w-4 h-4" />
+              Courses &amp; Content
             </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
-              <CheckCircle className="w-5 h-5" />
+            <Link href="#" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
+              <CheckCircle className="w-4 h-4 text-emerald-500" />
               AI Prompt Tuning
             </Link>
           </nav>
         </div>
-        <div className="p-4 border-t border-white/5">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 font-medium transition-colors">
-            <ChevronRight className="w-5 h-5 rotate-180" />
-            Back to App
+        <div className="p-4 border-t border-slate-100">
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-semibold transition-colors text-sm">
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            Back to Dashboard
           </Link>
         </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
         
         {/* HEADER */}
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/5 bg-[#0f182c]/50 backdrop-blur-md">
-          <h1 className="text-xl font-bold text-white">Course Management</h1>
+        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Course Management</h1>
+            <p className="text-xs text-slate-500 font-medium">Platform Curriculum &amp; Content Administration</p>
+          </div>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-all shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Create Course
@@ -236,24 +236,24 @@ export default function AdminCoursesPage() {
           
           {/* Tabs & Search */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div className="flex bg-[#0f182c] p-1 rounded-xl border border-white/5 w-fit">
+            <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit">
               <button 
                 onClick={() => setActiveTab('published')}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'published' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors ${activeTab === 'published' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Published
               </button>
               <button 
                 onClick={() => setActiveTab('drafts')}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'drafts' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors ${activeTab === 'drafts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Drafts
               </button>
               <button
                 onClick={() => setActiveTab('analytics')}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-purple-500/20 text-purple-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'analytics' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
               >
-                <BarChart2 className="w-4 h-4" />
+                <BarChart2 className="w-3.5 h-3.5" />
                 Analytics
               </button>
             </div>
@@ -261,81 +261,80 @@ export default function AdminCoursesPage() {
             {activeTab !== 'analytics' && (
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text" 
                     placeholder="Search courses..." 
-                    className="pl-9 pr-4 py-2 bg-[#0f182c] border border-white/5 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 w-64"
+                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 w-64 shadow-sm"
                   />
                 </div>
-                <button className="p-2 bg-[#0f182c] border border-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
+                <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 shadow-sm transition-colors">
                   <Filter className="w-4 h-4" />
                 </button>
               </div>
             )}
           </div>
 
-
           {/* COURSE LIST (TABLE) — only shown on published/drafts tabs */}
           {activeTab !== 'analytics' && (
-          <div className="bg-[#0f182c] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Course Name</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Track</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Content</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Students</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Course Name</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Content</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Students</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">Loading courses…</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">Loading courses…</td></tr>
                 ) : courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">No courses found.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">No courses found.</td></tr>
                 ) : (
                   courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').map((course) => (
-                  <tr key={course.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
+                  <tr key={course.id} className="hover:bg-slate-50/60 transition-colors group cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center border border-purple-500/10">
-                          <BookOpen className="w-5 h-5 text-purple-400" />
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center border border-purple-200">
+                          <BookOpen className="w-5 h-5 text-purple-600" />
                         </div>
-                        <span className="font-semibold text-white group-hover:text-purple-400 transition-colors">{course.title}</span>
+                        <span className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">{course.title}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 text-xs font-medium border border-white/10">
+                      <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
                         AI Engine
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm text-slate-300">{course.module_count || 0} Modules</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900">{course.module_count || 0} Modules</span>
                         <span className="text-xs text-slate-500">Course Content</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${course.status === 'published' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${course.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
                         {course.status === 'published' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
                         {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-400 font-medium">
+                    <td className="px-6 py-4 text-sm text-slate-600 font-medium">
                       {(course.students || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {course.status !== 'published' && (
                         <button 
                           onClick={(e) => handlePublishCourse(e, course.id)}
-                          className="px-3 py-1 mr-2 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors"
+                          className="px-3 py-1.5 mr-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-sm"
                         >
                           Publish
                         </button>
                       )}
-                      <button className="p-2 text-slate-500 hover:text-white transition-colors">
+                      <button className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </td>
@@ -351,29 +350,29 @@ export default function AdminCoursesPage() {
             <div className="space-y-6">
               {analyticsLoading ? (
                 <div className="flex items-center gap-3 text-slate-500 text-sm py-10">
-                  <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
                   Loading platform analytics…
                 </div>
               ) : (
                 <>
                   {/* User Stats */}
                   <div>
-                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Users className="w-5 h-5 text-purple-400" /> User Analytics
+                    <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-600" /> User Analytics
                     </h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
-                        { label: 'Total Users', value: analytics.totalUsers, color: 'blue', icon: <Globe className="w-5 h-5" /> },
-                        { label: 'Students', value: analytics.totalStudents, color: 'emerald', icon: <Users className="w-5 h-5" /> },
-                        { label: 'Instructors', value: analytics.totalInstructors, color: 'indigo', icon: <Users className="w-5 h-5" /> },
-                        { label: 'Admins', value: analytics.totalAdmins, color: 'red', icon: <CheckCircle className="w-5 h-5" /> },
+                        { label: 'Total Users', value: analytics.totalUsers, color: 'blue', icon: <Globe className="w-5 h-5 text-blue-600" /> },
+                        { label: 'Students', value: analytics.totalStudents, color: 'emerald', icon: <Users className="w-5 h-5 text-emerald-600" /> },
+                        { label: 'Instructors', value: analytics.totalInstructors, color: 'indigo', icon: <Users className="w-5 h-5 text-indigo-600" /> },
+                        { label: 'Admins', value: analytics.totalAdmins, color: 'red', icon: <CheckCircle className="w-5 h-5 text-red-600" /> },
                       ].map((stat) => (
-                        <div key={stat.label} className="bg-[#0f182c] border border-white/5 rounded-2xl p-5">
-                          <div className={`w-10 h-10 rounded-xl bg-${stat.color}-500/10 text-${stat.color}-400 flex items-center justify-center mb-3`}>
+                        <div key={stat.label} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3">
                             {stat.icon}
                           </div>
-                          <div className="text-3xl font-extrabold text-white">{stat.value}</div>
-                          <div className="text-sm text-slate-400 mt-1">{stat.label}</div>
+                          <div className="text-3xl font-extrabold text-slate-900">{stat.value}</div>
+                          <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">{stat.label}</div>
                         </div>
                       ))}
                     </div>
@@ -381,19 +380,19 @@ export default function AdminCoursesPage() {
 
                   {/* Course Stats */}
                   <div>
-                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-purple-400" /> Course Analytics
+                    <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-purple-600" /> Course Analytics
                     </h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
-                        { label: 'Total Courses', value: analytics.totalCourses, sub: 'All courses' },
+                        { label: 'Total Courses', value: analytics.totalCourses, sub: 'All curriculum items' },
                         { label: 'Published', value: analytics.publishedCourses, sub: 'Live & active' },
                         { label: 'Drafts', value: analytics.draftCourses, sub: 'Pending review' },
-                        { label: 'Live Sessions', value: analytics.totalSessions, sub: 'All time' },
+                        { label: 'Live Sessions', value: analytics.totalSessions, sub: 'All time classrooms' },
                       ].map((stat) => (
-                        <div key={stat.label} className="bg-[#0f182c] border border-white/5 rounded-2xl p-5">
-                          <div className="text-3xl font-extrabold text-white mb-1">{stat.value}</div>
-                          <div className="text-sm font-semibold text-white">{stat.label}</div>
+                        <div key={stat.label} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                          <div className="text-3xl font-extrabold text-slate-900 mb-1">{stat.value}</div>
+                          <div className="text-sm font-bold text-slate-900">{stat.label}</div>
                           <div className="text-xs text-slate-500 mt-0.5">{stat.sub}</div>
                         </div>
                       ))}
@@ -401,22 +400,22 @@ export default function AdminCoursesPage() {
                   </div>
 
                   {/* Publish rate bar */}
-                  <div className="bg-[#0f182c] border border-white/5 rounded-2xl p-6">
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-white flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-emerald-400" /> Course Publish Rate
+                      <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-emerald-600" /> Course Publish Rate
                       </h3>
-                      <span className="text-sm text-emerald-400 font-semibold">
+                      <span className="text-sm text-emerald-600 font-bold">
                         {analytics.totalCourses ? Math.round((analytics.publishedCourses / analytics.totalCourses) * 100) : 0}%
                       </span>
                     </div>
-                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-700"
+                        className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full transition-all duration-700"
                         style={{ width: `${analytics.totalCourses ? Math.round((analytics.publishedCourses / analytics.totalCourses) * 100) : 0}%` }}
                       ></div>
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-slate-500">
+                    <div className="flex justify-between mt-2 text-xs text-slate-500 font-medium">
                       <span>{analytics.publishedCourses} published</span>
                       <span>{analytics.draftCourses} in draft</span>
                     </div>
@@ -431,12 +430,12 @@ export default function AdminCoursesPage() {
 
       {/* CREATE COURSE MODAL OVERLAY */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050B14]/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0f182c] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Create New Course</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-500 hover:text-white transition-colors">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900">Create New Course</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -444,31 +443,31 @@ export default function AdminCoursesPage() {
             <div className="p-6 overflow-y-auto">
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Course Title</label>
-                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 transition-colors" />
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Course Title</label>
+                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors" />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Track Alignment</label>
-                  <select className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Track Alignment</label>
+                  <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors">
                     <option>IELTS Preparation</option>
                     <option>General English</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Upload Initial Asset (Video or PDF)</label>
-                  <label className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl p-8 flex flex-col items-center justify-center bg-[#0B1221]/50 cursor-pointer transition-colors group relative">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Upload Initial Asset (Video or PDF)</label>
+                  <label className="border-2 border-dashed border-slate-200 hover:border-purple-500 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
                     <input 
                       type="file" 
                       className="hidden" 
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       accept="video/mp4,application/pdf,text/markdown"
                     />
-                    <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UploadCloud className="w-6 h-6 text-purple-400" />
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-6 h-6 text-purple-600" />
                     </div>
-                    <p className="text-sm text-white font-medium mb-1">
+                    <p className="text-sm text-slate-900 font-bold mb-1">
                       {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -479,10 +478,10 @@ export default function AdminCoursesPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/5 bg-white/[0.01] flex justify-end gap-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={handleCreateCourse} disabled={isSubmitting} className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]">
-                Create & Upload
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
+              <button onClick={handleCreateCourse} disabled={isSubmitting} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm">
+                Create &amp; Upload
               </button>
             </div>
 

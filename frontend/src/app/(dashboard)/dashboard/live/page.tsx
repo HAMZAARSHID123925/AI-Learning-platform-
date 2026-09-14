@@ -1,12 +1,13 @@
 "use client";
 import { fetchWithAuth } from "@/lib/api";
 
-
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Calendar as CalendarIcon, Video, Users, Clock, 
-  PlayCircle, ChevronRight, CheckCircle2
+  PlayCircle, ChevronRight, CheckCircle2, ArrowLeft
 } from 'lucide-react';
+import { toast } from '@/components/ToastProvider';
 
 export default function LiveClassesPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
@@ -16,12 +17,10 @@ export default function LiveClassesPage() {
     try {
       setJoining(true);
 
-      // For the sake of the demo, if we don't have a specific session ID, we fetch the first available one and join it!
-      const sessionsRes = await fetchWithAuth('/live-sessions', {
-      });
+      const sessionsRes = await fetchWithAuth('/live-sessions');
       const sessions = await sessionsRes.json();
       if (!sessions || sessions.length === 0) {
-        alert("No active live sessions found in database!");
+        toast.warning("No Active Sessions", "No scheduled live classes found at this moment.");
         return;
       }
       
@@ -31,53 +30,57 @@ export default function LiveClassesPage() {
       });
       const data = await res.json();
       if (data.room_url) {
+        toast.success("Connecting to Classroom...", "Opening WebRTC video room.");
         window.open(data.room_url, '_blank');
       } else if (data.token) {
-        alert('WebRTC Room Token: ' + data.token);
+        toast.info("WebRTC Token Generated", data.token);
       } else {
-        alert('Could not join room. Is it active?');
+        toast.error("Unable to Join", "Could not connect to live room.");
       }
     } catch (e) {
       console.error(e);
-      alert('Failed to join room.');
+      toast.error("Connection Error", "Failed to join live session.");
     } finally {
       setJoining(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050B14] text-slate-200 p-6 lg:p-10">
+    <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans">
       
       {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">Live Classes</h1>
-        <p className="text-slate-400">Join interactive sessions with expert IELTS and English instructors.</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
+          </Link>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Live Classes</h1>
+          <p className="text-sm text-slate-500 mt-1">Join interactive live audio/video sessions with expert IELTS and English instructors.</p>
+        </div>
       </div>
 
       {/* ACTIVE/NEXT CLASS SPOTLIGHT */}
-      <div className="mb-12 relative">
-        <div className="absolute -inset-1 bg-gradient-to-r from-[#027FFF] to-emerald-500 rounded-[2rem] blur opacity-25 animate-pulse"></div>
-        <div className="relative bg-[#0f182c] border border-white/10 rounded-3xl p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+      <div className="mb-10">
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm">
           
           <div className="flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold mb-4">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute"></span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 relative"></span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold mb-4">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               STARTING IN 15 MINS
             </div>
             
-            <h2 className="text-3xl font-bold text-white mb-3">Mastering IELTS Speaking Part 3</h2>
-            <p className="text-slate-400 mb-6 max-w-xl leading-relaxed">
+            <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-3">Mastering IELTS Speaking Part 3</h2>
+            <p className="text-slate-600 mb-6 max-w-xl leading-relaxed text-sm">
               Join Instructor Sarah for an intensive breakdown of Part 3 abstract questions. We will cover advanced vocabulary structures and how to extend your answers naturally.
             </p>
             
-            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-300">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 font-medium">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#5BC0EB]" />
+                <Clock className="w-4 h-4 text-[#027FFF]" />
                 Today, 2:00 PM - 3:30 PM
               </div>
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#5BC0EB]" />
+                <Users className="w-4 h-4 text-[#027FFF]" />
                 24 Students Enrolled
               </div>
             </div>
@@ -87,7 +90,7 @@ export default function LiveClassesPage() {
             <button 
               onClick={handleJoin}
               disabled={joining}
-              className="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:hover:translate-y-0"
+              className="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-sm hover:shadow-md disabled:opacity-50 text-sm"
             >
               <Video className="w-5 h-5" />
               {joining ? 'Connecting...' : 'Join Virtual Room'}
@@ -97,16 +100,16 @@ export default function LiveClassesPage() {
       </div>
 
       {/* TABS */}
-      <div className="flex items-center gap-8 border-b border-white/10 mb-8">
+      <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
         <button 
           onClick={() => setActiveTab('upcoming')}
-          className={`pb-4 text-sm font-semibold transition-colors border-b-2 ${activeTab === 'upcoming' ? 'border-[#5BC0EB] text-[#5BC0EB]' : 'border-transparent text-slate-400 hover:text-white'}`}
+          className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'upcoming' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
         >
           Upcoming Schedule
         </button>
         <button 
           onClick={() => setActiveTab('past')}
-          className={`pb-4 text-sm font-semibold transition-colors border-b-2 ${activeTab === 'past' ? 'border-[#5BC0EB] text-[#5BC0EB]' : 'border-transparent text-slate-400 hover:text-white'}`}
+          className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'past' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
         >
           Past Recordings
         </button>
@@ -117,57 +120,57 @@ export default function LiveClassesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* Card 1 */}
-          <div className="bg-[#0B1221] border border-white/5 rounded-2xl p-6 hover:border-[#027FFF]/30 transition-all group">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#027FFF]/10 flex items-center justify-center border border-[#027FFF]/20">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
                   <CalendarIcon className="w-5 h-5 text-[#027FFF]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">Advanced Essay Structures</h3>
-                  <p className="text-xs text-slate-500">IELTS Academic Writing</p>
+                  <h3 className="text-slate-900 font-bold text-lg">Advanced Essay Structures</h3>
+                  <p className="text-xs text-slate-500 font-medium">IELTS Academic Writing</p>
                 </div>
               </div>
             </div>
             <div className="space-y-2 mb-6">
-              <div className="flex items-center gap-3 text-sm text-slate-400">
-                <Clock className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Clock className="w-4 h-4 text-slate-400" />
                 Tomorrow, 10:00 AM
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-400">
-                <Users className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Users className="w-4 h-4 text-slate-400" />
                 Instructor David (12 enrolled)
               </div>
             </div>
-            <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-sm transition-colors">
+            <button className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm transition-colors">
               RSVP to Session
             </button>
           </div>
 
           {/* Card 2 */}
-          <div className="bg-[#0B1221] border border-white/5 rounded-2xl p-6 hover:border-[#027FFF]/30 transition-all group">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#027FFF]/10 flex items-center justify-center border border-[#027FFF]/20">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
                   <CalendarIcon className="w-5 h-5 text-[#027FFF]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg">General English: Phrasal Verbs</h3>
-                  <p className="text-xs text-slate-500">General English Track</p>
+                  <h3 className="text-slate-900 font-bold text-lg">General English: Phrasal Verbs</h3>
+                  <p className="text-xs text-slate-500 font-medium">General English Track</p>
                 </div>
               </div>
             </div>
             <div className="space-y-2 mb-6">
-              <div className="flex items-center gap-3 text-sm text-slate-400">
-                <Clock className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Clock className="w-4 h-4 text-slate-400" />
                 Thursday, 4:00 PM
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-400">
-                <Users className="w-4 h-4 text-slate-500" />
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Users className="w-4 h-4 text-slate-400" />
                 Instructor Emma (8 enrolled)
               </div>
             </div>
-            <button className="w-full py-3 rounded-xl bg-[#027FFF]/10 border border-[#027FFF]/20 text-[#5BC0EB] font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+            <button className="w-full py-3 rounded-xl bg-blue-50 border border-blue-200 text-[#027FFF] font-bold text-sm transition-colors flex items-center justify-center gap-2">
               <CheckCircle2 className="w-4 h-4" /> RSVP Confirmed
             </button>
           </div>
@@ -177,16 +180,15 @@ export default function LiveClassesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* Recording Card */}
-          <div className="bg-[#0B1221] border border-white/5 rounded-2xl p-4 flex gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
-            <div className="w-32 h-24 bg-[#0f182c] rounded-xl flex items-center justify-center border border-white/5 relative overflow-hidden shrink-0">
-              <PlayCircle className="w-8 h-8 text-[#5BC0EB] relative z-10 group-hover:scale-110 transition-transform" />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#027FFF]/20 to-transparent"></div>
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex gap-4 hover:bg-slate-50 transition-colors cursor-pointer shadow-sm">
+            <div className="w-32 h-24 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 relative overflow-hidden shrink-0">
+              <PlayCircle className="w-8 h-8 text-[#027FFF] relative z-10" />
             </div>
             <div className="flex flex-col justify-center">
-              <h3 className="text-white font-bold mb-1 group-hover:text-[#5BC0EB] transition-colors">Speaking Part 2 Deep Dive</h3>
+              <h3 className="text-slate-900 font-bold mb-1">Speaking Part 2 Deep Dive</h3>
               <p className="text-xs text-slate-500 mb-2">Recorded on Oct 12 • 45 mins</p>
-              <div className="text-xs font-semibold text-[#027FFF] flex items-center">
-                Watch Recording <ChevronRight className="w-4 h-4 ml-0.5 group-hover:translate-x-1 transition-transform" />
+              <div className="text-xs font-bold text-[#027FFF] flex items-center">
+                Watch Recording <ChevronRight className="w-4 h-4 ml-0.5" />
               </div>
             </div>
           </div>

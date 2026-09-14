@@ -3,9 +3,8 @@ import { fetchWithAuth } from "@/lib/api";
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle, ArrowLeft, Loader2, BrainCircuit } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Loader2, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
-
 import { toast } from '@/components/ToastProvider';
 
 export default function RemediationStudyPage() {
@@ -61,53 +60,53 @@ export default function RemediationStudyPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#050B14] text-slate-400">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-[#F8FAFC] text-slate-500">
+        <Loader2 className="w-8 h-8 animate-spin text-[#027FFF]" />
       </div>
     );
   }
 
   if (!plan) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#050B14] text-slate-400">
+      <div className="flex h-screen items-center justify-center bg-[#F8FAFC] text-slate-500">
         Course not found.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050B14] text-slate-200 p-6 lg:p-10">
+    <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-800 p-6 lg:p-10 font-sans">
       
       <div className="mb-8">
-        <Link href="/dashboard/adaptive" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Adaptive Engine
+        <Link href="/dashboard/adaptive" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-4">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Adaptive Engine
         </Link>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#027FFF]/10 border border-[#027FFF]/20 text-[#027FFF] text-xs font-bold mb-4">
-          <BrainCircuit className="w-4 h-4" /> AI GENERATED COURSE
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold mb-3">
+          <BrainCircuit className="w-3.5 h-3.5" /> AI GENERATED COURSE
         </div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
           {plan.remedial_course_title}
         </h1>
       </div>
 
-      <div className="bg-[#0f182c] border border-white/5 rounded-3xl p-8 lg:p-12 mb-10 prose prose-invert max-w-none prose-headings:text-white prose-a:text-[#5BC0EB]">
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-12 mb-10 shadow-sm">
         {plan.remedial_course_markdown.split('\n').map((line: string, i: number) => {
-          if (line.startsWith('# ')) return <h1 key={i} className="text-3xl font-bold mt-8 mb-4 border-b border-white/10 pb-2">{line.substring(2)}</h1>;
-          if (line.startsWith('## ')) return <h2 key={i} className="text-2xl font-bold mt-8 mb-4">{line.substring(3)}</h2>;
-          if (line.startsWith('### ')) return <h3 key={i} className="text-xl font-bold mt-6 mb-3">{line.substring(4)}</h3>;
-          if (line.startsWith('- ')) return <li key={i} className="ml-6 list-disc mb-2">{line.substring(2)}</li>;
+          if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold mt-6 mb-3 text-slate-900 border-b border-slate-100 pb-2">{line.substring(2)}</h1>;
+          if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-900">{line.substring(3)}</h2>;
+          if (line.startsWith('### ')) return <h3 key={i} className="text-base font-bold mt-4 mb-2 text-slate-800">{line.substring(4)}</h3>;
+          if (line.startsWith('- ')) return <li key={i} className="ml-6 list-disc mb-1.5 text-slate-600 text-sm leading-relaxed">{line.substring(2)}</li>;
           if (line.trim() === '') return <br key={i} />;
-          return <p key={i} className="mb-4 leading-relaxed text-slate-300">{line}</p>;
+          return <p key={i} className="mb-3 leading-relaxed text-slate-600 text-sm">{line}</p>;
         })}
       </div>
 
-      <div className="flex justify-end border-t border-white/10 pt-8">
+      <div className="flex justify-end border-t border-slate-200 pt-6">
         <button 
           onClick={handleComplete}
           disabled={completing || plan.study_completed}
-          className="flex items-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-900 font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+          className="flex items-center gap-2.5 px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm text-sm"
         >
-          {completing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+          {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
           {plan.study_completed ? "Study Completed" : "Mark as Studied & Take Retest"}
         </button>
       </div>

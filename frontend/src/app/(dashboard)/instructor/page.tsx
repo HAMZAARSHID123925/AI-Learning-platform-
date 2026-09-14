@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Users, Video, AlertCircle, BookOpen, Search, 
-  ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock, RefreshCw
+  ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api';
+import { toast } from '@/components/ToastProvider';
 
 interface RealStudent {
   id: string;
@@ -21,8 +22,6 @@ interface RealStudent {
 const fallbackStudents = [
   { id: '1', name: 'student@elarion.ai', email: 'student@elarion.ai', track: 'IELTS Academic', currentBand: '—', status: 'Active', weakArea: '—', joined: '—' },
 ];
-
-import { toast } from '@/components/ToastProvider';
 
 export default function InstructorDashboardPage() {
   const router = useRouter();
@@ -134,14 +133,14 @@ export default function InstructorDashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0B1221] text-slate-200 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
       
       {/* INSTRUCTOR SIDEBAR */}
-      <aside className="w-64 flex-shrink-0 border-r border-white/5 bg-[#0f182c] flex flex-col justify-between hidden md:flex">
+      <aside className="w-64 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col justify-between hidden md:flex shadow-sm">
         <div>
-          <div className="h-20 flex items-center px-6 border-b border-white/5">
+          <div className="h-20 flex items-center px-6 border-b border-slate-100">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-indigo-500/50 transition-colors">
+              <div className="h-10 w-10 rounded-xl bg-slate-50 p-1 flex items-center justify-center border border-slate-200 group-hover:border-indigo-500 transition-colors shadow-sm">
                 <img 
                   src="/logo.png" 
                   alt="Pen & Page Academia" 
@@ -149,82 +148,82 @@ export default function InstructorDashboardPage() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-base font-bold text-white tracking-tight group-hover:text-indigo-400 transition-colors">Instructor Hub</span>
-                <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Teacher Portal</span>
+                <span className="text-base font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">Instructor Hub</span>
+                <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase">Teacher Portal</span>
               </div>
             </Link>
           </div>
           
           <nav className="p-4 space-y-1">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-4 px-4">Instructor Views</div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Instructor Views</div>
             <button 
               onClick={() => setActiveTab('roster')} 
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'roster' ? 'bg-[#027FFF]/10 text-[#5BC0EB] border border-[#027FFF]/20' : 'hover:bg-white/5 text-slate-400 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'roster' ? 'bg-[#027FFF]/10 text-[#027FFF] border border-[#027FFF]/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
-              <Users className="w-5 h-5" />
+              <Users className="w-4 h-4" />
               Student Roster
             </button>
             <button 
               onClick={() => setActiveTab('escalations')} 
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'escalations' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'hover:bg-white/5 text-slate-400 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'escalations' ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-4 h-4" />
               Escalated Students
             </button>
             <button 
               onClick={() => setActiveTab('classes')} 
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'classes' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'hover:bg-white/5 text-slate-400 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-colors ${activeTab === 'classes' ? 'bg-purple-50 text-purple-600 border border-purple-200' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             >
-              <Video className="w-5 h-5" />
+              <Video className="w-4 h-4" />
               Live Class Host
             </button>
 
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-8 px-4">Navigation</div>
-            <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white font-medium transition-colors">
-              <BookOpen className="w-5 h-5" />
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-6 px-3">Navigation</div>
+            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
+              <BookOpen className="w-4 h-4" />
               Student View
             </Link>
-            <Link href="/admin/courses" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white font-medium transition-colors">
-              <BrainCircuit className="w-5 h-5" />
+            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium transition-colors text-sm">
+              <BrainCircuit className="w-4 h-4" />
               Admin Studio
             </Link>
           </nav>
         </div>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-slate-100">
           <button 
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-medium transition-colors"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-50 text-slate-600 hover:text-red-600 font-semibold transition-colors text-sm"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             Sign Out
           </button>
         </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F8FAFC]">
         
         {/* TOP HEADER */}
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/5 bg-[#0f182c]/50 backdrop-blur-md">
+        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-white">Teacher & Instructor Hub</h1>
-            <p className="text-xs text-slate-400">Classroom Telemetry & Live Instruction Portal</p>
+            <h1 className="text-xl font-bold text-slate-900">Teacher &amp; Instructor Hub</h1>
+            <p className="text-xs text-slate-500 font-medium">Classroom Telemetry &amp; Live Instruction Portal ({instructorName})</p>
           </div>
           
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowScheduleModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-all shadow-sm"
             >
               <Video className="w-4 h-4" />
               Schedule Live Class
             </button>
             <button 
               onClick={handleSignOut}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold transition-colors"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Logout</span>
             </button>
           </div>
@@ -237,55 +236,57 @@ export default function InstructorDashboardPage() {
           {activeTab === 'roster' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between gap-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-[#5BC0EB]" /> Active Student Cohort
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#027FFF]" /> Active Student Cohort
                 </h2>
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text" 
                     placeholder="Search candidate by name..." 
-                    className="pl-9 pr-4 py-2 bg-[#0f182c] border border-white/5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#5BC0EB] w-64"
+                    className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#027FFF] w-64 shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="bg-[#0f182c] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+              <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.02]">
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Track</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estimated Band</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Primary Weakness</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Estimated Band</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Weakness</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {students.map((student) => (
-                      <tr key={student.id} className="hover:bg-white/[0.02] transition-colors group">
+                  <tbody className="divide-y divide-slate-100">
+                    {loading ? (
+                      <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">Loading student cohort…</td></tr>
+                    ) : students.map((student) => (
+                      <tr key={student.id} className="hover:bg-slate-50/60 transition-colors group">
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-semibold text-white group-hover:text-[#5BC0EB] transition-colors">{student.name}</p>
+                            <p className="font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{student.name}</p>
                             <p className="text-xs text-slate-500">{student.email}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 text-xs font-medium border border-white/10">
+                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
                             {student.track}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-bold text-white">
-                          <span className="px-2.5 py-1 rounded-lg bg-[#027FFF]/10 text-[#5BC0EB] border border-[#027FFF]/20 text-xs">
+                        <td className="px-6 py-4 font-bold text-slate-900">
+                          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-[#027FFF] border border-blue-200 text-xs font-bold">
                             Band {student.currentBand}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300">
+                        <td className="px-6 py-4 text-sm text-slate-600 font-medium">
                           {student.weakArea}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${student.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
                             {student.status === 'Active' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
                             {student.status}
                           </span>
@@ -293,7 +294,7 @@ export default function InstructorDashboardPage() {
                         <td className="px-6 py-4 text-right">
                           <Link 
                             href="/dashboard"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#5BC0EB] hover:text-white transition-colors"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-[#027FFF] hover:underline transition-colors"
                           >
                             <span>Inspect Telemetry</span>
                             <ChevronRight className="w-4 h-4" />
@@ -311,38 +312,38 @@ export default function InstructorDashboardPage() {
           {activeTab === 'escalations' && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-5 h-5 text-amber-500" /> Human Teacher Escalations (Failed 3+ Retests)
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+                  <AlertCircle className="w-5 h-5 text-amber-600" /> Human Teacher Escalations (Failed 3+ Retests)
                 </h2>
-                <p className="text-sm text-slate-400">These candidates need instructor review or 1-on-1 coaching.</p>
+                <p className="text-sm text-slate-500">These candidates need instructor review or 1-on-1 coaching.</p>
               </div>
 
               {escalations.length === 0 ? (
-                <div className="bg-[#0f182c] border border-white/5 rounded-2xl p-10 text-center text-slate-400">
-                  <CheckCircle className="w-10 h-10 text-emerald-500/50 mx-auto mb-3" />
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center text-slate-500 shadow-sm">
+                  <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
                   No escalated students right now. All learners are progressing smoothly!
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {escalations.map((esc) => (
-                    <div key={esc.id} className="bg-[#0f182c] border border-red-500/20 rounded-2xl p-6 flex flex-col justify-between">
+                    <div key={esc.id} className="bg-white border border-red-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 text-xs font-bold uppercase">
+                          <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold uppercase border border-red-200">
                             Flagged for Review
                           </span>
-                          <span className="text-xs text-slate-500">{new Date(esc.created_at || Date.now()).toLocaleDateString()}</span>
+                          <span className="text-xs text-slate-400 font-medium">{new Date(esc.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
-                        <h3 className="font-bold text-white text-base mb-1">Skill Gap: {esc.skill_id?.substring(0, 8) || 'Speaking Lexical'}</h3>
-                        <p className="text-sm text-slate-400">Recorded Score: <span className="text-red-400 font-bold">{(esc.score_at_flag * 10).toFixed(1)}/10</span> (Threshold: 7.0/10)</p>
+                        <h3 className="font-bold text-slate-900 text-base mb-1">Skill Gap: {esc.skill_id?.substring(0, 8) || 'Speaking Lexical'}</h3>
+                        <p className="text-sm text-slate-600">Recorded Score: <span className="text-red-600 font-bold">{(esc.score_at_flag * 10).toFixed(1)}/10</span> (Threshold: 7.0/10)</p>
                       </div>
-                      <div className="pt-4 border-t border-white/5 mt-4 flex items-center justify-between">
-                        <Link href="/dashboard/simulator" className="text-xs font-bold text-[#5BC0EB] hover:underline flex items-center gap-1">
+                      <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
+                        <Link href="/dashboard/simulator" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
                           Review Speaking Audio <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                         <button 
                           onClick={() => setShowScheduleModal(true)}
-                          className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-semibold"
+                          className="px-3.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-bold transition-colors"
                         >
                           Book 1-on-1 Session
                         </button>
@@ -359,14 +360,14 @@ export default function InstructorDashboardPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Video className="w-5 h-5 text-purple-400" /> Scheduled Virtual Classrooms
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Video className="w-5 h-5 text-purple-600" /> Scheduled Virtual Classrooms
                   </h2>
-                  <p className="text-sm text-slate-400">Launch real-time interactive classrooms with WebRTC telemetry.</p>
+                  <p className="text-sm text-slate-500">Launch real-time interactive classrooms with WebRTC telemetry.</p>
                 </div>
                 <button 
                   onClick={() => setShowScheduleModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-all"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-all shadow-sm"
                 >
                   <Video className="w-4 h-4" />
                   Create Class
@@ -375,22 +376,22 @@ export default function InstructorDashboardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {liveSessions.map((session) => (
-                  <div key={session.id} className="bg-[#0f182c] border border-white/5 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-500/30 transition-all">
+                  <div key={session.id} className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-300 shadow-sm transition-all">
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-400 text-xs font-bold uppercase">
+                        <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-bold uppercase border border-purple-200">
                           {session.status}
                         </span>
-                        <span className="text-xs text-slate-500">{session.max_participants} max seats</span>
+                        <span className="text-xs text-slate-500 font-medium">{session.max_participants} max seats</span>
                       </div>
-                      <h3 className="font-bold text-white text-lg mb-2">{session.title}</h3>
-                      <p className="text-xs text-slate-400 flex items-center gap-1.5 mb-4">
-                        <Clock className="w-4 h-4 text-[#5BC0EB]" />
+                      <h3 className="font-bold text-slate-900 text-base mb-2">{session.title}</h3>
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-4 font-medium">
+                        <Clock className="w-4 h-4 text-[#027FFF]" />
                         {new Date(session.scheduled_at).toLocaleString()}
                       </p>
                     </div>
 
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                       <button 
                         onClick={async () => {
                           const res = await fetchWithAuth(`/live-sessions/${session.id}/join`, {
@@ -400,7 +401,7 @@ export default function InstructorDashboardPage() {
                           if (data.room_url) window.open(data.room_url, '_blank');
                           else alert('Joined WebRTC room token: ' + data.token);
                         }}
-                        className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
                       >
                         <Video className="w-4 h-4" />
                         Host Classroom Room
@@ -417,46 +418,46 @@ export default function InstructorDashboardPage() {
 
       {/* SCHEDULE LIVE CLASS MODAL */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050B14]/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0f182c] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Video className="w-5 h-5 text-purple-400" /> Schedule Live Classroom
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Video className="w-5 h-5 text-purple-600" /> Schedule Live Classroom
               </h2>
-              <button onClick={() => setShowScheduleModal(false)} className="text-slate-500 hover:text-white transition-colors">
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Class Topic</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Class Topic</label>
                 <input 
                   type="text" 
                   value={sessionTitle}
                   onChange={(e) => setSessionTitle(e.target.value)}
                   placeholder="e.g. Band 8.0 Speaking Abstract Extension Masterclass"
-                  className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 text-sm"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Scheduled Date & Time</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Scheduled Date &amp; Time</label>
                 <input 
                   type="datetime-local" 
                   value={sessionTime}
                   onChange={(e) => setSessionTime(e.target.value)}
-                  className="w-full bg-[#0B1221] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 text-sm"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium"
                 />
               </div>
             </div>
 
-            <div className="p-6 border-t border-white/5 bg-white/[0.01] flex justify-end gap-3">
-              <button onClick={() => setShowScheduleModal(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white transition-colors">Cancel</button>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => setShowScheduleModal(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
               <button 
                 onClick={handleScheduleSession}
                 disabled={isSubmitting || !sessionTitle}
-                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)]"
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
               >
                 {isSubmitting ? 'Creating...' : 'Schedule Class'}
               </button>
