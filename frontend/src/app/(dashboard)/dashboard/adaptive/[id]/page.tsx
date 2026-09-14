@@ -1,32 +1,34 @@
 "use client";
 import { fetchWithAuth } from "@/lib/api";
 
-
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BookOpen, CheckCircle, ArrowLeft, Loader2, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 
-export default function RemedialCoursePage() {
-  const { id } = useParams();
+import { toast } from '@/components/ToastProvider';
+
+export default function RemediationStudyPage() {
+  const params = useParams();
   const router = useRouter();
+  const id = params?.id as string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     const fetchPlan = async () => {
       try {
-  
-  
-        const res = await fetchWithAuth(`/remediation-plans/${id}`, {
-        });
-        const data = await res.json();
-        if (data.id) {
+        const res = await fetchWithAuth(`/remediation-plans/${id}`);
+        if (res.ok) {
+          const data = await res.json();
           setPlan(data);
         }
       } catch (err) {
-        console.error("Failed to fetch plan:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -43,15 +45,15 @@ export default function RemedialCoursePage() {
       });
       const data = await res.json();
       if (data.retest_id) {
-        alert(data.message + "\nRedirecting to Retest Simulator...");
+        toast.success('Study Material Completed!', 'Launching your recalibration drill...');
         router.push(`/dashboard/simulator?retest=${data.retest_id}`);
       } else {
-        alert(data.message);
+        toast.success('Study Completed!', data.message || 'Recalibration updated.');
         router.push('/dashboard/adaptive');
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to complete study");
+      toast.error('Submission Error', 'Failed to mark study complete.');
     } finally {
       setCompleting(false);
     }

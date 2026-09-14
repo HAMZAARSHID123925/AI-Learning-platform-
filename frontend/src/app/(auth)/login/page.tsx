@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { toast } from '@/components/ToastProvider';
+
 export default function LoginPage() {
 
   const router = useRouter();
@@ -40,15 +42,19 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Invalid credentials');
+        const msg = data.message || (data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : 'Invalid email or password');
+        throw new Error(msg);
       }
 
       localStorage.setItem('access_token', data.access_token);
       
       const roles: string[] = data.user?.roles || [];
       const primaryRole = roles[0] || 'Student';
+      const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User';
       localStorage.setItem('user_role', primaryRole);
-      localStorage.setItem('user_name', `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User');
+      localStorage.setItem('user_name', userName);
+
+      toast.success(`Welcome back, ${userName}!`, `Logged in as ${primaryRole}`);
 
       if (roles.includes('Admin')) {
         router.push('/admin/courses');
@@ -58,7 +64,9 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } catch (err: unknown) {
-      setError((err as Error).message || 'An error occurred. Please try again.');
+      const msg = (err as Error).message || 'An error occurred. Please try again.';
+      setError(msg);
+      toast.error('Login Failed', msg);
     } finally {
       setLoading(false);
     }

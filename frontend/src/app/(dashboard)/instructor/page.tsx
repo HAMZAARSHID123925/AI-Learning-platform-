@@ -22,6 +22,8 @@ const fallbackStudents = [
   { id: '1', name: 'student@elarion.ai', email: 'student@elarion.ai', track: 'IELTS Academic', currentBand: '—', status: 'Active', weakArea: '—', joined: '—' },
 ];
 
+import { toast } from '@/components/ToastProvider';
+
 export default function InstructorDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'roster' | 'escalations' | 'classes'>('roster');
@@ -97,7 +99,7 @@ export default function InstructorDashboardPage() {
     try {
       const scheduledAt = sessionTime ? new Date(sessionTime).toISOString() : new Date(Date.now() + 3600000).toISOString();
 
-      await fetchWithAuth('/live-sessions', {
+      const res = await fetchWithAuth('/live-sessions', {
         method: 'POST',
         body: JSON.stringify({
           title: sessionTitle,
@@ -106,12 +108,19 @@ export default function InstructorDashboardPage() {
         }),
       });
 
-      setShowScheduleModal(false);
-      setSessionTitle('');
-      setSessionTime('');
-      fetchData();
+      if (res.ok) {
+        toast.success('Live Class Scheduled!', `"${sessionTitle}" has been scheduled successfully.`);
+        setShowScheduleModal(false);
+        setSessionTitle('');
+        setSessionTime('');
+        fetchData();
+      } else {
+        const err = await res.json();
+        toast.error('Scheduling Failed', typeof err.detail === 'string' ? err.detail : 'Could not schedule live session.');
+      }
     } catch (err) {
       console.error(err);
+      toast.error('Scheduling Failed', 'Network or server error.');
     } finally {
       setIsSubmitting(false);
     }

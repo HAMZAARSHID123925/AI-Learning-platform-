@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { toast } from '@/components/ToastProvider';
+
 export default function SignupPage() {
 
   const router = useRouter();
@@ -43,12 +45,16 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        const msg = data.message || (data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : 'Registration failed');
+        throw new Error(msg);
       }
 
+      toast.success('Account Created!', 'Please log in with your new credentials.');
       router.push('/login?registered=true');
     } catch (err: unknown) {
-      setError((err as Error).message || 'An error occurred. Please try again.');
+      const msg = (err as Error).message || 'An error occurred. Please try again.';
+      setError(msg);
+      toast.error('Signup Failed', msg);
     } finally {
       setLoading(false);
     }

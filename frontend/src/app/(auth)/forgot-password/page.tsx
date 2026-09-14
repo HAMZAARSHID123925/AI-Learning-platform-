@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from '@/components/ToastProvider';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -37,11 +38,12 @@ export default function ForgotPasswordPage() {
         throw new Error('Failed to send reset link.');
       }
 
+      toast.success('Reset Email Sent!', 'Check your inbox for the password reset instructions.');
       setIsSuccess(true);
     } catch (err: unknown) {
-      // For security, APIs usually return 200 even if email doesn't exist,
-      // but we handle errors just in case network fails
-      setError((err as Error).message || 'An error occurred. Please try again.');
+      const msg = (err as Error).message || 'An error occurred. Please try again.';
+      setError(msg);
+      toast.error('Request Failed', msg);
     } finally {
       setIsLoading(false);
     }

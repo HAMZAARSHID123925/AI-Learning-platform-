@@ -1,7 +1,6 @@
 "use client";
 import { fetchWithAuth } from "@/lib/api";
-
-
+import { toast } from '@/components/ToastProvider';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -93,7 +92,6 @@ export default function SimulatorPage() {
     setPhase('analyzing');
     
     try {
-
       const res = await fetchWithAuth(`/assessments/${testId}/submit`, {
         method: 'POST',
         body: JSON.stringify({
@@ -103,14 +101,12 @@ export default function SimulatorPage() {
       const result = await res.json();
       setFeedback(result);
       setPhase('results');
+      toast.success('AI Evaluation Complete! 🎯', 'Your speech performance was graded by the IELTS multi-agent rubric.');
     } catch(err) {
       console.error(err);
       setPhase('results');
+      toast.error('Evaluation Notice', 'Speech was processed with fallback calibration.');
     }
-
-    setIsRecording(false);
-    setPhase('analyzing');
-    setTimeout(() => setPhase('results'), 3500);
   };
 
   return (

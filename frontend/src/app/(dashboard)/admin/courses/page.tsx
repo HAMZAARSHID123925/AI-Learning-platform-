@@ -10,6 +10,8 @@ import {
 import { fetchWithAuth } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
+import { toast } from '@/components/ToastProvider';
+
 export default function AdminCoursesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'analytics'>('published');
@@ -113,10 +115,14 @@ export default function AdminCoursesPage() {
       }
       const res = await fetchWithAuth(`/courses/${courseId}/publish`, { method: 'POST' });
       if (res.ok) {
+        toast.success('Course Published!', 'Course is now live for all enrolled students.');
         fetchCourses();
+      } else {
+        toast.error('Publish Failed', 'Unable to publish course at this time.');
       }
     } catch (error) {
       console.error('Failed to publish', error);
+      toast.error('Publish Failed', 'An unexpected error occurred.');
     }
   };
 
@@ -150,15 +156,18 @@ export default function AdminCoursesPage() {
 
         await fetchWithAuth(`/courses/${data.id}/publish`, { method: 'POST' });
 
+        toast.success('Course Created & Published!', `"${newTitle}" is now live.`);
         setShowCreateModal(false);
         setNewTitle('');
         fetchCourses();
       } else {
         const err = await res.json();
-        alert('Failed to create course: ' + JSON.stringify(err));
+        const msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err);
+        toast.error('Creation Failed', msg);
       }
     } catch (error) {
       console.error(error);
+      toast.error('Creation Failed', 'Network or server error.');
     } finally {
       setIsSubmitting(false);
     }

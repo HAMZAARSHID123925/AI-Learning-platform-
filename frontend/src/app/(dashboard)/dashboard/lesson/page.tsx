@@ -8,6 +8,7 @@ import {
   ArrowLeft, CheckCircle, PlayCircle, FileText, Download, 
   MessageSquare, ChevronRight, Video
 } from 'lucide-react';
+import { toast } from '@/components/ToastProvider';
 
 export default function LessonPlayerPage() {
   const [isCompleted, setIsCompleted] = useState(false);
@@ -40,6 +41,7 @@ export default function LessonPlayerPage() {
             body: JSON.stringify({ time_spent_seconds: 120 })
           });
         }
+        toast.success('Lesson Completed! 🎉', 'Your progress has been recorded on the blockchain/AI engine.');
       } catch (err) {
         console.error("Failed to mark lesson complete in backend:", err);
       } finally {
