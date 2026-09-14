@@ -81,7 +81,7 @@ services:
   # Console UI available at http://localhost:9001
   # ---------------------------------------------------------------------------
   minio:
-    image: quay.io/minio/minio:latest
+    image: minio/minio:latest
     container_name: elarion_minio
     ports:
       - "9000:9000"    # API endpoint (same as S3)
@@ -129,7 +129,7 @@ services:
       JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
       JWT_ALGORITHM: "RS256"
       # CORS
-      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001"
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000"
       # Environment
       ENVIRONMENT: "development"
       # AI Keys (Phase 2 — not used in Phase 1)

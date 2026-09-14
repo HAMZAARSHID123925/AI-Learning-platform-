@@ -98,7 +98,6 @@ async def retrieve_relevant_chunks(
 
     except Exception as e:
         logger.warning("pgvector_query_fallback", error=str(e))
-        await db.rollback()
 
     # Python-level fallback if running in test environment without native pgvector extension
     fallback_query = (

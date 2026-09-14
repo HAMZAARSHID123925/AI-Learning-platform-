@@ -84,22 +84,11 @@ async def generate_lesson_assessment(
 
     target_skill_list = list(skills_map.values())
     default_skill_id = target_skill_list[0].id if target_skill_list else uuid.uuid4()
-    default_skill_name = target_skill_list[0].name if target_skill_list else 'Core Knowledge'
-    target_skills_text = chr(10).join(f"- {s.name}: {s.description}" for s in target_skill_list)
-    skills_name_map = {s_id: s_obj.name.lower() for s_id, s_obj in skills_map.items()}
-
-    # Prevent SQLAlchemy MissingGreenlet error after transaction rollback
-    # Extract strings before they get expired by any potential db.rollback() in RAG
-    lesson_title = lesson.title
-    lesson_id_val = lesson.id
-    lesson_version = lesson.content_version
-    lesson_body = lesson.body_markdown
-    fallback_content = f"Lesson Content: {lesson_body or lesson_title}"
-    query_topic = lesson_title
 
     # 2. Retrieve authoritative chunks via RAG
+    query_topic = lesson.title
     chunks = await retrieve_relevant_chunks(
-        lesson_id=lesson_id_val,
+        lesson_id=lesson.id,
         query_text=query_topic,
         db=db,
         skill_ids=skill_ids,
@@ -108,15 +97,15 @@ async def generate_lesson_assessment(
 
     rag_text = "\n\n".join(
         f"[Source Chunk #{c.chunk_index}]:\n{c.chunk_text}" for c in chunks
-    ) or fallback_content
+    ) or f"Lesson Content: {lesson.body_text or lesson.title}"
 
     source_chunk_ids = [str(c.chunk_id) for c in chunks]
 
     # 3. Construct prompt
     user_prompt = f"""
-LESSON TITLE: {lesson_title}
+LESSON TITLE: {lesson.title}
 TARGET SKILLS TO ASSESS:
-{target_skills_text}
+{chr(10).join(f"- {s.name}: {s.description}" for s in target_skill_list)}
 
 AUTHORITATIVE CURRICULUM CONTEXT:
 {rag_text}
@@ -125,7 +114,7 @@ Generate a structured test with {num_questions} questions (e.g. 3 MCQs and 2 Sho
 
 JSON SCHEMA TO RETURN:
 {{
-  "title": "{lesson_title} - Mastery Assessment",
+  "title": "{lesson.title} - Mastery Assessment",
   "questions": [
     {{
       "question_type": "mcq",
@@ -138,7 +127,7 @@ JSON SCHEMA TO RETURN:
       ],
       "rubric": null,
       "max_score": 1.0,
-      "skill_name": "{default_skill_name}"
+      "skill_name": "{target_skill_list[0].name if target_skill_list else 'Core Knowledge'}"
     }},
     {{
       "question_type": "short_answer",
@@ -146,7 +135,7 @@ JSON SCHEMA TO RETURN:
       "options": null,
       "rubric": "Full credit (1.0) requires... Partial credit (0.5) if... No credit (0.0) if...",
       "max_score": 1.0,
-      "skill_name": "{default_skill_name}"
+      "skill_name": "{target_skill_list[0].name if target_skill_list else 'Core Knowledge'}"
     }}
   ]
 }}
@@ -167,10 +156,10 @@ JSON SCHEMA TO RETURN:
         raise BusinessRuleError("AI generation failed to produce valid structured JSON")
 
     # 5. Persist Test and Questions
-    test_title = data.get("title", f"{lesson_title} Assessment")
+    test_title = data.get("title", f"{lesson.title} Assessment")
     test_obj = Test(
-        lesson_id=lesson_id_val,
-        lesson_version=lesson_version,
+        lesson_id=lesson.id,
+        lesson_version=lesson.content_version,
         title=test_title,
         is_focused_retest=is_focused_retest
     )
@@ -185,8 +174,8 @@ JSON SCHEMA TO RETURN:
         # Find matching skill ID or default
         matched_skill_id = default_skill_id
         skill_name_lower = q_data.get("skill_name", "").lower()
-        for s_id, s_name_lower in skills_name_map.items():
-            if s_name_lower in skill_name_lower or skill_name_lower in s_name_lower:
+        for s_id, s_obj in skills_map.items():
+            if s_obj.name.lower() in skill_name_lower or skill_name_lower in s_obj.name.lower():
                 matched_skill_id = s_id
                 break
 
@@ -203,9 +192,6 @@ JSON SCHEMA TO RETURN:
         db.add(question_obj)
 
     await db.commit()
-    # Eager load the questions to prevent MissingGreenlet in the router
-    q_query = select(Test).where(Test.id == test_obj.id).options(selectinload(Test.questions))
-    res = await db.execute(q_query)
-    final_test = res.scalar_one()
-    logger.info("test_generated_successfully", test_id=str(final_test.id), title=final_test.title)
-    return final_test
+    await db.refresh(test_obj)
+    logger.info("test_generated_successfully", test_id=str(test_obj.id), title=test_obj.title)
+    return test_obj
