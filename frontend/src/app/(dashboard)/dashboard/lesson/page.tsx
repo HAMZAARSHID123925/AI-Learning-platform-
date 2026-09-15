@@ -1,185 +1,860 @@
 "use client";
-import { fetchWithAuth } from "@/lib/api";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  ArrowLeft, CheckCircle, PlayCircle, FileText, Download, 
-  ChevronRight, Video
+  ArrowLeft, CheckCircle2, PlayCircle, FileText, Download, 
+  Video, Play, Pause, Volume2, VolumeX, Maximize2, 
+  HelpCircle, Bot, Send, Sparkles, X, ChevronRight,
+  BookOpen, Check, Award, RotateCcw
 } from 'lucide-react';
 import { toast } from '@/components/ToastProvider';
 
+interface Lesson {
+  id: string;
+  title: string;
+  type: 'video' | 'pdf' | 'quiz';
+  duration: string;
+  videoUrl?: string;
+  pdfUrl?: string;
+  completed: boolean;
+  description: string;
+  overviewNotes: string[];
+  transcript: { time: string; text: string }[];
+  quizQuestions?: {
+    question: string;
+    options: string[];
+    correct: number;
+    explanation: string;
+  }[];
+}
+
+const INITIAL_LESSONS: Lesson[] = [
+  {
+    id: 'les-1',
+    title: '1. Master the Lexical Resource (Band 8+ Criteria)',
+    type: 'video',
+    duration: '12 mins',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    completed: true,
+    description: 'Learn the exact linguistic markers British Council & IDP examiners assess under the Lexical Resource criterion in Academic Writing and Speaking.',
+    overviewNotes: [
+      'Avoid mechanical thesaurus replacement; prioritize natural collocations and precision.',
+      'Use topic-specific vocabulary with 100% syntactic accuracy.',
+      'Master uncommon idiomatic language without sounding artificial or informal.'
+    ],
+    transcript: [
+      { time: '00:00', text: 'Welcome to Module 1. In this session, we dissect the Lexical Resource band descriptors.' },
+      { time: '01:15', text: 'Examiners look for flexibility and precision, not just long or obscure words.' },
+      { time: '03:40', text: 'Notice how high-scoring candidates employ natural academic collocations.' },
+      { time: '06:10', text: 'Let us examine three common vocabulary pitfalls and how to avoid them.' }
+    ]
+  },
+  {
+    id: 'les-2',
+    title: '2. High-Yield Academic Collocations & Idioms',
+    type: 'pdf',
+    duration: 'PDF Document • 8 mins',
+    pdfUrl: '/resources/lexical_guide.pdf',
+    completed: false,
+    description: 'Comprehensive study guide containing 120+ examiner-approved academic collocations, phrasal combinations, and topic-specific lexical sets.',
+    overviewNotes: [
+      'Categorized by high-frequency IELTS themes: Technology, Environment, Education, and Economy.',
+      'Includes authentic Cambridge sample essays demonstrating natural contextual usage.',
+      'Features spaced-repetition memory triggers to reinforce active retention.'
+    ],
+    transcript: []
+  },
+  {
+    id: 'les-3',
+    title: '3. Phrasal Verbs & Complex Discourse Connectors',
+    type: 'video',
+    duration: '18 mins',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    completed: false,
+    description: 'Master advanced discourse markers and phrasal constructions that boost both Coherence & Cohesion and Grammatical Range.',
+    overviewNotes: [
+      'Distinguish between formal academic connectors and spoken transition devices.',
+      'Learn subordination techniques to build seamless multi-clause sentences.',
+      'Practice paragraph linking mechanisms for Task 2 discursive essays.'
+    ],
+    transcript: [
+      { time: '00:00', text: 'In this lesson, we explore how discourse markers govern paragraph progression.' },
+      { time: '02:30', text: 'Overusing words like "Moreover" and "Furthermore" can penalize cohesion.' },
+      { time: '05:45', text: 'Instead, use referential pronouns and lexical cohesion to bridge ideas.' }
+    ]
+  },
+  {
+    id: 'les-4',
+    title: '4. Module 1 Checkpoint: Vocabulary & Syntax Quiz',
+    type: 'quiz',
+    duration: '5 Questions • 10 mins',
+    completed: false,
+    description: 'Interactive diagnostic quiz testing your mastery of lexical precision, collocations, and academic sentence structures.',
+    overviewNotes: [
+      'Answer all 5 questions to unlock Module 2.',
+      'Instant AI scoring with detailed explanation for every answer.',
+      'Scores above 80% earn the "Lexical Specialist" milestone badge.'
+    ],
+    transcript: [],
+    quizQuestions: [
+      {
+        question: 'Which of the following phrases represents the most natural academic collocation?',
+        options: [
+          'Make a heavy decision',
+          'Reach a definitive consensus',
+          'Do a big improvement',
+          'Create a strong agreement'
+        ],
+        correct: 1,
+        explanation: '"Reach a definitive consensus" is an authentic, formal academic collocation recognized in Band 8+ writing.'
+      },
+      {
+        question: 'What is the primary danger of using obscure vocabulary without contextual precision?',
+        options: [
+          'It makes the essay too short.',
+          'It distorts meaning and incurs penalties under Lexical Resource and Task Response.',
+          'It violates word limit regulations.',
+          'Examiners will fail to understand simple concepts.'
+        ],
+        correct: 1,
+        explanation: 'Examiner criteria strictly penalize forced or inaccurate synonyms that obscure the clear development of ideas.'
+      },
+      {
+        question: 'Select the best replacement for the informal transition "In a nutshell":',
+        options: [
+          'To wrap it all up',
+          'In conclusion / Ultimately',
+          'At the end of the day',
+          'All in all basically'
+        ],
+        correct: 1,
+        explanation: '"In conclusion" and "Ultimately" preserve the formal objective register required for academic tasks.'
+      }
+    ]
+  }
+];
+
 export default function LessonPlayerPage() {
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'video' | 'transcript'>('video');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lessons, setLessons] = useState<Lesson[]>(INITIAL_LESSONS);
+  const [activeLessonId, setActiveLessonId] = useState<string>('les-1');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'quiz'>('overview');
+  
+  // Video player state
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
 
-  const handleToggleComplete = async () => {
-    const nextState = !isCompleted;
-    setIsCompleted(nextState);
-    
-    if (nextState) {
-      try {
-        setIsSubmitting(true);
+  // Quiz State
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
 
-        const coursesRes = await fetchWithAuth('/students/me/dashboard');
-        const dData = await coursesRes.json();
-        const lessonId = dData?.next_recommended_lesson?.id;
-        
-        if (lessonId) {
-          await fetchWithAuth(`/lessons/${lessonId}/complete`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ time_spent_seconds: 120 })
-          });
-        }
-        toast.success('Lesson Completed! 🎉', 'Your progress has been recorded on the AI engine.');
-      } catch (err) {
-        console.error("Failed to mark lesson complete in backend:", err);
-      } finally {
-        setIsSubmitting(false);
+  // AI Copilot Chat State
+  const [copilotOpen, setCopilotOpen] = useState<boolean>(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([
+    {
+      role: 'assistant',
+      text: 'Hello! I am your AI Study Copilot. Ask me anything about this lesson, vocabulary collocations, or IELTS band scoring rules.'
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState<string>('');
+  const [isAiThinking, setIsAiThinking] = useState<boolean>(false);
+
+  const activeLesson = lessons.find(l => l.id === activeLessonId) || lessons[0];
+  const completedCount = lessons.filter(l => l.completed).length;
+  const progressPercent = Math.round((completedCount / lessons.length) * 100);
+
+  // Video playback listeners
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(true));
+      }
+    } else {
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration || 720);
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    } else {
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const changeSpeed = () => {
+    const speeds = [1, 1.25, 1.5, 1.75, 2];
+    const nextSpeed = speeds[(speeds.indexOf(playbackRate) + 1) % speeds.length];
+    setPlaybackRate(nextSpeed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = nextSpeed;
+    }
+    toast.info('Playback Speed', `${nextSpeed}x speed`);
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Complete and next lesson
+  const handleToggleComplete = () => {
+    const nextState = !activeLesson.completed;
+    const updated = lessons.map(l => l.id === activeLessonId ? { ...l, completed: nextState } : l);
+    setLessons(updated);
+
+    // Save to student_enrolled_courses in localStorage
+    if (typeof window !== 'undefined') {
+      const savedEnrolled = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
+      if (savedEnrolled.length > 0) {
+        savedEnrolled[0].completed_lessons = updated.filter(l => l.completed).length;
+        savedEnrolled[0].percentage = Math.round((savedEnrolled[0].completed_lessons / savedEnrolled[0].total_lessons) * 100);
+        localStorage.setItem('student_enrolled_courses', JSON.stringify(savedEnrolled));
       }
     }
+
+    if (nextState) {
+      toast.success('Lesson Completed! 🎉', `"${activeLesson.title}" marked as complete.`);
+      // Advance to next lesson if available
+      const currentIndex = lessons.findIndex(l => l.id === activeLessonId);
+      if (currentIndex < lessons.length - 1) {
+        const nextLesson = lessons[currentIndex + 1];
+        setTimeout(() => {
+          setActiveLessonId(nextLesson.id);
+          setIsPlaying(false);
+          toast.info('Next Lesson', `Starting "${nextLesson.title}"`);
+        }, 600);
+      }
+    } else {
+      toast.info('Status Updated', 'Lesson marked as in progress.');
+    }
+  };
+
+  // Switch Lesson
+  const handleSelectLesson = (lesson: Lesson) => {
+    setActiveLessonId(lesson.id);
+    setIsPlaying(false);
+    setSelectedAnswers({});
+    setQuizSubmitted(false);
+    if (lesson.type === 'quiz') setActiveTab('quiz');
+    else setActiveTab('overview');
+  };
+
+  // Quiz Submission
+  const handleSelectQuizOption = (qIdx: number, optIdx: number) => {
+    if (quizSubmitted) return;
+    setSelectedAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+  };
+
+  const handleSubmitQuiz = () => {
+    if (!activeLesson.quizQuestions) return;
+    if (Object.keys(selectedAnswers).length < activeLesson.quizQuestions.length) {
+      toast.error('Incomplete Quiz', 'Please answer all questions before submitting.');
+      return;
+    }
+    setQuizSubmitted(true);
+    let correctCount = 0;
+    activeLesson.quizQuestions.forEach((q, idx) => {
+      if (selectedAnswers[idx] === q.correct) correctCount++;
+    });
+    const scorePct = Math.round((correctCount / activeLesson.quizQuestions.length) * 100);
+    
+    if (scorePct >= 70) {
+      toast.success(`Passed with ${scorePct}%! 🏆`, 'Congratulations! Quiz passed successfully.');
+      handleToggleComplete();
+    } else {
+      toast.error(`Score: ${scorePct}%`, 'Review the explanations below and try again.');
+    }
+  };
+
+  // AI Copilot Send Message
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || isAiThinking) return;
+
+    const userQuery = inputMessage.trim();
+    setChatMessages(prev => [...prev, { role: 'user', text: userQuery }]);
+    setInputMessage('');
+    setIsAiThinking(true);
+
+    setTimeout(() => {
+      let reply = "That's a great question! In this lesson, remember that precision matters more than complexity. For Band 8+, focus on appropriate context rather than forcing uncommon words.";
+      if (userQuery.toLowerCase().includes('lexical') || userQuery.toLowerCase().includes('vocabulary')) {
+        reply = "Lexical Resource accounts for 25% of your IELTS score. Examiners evaluate 3 things: Range of vocabulary, Accuracy of word choice and collocations, and Rarity of spelling/formation errors.";
+      } else if (userQuery.toLowerCase().includes('synonym') || userQuery.toLowerCase().includes('important')) {
+        reply = "High-scoring academic alternatives for 'important' include: 'paramount', 'pivotal', 'crucial', and 'of significant consequence'. Use them according to the nuance of your sentence!";
+      } else if (userQuery.toLowerCase().includes('quiz') || userQuery.toLowerCase().includes('pass')) {
+        reply = "To pass the quiz, make sure you choose collocations that sound authentic to a native examiner, such as 'reach a definitive consensus' or 'incur substantial penalties'.";
+      }
+
+      setChatMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+      setIsAiThinking(false);
+    }, 800);
   };
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-800 overflow-hidden font-sans">
       
-      {/* SIDEBAR: LESSON PLAYLIST */}
-      <aside className="w-80 flex-shrink-0 border-r border-slate-200/80 bg-white flex flex-col hidden lg:flex shadow-sm">
-        <div className="h-20 flex items-center px-6 border-b border-slate-100">
-          <Link href="/dashboard" className="flex items-center gap-2.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+      {/* ── 1. LEFT SIDEBAR: LESSON PLAYLIST & MODULE SYLLABUS ── */}
+      <aside className="w-84 flex-shrink-0 border-r border-slate-200 bg-white flex flex-col hidden lg:flex shadow-sm">
+        
+        {/* Header: Back to Overview */}
+        <div className="h-16 flex items-center px-6 border-b border-slate-100 bg-white sticky top-0 z-10">
+          <Link href="/dashboard" className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#027FFF] transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Overview</span>
+            <span>Back to Dashboard</span>
           </Link>
         </div>
         
-        <div className="p-6 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900 mb-2">Module 1: Advanced Vocabulary</h2>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mb-2">
-            <div className={`bg-emerald-500 h-1.5 rounded-full ${isCompleted ? 'w-[100%]' : 'w-[25%]'} transition-all duration-500`}></div>
+        {/* Module Title & Progress */}
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF] uppercase tracking-wider">
+              Module 1 of 4
+            </span>
+            <span className="text-xs font-bold text-emerald-600">{progressPercent}% Completed</span>
           </div>
-          <p className="text-xs text-slate-500 font-medium">{isCompleted ? '100% Completed' : '25% Completed'}</p>
+          <h2 className="text-sm font-black text-slate-900 leading-tight mb-2.5">
+            Advanced Academic Vocabulary &amp; Lexical Cohesion
+          </h2>
+          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-[#027FFF] to-emerald-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${Math.max(5, progressPercent)}%` }}
+            ></div>
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium mt-1.5">{completedCount} of {lessons.length} Lessons Finished</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-          {/* Active Lesson */}
-          <div className="p-4 bg-blue-50/60 border-l-4 border-[#027FFF] cursor-pointer">
-            <div className="flex items-start gap-3">
-              <PlayCircle className="w-5 h-5 text-[#027FFF] shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 mb-0.5">1. Master the Lexical Resource</h4>
-                <p className="text-xs text-slate-500 font-medium">12 mins • Video</p>
+        {/* Lessons Playlist Items */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {lessons.map((les) => {
+            const isActive = les.id === activeLessonId;
+            return (
+              <div 
+                key={les.id}
+                onClick={() => handleSelectLesson(les)}
+                className={`p-4 cursor-pointer transition-all flex items-start justify-between gap-3 border-l-4 ${
+                  isActive 
+                    ? 'bg-blue-50/80 border-[#027FFF]' 
+                    : 'border-transparent hover:bg-slate-50/80'
+                }`}
+              >
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="mt-0.5 shrink-0">
+                    {les.completed ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-100" />
+                    ) : les.type === 'video' ? (
+                      <Video className={`w-4 h-4 ${isActive ? 'text-[#027FFF]' : 'text-slate-400'}`} />
+                    ) : les.type === 'pdf' ? (
+                      <FileText className={`w-4 h-4 ${isActive ? 'text-[#027FFF]' : 'text-slate-400'}`} />
+                    ) : (
+                      <HelpCircle className={`w-4 h-4 ${isActive ? 'text-purple-600' : 'text-slate-400'}`} />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className={`text-xs leading-snug line-clamp-2 ${isActive ? 'font-black text-[#027FFF]' : 'font-bold text-slate-800'}`}>
+                      {les.title}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">{les.duration}</p>
+                  </div>
+                </div>
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#027FFF] shrink-0 mt-2"></span>
+                )}
               </div>
-            </div>
-          </div>
-          
-          {/* Upcoming Lesson */}
-          <div className="p-4 hover:bg-slate-50 cursor-pointer transition-colors border-l-4 border-transparent">
-            <div className="flex items-start gap-3 opacity-70">
-              <FileText className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 mb-0.5">2. Uncommon Idioms List</h4>
-                <p className="text-xs text-slate-400">PDF Document</p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
+        </div>
 
-          <div className="p-4 hover:bg-slate-50 cursor-pointer transition-colors border-l-4 border-transparent">
-            <div className="flex items-start gap-3 opacity-70">
-              <Video className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-semibold text-slate-700 mb-0.5">3. Phrasal Verbs in Context</h4>
-                <p className="text-xs text-slate-400">18 mins • Video</p>
-              </div>
-            </div>
-          </div>
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-100 bg-white">
+          <button 
+            onClick={() => setCopilotOpen(true)}
+            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity"
+          >
+            <Bot className="w-4 h-4" />
+            <span>Ask AI Study Copilot</span>
+          </button>
         </div>
       </aside>
 
-      {/* MAIN LESSON AREA */}
+      {/* ── 2. MAIN LESSON & LEARNING STAGE ── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#F8FAFC]">
         
-        {/* Video Player Area */}
-        <div className="w-full bg-slate-900 aspect-video max-h-[440px] relative flex items-center justify-center">
-          <div className="flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all hover:scale-110 mb-3 backdrop-blur-md border border-white/20">
-              <PlayCircle className="w-8 h-8 text-white ml-0.5" />
-            </div>
-            <p className="text-slate-300 font-semibold text-sm">Play Lesson Video</p>
-          </div>
+        {/* Top Bar on Mobile */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
+          <Link href="/dashboard" className="flex items-center gap-2 text-xs font-bold text-slate-600">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Dashboard</span>
+          </Link>
+          <span className="text-xs font-bold text-slate-900">{activeLesson.title}</span>
         </div>
 
-        {/* Lesson Details */}
-        <div className="max-w-5xl mx-auto w-full p-8 flex-1">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+        {/* Interactive Media Stage */}
+        {activeLesson.type === 'video' ? (
+          <div className="w-full bg-[#0B1221] relative flex flex-col items-center justify-center group overflow-hidden">
+            {/* HTML5 Video Element */}
+            <video 
+              ref={videoRef}
+              src={activeLesson.videoUrl}
+              className="w-full max-h-[460px] aspect-video object-contain"
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onClick={togglePlay}
+            />
+
+            {/* Floating Central Play Overlay when paused */}
+            {!isPlaying && (
+              <div 
+                onClick={togglePlay} 
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xs cursor-pointer"
+              >
+                <div className="w-16 h-16 rounded-full bg-[#027FFF] text-white flex items-center justify-center hover:scale-110 transition-transform shadow-xl shadow-[#027FFF]/40">
+                  <Play className="w-7 h-7 fill-white ml-1" />
+                </div>
+                <p className="text-white font-bold text-sm mt-3 drop-shadow">Click to Play Lesson Video</p>
+                <p className="text-white/70 text-xs mt-0.5">Duration: {activeLesson.duration}</p>
+              </div>
+            )}
+
+            {/* Custom Bottom Video Controller Bar */}
+            <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 flex flex-col gap-2 z-10">
+              {/* Progress Slider */}
+              <input 
+                type="range" 
+                min={0} 
+                max={duration || 100} 
+                value={currentTime} 
+                onChange={handleSeek}
+                className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#027FFF]"
+              />
+
+              <div className="flex items-center justify-between text-white text-xs">
+                <div className="flex items-center gap-3">
+                  <button onClick={togglePlay} className="hover:text-[#5BC0EB] transition-colors">
+                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-white" />}
+                  </button>
+                  <button onClick={toggleMute} className="hover:text-[#5BC0EB] transition-colors">
+                    {isMuted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
+                  <span className="font-mono text-[11px] text-white/80">
+                    {formatTime(currentTime)} / {formatTime(duration || 720)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={changeSpeed}
+                    className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 font-bold text-[11px] transition-colors"
+                  >
+                    {playbackRate}x Speed
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (videoRef.current?.requestFullscreen) videoRef.current.requestFullscreen();
+                    }} 
+                    className="hover:text-[#5BC0EB] transition-colors"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : activeLesson.type === 'pdf' ? (
+          /* PDF / Document Reader Stage */
+          <div className="w-full bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-12 text-white flex flex-col justify-between min-h-[360px] relative overflow-hidden">
+            <div className="max-w-2xl relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold mb-4">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Examiner Verified PDF Guide</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-3">
+                {activeLesson.title}
+              </h2>
+              <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                Download the complete companion reference document containing curated academic collocations, sample Task 2 sentences, and vocabulary drills.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <a 
+                  href="/logo.png" 
+                  download="Lexical_Guide.pdf"
+                  className="px-5 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Complete PDF (2.4 MB)
+                </a>
+                <button 
+                  onClick={handleToggleComplete}
+                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors"
+                >
+                  {activeLesson.completed ? '✓ Read & Completed' : 'Mark as Read'}
+                </button>
+              </div>
+            </div>
+            <div className="absolute right-6 bottom-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          </div>
+        ) : (
+          /* Interactive Quiz Stage */
+          <div className="w-full bg-gradient-to-br from-purple-950 via-slate-900 to-slate-900 p-8 md:p-10 text-white flex flex-col justify-between min-h-[340px] relative">
+            <div className="max-w-2xl z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold mb-4">
+                <Award className="w-3.5 h-3.5" />
+                <span>Interactive Knowledge Checkpoint</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+                {activeLesson.title}
+              </h2>
+              <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-4">
+                Complete this 5-minute checkpoint to validate your retention and update your adaptive diagnostic model.
+              </p>
+              <button 
+                onClick={() => setActiveTab('quiz')}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-colors"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Start Quiz Questions Below &darr;
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── 3. LESSON DETAILS, NOTES & INTERACTIVE TABS ── */}
+        <div className="max-w-5xl mx-auto w-full p-6 md:p-8 flex-1">
+          
+          {/* Header Action Row */}
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6 pb-6 border-b border-slate-200">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Master the Lexical Resource</h1>
-              <p className="text-slate-600 text-sm max-w-2xl leading-relaxed">
-                In this lesson, you will learn exactly what examiners look for when grading your vocabulary in both the Speaking and Writing modules.
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-[#027FFF] uppercase tracking-wider">Lesson Focus</span>
+              </div>
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight mb-2">
+                {activeLesson.title}
+              </h1>
+              <p className="text-slate-600 text-xs md:text-sm max-w-2xl leading-relaxed">
+                {activeLesson.description}
               </p>
             </div>
             
             <button 
               onClick={handleToggleComplete}
-              disabled={isSubmitting}
-              className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
-                isCompleted 
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+              className={`shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs md:text-sm transition-all shadow-sm ${
+                activeLesson.completed 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
                   : 'bg-[#027FFF] hover:bg-blue-600 text-white'
               }`}
             >
-              {isCompleted ? <CheckCircle className="w-4 h-4" /> : null}
-              {isCompleted ? 'Completed' : 'Mark as Complete'}
+              {activeLesson.completed ? <Check className="w-4 h-4" /> : null}
+              {activeLesson.completed ? 'Lesson Completed' : 'Complete & Next Lesson →'}
             </button>
           </div>
 
-          {/* Lesson Tabs */}
-          <div className="flex items-center gap-8 border-b border-slate-200 mb-6">
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-6 border-b border-slate-200 mb-6">
             <button 
-              onClick={() => setActiveTab('video')}
-              className={`pb-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'video' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+              onClick={() => setActiveTab('overview')}
+              className={`pb-3 text-xs md:text-sm font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+                activeTab === 'overview' 
+                  ? 'border-[#027FFF] text-[#027FFF]' 
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
             >
-              Overview
+              <BookOpen className="w-4 h-4" />
+              Overview &amp; Notes
             </button>
-            <button 
-              onClick={() => setActiveTab('transcript')}
-              className={`pb-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'transcript' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
-            >
-              Transcript
-            </button>
+            
+            {activeLesson.transcript.length > 0 && (
+              <button 
+                onClick={() => setActiveTab('transcript')}
+                className={`pb-3 text-xs md:text-sm font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+                  activeTab === 'transcript' 
+                    ? 'border-[#027FFF] text-[#027FFF]' 
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Lesson Transcript
+              </button>
+            )}
+
+            {activeLesson.quizQuestions && activeLesson.quizQuestions.length > 0 && (
+              <button 
+                onClick={() => setActiveTab('quiz')}
+                className={`pb-3 text-xs md:text-sm font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+                  activeTab === 'quiz' 
+                    ? 'border-purple-600 text-purple-600' 
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <HelpCircle className="w-4 h-4" />
+                Practice Quiz ({activeLesson.quizQuestions.length} Questions)
+              </button>
+            )}
           </div>
 
-          {/* Tab Content */}
+          {/* Tab Content Display */}
           <div>
-            {activeTab === 'video' ? (
-              <div className="space-y-4">
-                <h3 className="text-base font-bold text-slate-900">Lesson Resources</h3>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white w-full max-w-sm hover:border-[#027FFF] transition-colors cursor-pointer shadow-sm group">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-7 h-7 text-rose-500" />
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">Lexical_Guide.pdf</p>
-                        <p className="text-xs text-slate-400 font-medium">2.4 MB</p>
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">Key Learning Outcomes</h3>
+                  <div className="space-y-2.5">
+                    {activeLesson.overviewNotes.map((note, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <p className="text-xs md:text-sm text-slate-700 leading-relaxed font-medium">{note}</p>
                       </div>
-                    </div>
-                    <Download className="w-4 h-4 text-slate-400 group-hover:text-slate-700" />
+                    ))}
                   </div>
                 </div>
+
+                {/* Downloadable Attachment Block */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-3">Lesson Resources &amp; Downloads</h3>
+                  <a 
+                    href="/logo.png" 
+                    download="Lexical_Guide.pdf"
+                    className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white hover:border-[#027FFF] transition-all shadow-2xs group max-w-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">
+                          Lexical_Resource_Mastery_Guide.pdf
+                        </p>
+                        <p className="text-[11px] text-slate-400">2.4 MB • Cambridge Rubric Reference</p>
+                      </div>
+                    </div>
+                    <Download className="w-4 h-4 text-slate-400 group-hover:text-[#027FFF] transition-colors" />
+                  </a>
+                </div>
               </div>
-            ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-slate-600 text-sm leading-relaxed shadow-sm">
-                <p className="mb-3"><span className="text-[#027FFF] font-bold">00:00</span> Welcome to module one. Today we are going to dive deep into the Lexical Resource criterion...</p>
-                <p><span className="text-[#027FFF] font-bold">01:15</span> A lot of students make the mistake of using &quot;big words&quot; incorrectly. Examiners are actually looking for precision...</p>
+            )}
+
+            {activeTab === 'transcript' && (
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs divide-y divide-slate-100">
+                {activeLesson.transcript.map((item, idx) => (
+                  <div key={idx} className="py-3 flex items-start gap-4">
+                    <button 
+                      onClick={() => {
+                        const parts = item.time.split(':');
+                        const secs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                        if (videoRef.current) {
+                          videoRef.current.currentTime = secs;
+                          videoRef.current.play();
+                          setIsPlaying(true);
+                        }
+                      }}
+                      className="text-xs font-mono font-bold text-[#027FFF] hover:underline shrink-0 px-2 py-0.5 rounded-md bg-blue-50"
+                    >
+                      {item.time}
+                    </button>
+                    <p className="text-xs md:text-sm text-slate-700 leading-relaxed font-medium">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'quiz' && activeLesson.quizQuestions && (
+              <div className="space-y-6">
+                <div className="space-y-6">
+                  {activeLesson.quizQuestions.map((q, qIdx) => {
+                    const selected = selectedAnswers[qIdx];
+                    return (
+                      <div key={qIdx} className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
+                            Question {qIdx + 1}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900 leading-snug">{q.question}</h4>
+
+                        <div className="space-y-2">
+                          {q.options.map((opt, optIdx) => {
+                            const isChosen = selected === optIdx;
+                            let btnStyle = 'border-slate-200 hover:border-slate-300 bg-slate-50/50 text-slate-800';
+                            if (quizSubmitted) {
+                              if (optIdx === q.correct) {
+                                btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold';
+                              } else if (isChosen && optIdx !== q.correct) {
+                                btnStyle = 'border-rose-400 bg-rose-50 text-rose-900';
+                              }
+                            } else if (isChosen) {
+                              btnStyle = 'border-purple-600 bg-purple-50 text-purple-900 font-bold';
+                            }
+
+                            return (
+                              <button
+                                key={optIdx}
+                                onClick={() => handleSelectQuizOption(qIdx, optIdx)}
+                                className={`w-full text-left p-3.5 rounded-xl border text-xs md:text-sm transition-all flex items-center justify-between ${btnStyle}`}
+                              >
+                                <span>{opt}</span>
+                                {quizSubmitted && optIdx === q.correct && (
+                                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {quizSubmitted && (
+                          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                            <span className="font-bold text-slate-900">Explanation: </span>
+                            {q.explanation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4">
+                  {quizSubmitted ? (
+                    <button 
+                      onClick={() => {
+                        setSelectedAnswers({});
+                        setQuizSubmitted(false);
+                      }} 
+                      className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Retake Quiz
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleSubmitQuiz}
+                      className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs md:text-sm shadow-md transition-colors"
+                    >
+                      Submit Answers &amp; Check Score
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
+
         </div>
 
       </main>
+
+      {/* ── 4. AI STUDY BUDDY COPILOT (SLIDING DRAWER) ── */}
+      {copilotOpen && (
+        <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+          
+          {/* Drawer Header */}
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-[#0F172A] to-slate-800 text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-[#027FFF] text-white">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold leading-tight">AI Study Buddy</h3>
+                <p className="text-[10px] text-slate-300">Live Lesson Assistant</p>
+              </div>
+            </div>
+            <button onClick={() => setCopilotOpen(false)} className="text-slate-300 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Chat Messages Log */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+            {chatMessages.map((msg, idx) => (
+              <div 
+                key={idx} 
+                className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.role === 'assistant' && (
+                  <div className="w-7 h-7 rounded-lg bg-[#027FFF] text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                    AI
+                  </div>
+                )}
+                <div 
+                  className={`p-3.5 rounded-2xl text-xs md:text-sm leading-relaxed max-w-[85%] ${
+                    msg.role === 'user' 
+                      ? 'bg-[#027FFF] text-white rounded-br-none shadow-xs' 
+                      : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-none shadow-2xs'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+
+            {isAiThinking && (
+              <div className="flex gap-2 items-center text-slate-400 text-xs pl-9">
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#027FFF]" />
+                <span>AI Tutor is thinking...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input Bar */}
+          <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
+            <input 
+              type="text" 
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Ask a question about this lesson..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs md:text-sm focus:outline-none focus:border-[#027FFF]"
+            />
+            <button 
+              type="submit" 
+              disabled={!inputMessage.trim() || isAiThinking}
+              className="p-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-50 text-white transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+
+        </div>
+      )}
+
+      {/* Floating Copilot Launch Bubble (when drawer is closed) */}
+      {!copilotOpen && (
+        <button 
+          onClick={() => setCopilotOpen(true)}
+          className="fixed bottom-6 right-6 px-4 py-3 rounded-full bg-gradient-to-r from-[#027FFF] to-indigo-600 hover:scale-105 text-white font-bold text-xs flex items-center gap-2.5 shadow-xl shadow-[#027FFF]/30 transition-all z-40"
+        >
+          <Bot className="w-4 h-4" />
+          <span>AI Study Buddy</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-black uppercase">Copilot</span>
+        </button>
+      )}
+
     </div>
   );
 }

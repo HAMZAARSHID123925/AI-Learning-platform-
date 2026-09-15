@@ -87,6 +87,14 @@ export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
+  const [newCategory, setNewCategory] = useState('IELTS Preparation');
+  const [newTargetBand, setNewTargetBand] = useState('Band 7.5+');
+  const [newPrice, setNewPrice] = useState('$49.00');
+  const [newDuration, setNewDuration] = useState('6 Weeks / 30 Hours');
+  const [newInstructor, setNewInstructor] = useState('Hamza Arshid (Lead Assessor)');
+  const [newLevel, setNewLevel] = useState('Intermediate to Advanced');
+  const [newStatus, setNewStatus] = useState<'published' | 'draft'>('published');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -255,29 +263,46 @@ export default function AdminCoursesPage() {
     }
   };
 
-  const handleCreateCourse = async () => {
-    if (!newTitle) return;
+  const handleCreateCourse = async (overrideStatus?: 'published' | 'draft') => {
+    if (!newTitle.trim()) return;
     setIsSubmitting(true);
+    const finalStatus = overrideStatus || newStatus;
+    
+    const newCourseObj = { 
+      id: 'course_' + Date.now(), 
+      title: newTitle.trim(), 
+      description: newDescription.trim() || 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
+      category: newCategory,
+      target_band: newTargetBand,
+      price: newPrice,
+      duration: newDuration,
+      instructor: newInstructor,
+      level: newLevel,
+      status: finalStatus, 
+      module_count: 4, 
+      students: 0,
+      thumbnail_url: selectedFile ? URL.createObjectURL(selectedFile) : undefined
+    };
+
     try {
       const res = await fetchWithAuth('/courses', {
         method: 'POST',
-        body: JSON.stringify({ title: newTitle, description: 'A new AI-powered course.' }),
+        body: JSON.stringify({ 
+          title: newTitle.trim(), 
+          description: newDescription.trim(),
+          category: newCategory,
+          target_band: newTargetBand,
+          price: newPrice,
+          status: finalStatus
+        }),
       });
-      const newCourseObj = { 
-        id: 'course_' + Date.now(), 
-        title: newTitle.trim(), 
-        description: 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
-        status: 'published', 
-        module_count: 4, 
-        students: 1 
-      };
 
       if (res.ok) {
-        toast.success('Course Created & Published!', `"${newTitle}" is now live.`);
+        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now registered.`);
         fetchCourses();
       } else {
         setCourses(prev => [newCourseObj, ...prev]);
-        toast.success('Course Created & Published!', `"${newTitle}" has been added to public catalog.`);
+        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now live.`);
       }
 
       // Save to shared localStorage for immediate display on /courses and /dashboard
@@ -286,25 +311,19 @@ export default function AdminCoursesPage() {
 
       setShowCreateModal(false);
       setNewTitle('');
+      setNewDescription('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
-      const newCourseObj = { 
-        id: 'course_' + Date.now(), 
-        title: newTitle.trim(), 
-        description: 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
-        status: 'published', 
-        module_count: 4, 
-        students: 1 
-      };
       setCourses(prev => [newCourseObj, ...prev]);
       
       const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
       localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
 
-      toast.success('Course Created!', `"${newTitle}" has been added.`);
+      toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" has been added.`);
       setShowCreateModal(false);
       setNewTitle('');
+      setSelectedFile(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -891,56 +910,206 @@ export default function AdminCoursesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Create New Course</h2>
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-purple-600" />
+                  Create &amp; Configure New Course
+                </h2>
+                <p className="text-xs text-slate-500">Design syllabus, target band score, pricing model, and media assets.</p>
+              </div>
               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <div className="space-y-6">
+            <div className="p-6 overflow-y-auto space-y-5">
+              {/* Course Title */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Title <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={newTitle} 
+                  onChange={(e) => setNewTitle(e.target.value)} 
+                  placeholder="e.g. IELTS Academic Writing Task 2 Masterclass" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors" 
+                />
+              </div>
+
+              {/* Description & Syllabus Overview */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Description &amp; Syllabus Overview
+                </label>
+                <textarea 
+                  rows={3}
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Describe what students will achieve in this course..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors resize-none"
+                />
+              </div>
+
+              {/* 2-Column: Track Category & Target Band */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Course Title</label>
-                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors" />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Track Alignment</label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Track Alignment / Category
+                  </label>
+                  <select 
+                    value={newCategory} 
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
                     <option>IELTS Preparation</option>
+                    <option>IELTS Academic</option>
+                    <option>IELTS General Training</option>
                     <option>General English</option>
+                    <option>Business English &amp; Fluency</option>
+                    <option>Grammar &amp; Vocabulary Booster</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Upload Initial Asset (Video or PDF)</label>
-                  <label className="border-2 border-dashed border-slate-200 hover:border-purple-500 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      accept="video/mp4,application/pdf,text/markdown"
-                    />
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UploadCloud className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <p className="text-sm text-slate-900 font-bold mb-1">
-                      {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'MP4, PDF, or Markdown (Max 100MB)'}
-                    </p>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Target Band / Level
                   </label>
+                  <select 
+                    value={newTargetBand} 
+                    onChange={(e) => setNewTargetBand(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Band 7.5+</option>
+                    <option>Band 8.0+ (Elite)</option>
+                    <option>Band 8.5+</option>
+                    <option>Band 6.5 - 7.0 (Target)</option>
+                    <option>C1 Advanced (CEFR)</option>
+                    <option>B2 Upper Intermediate</option>
+                  </select>
                 </div>
               </div>
+
+              {/* 2-Column: Pricing Tier & Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Pricing &amp; Access Tier
+                  </label>
+                  <select 
+                    value={newPrice} 
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>$49.00 (Standard)</option>
+                    <option>$0 (Free Access)</option>
+                    <option>$79.00 (Pro Cohort)</option>
+                    <option>$129.00 (1-on-1 Mentored)</option>
+                    <option>Included in Pro Subscription</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Course Duration &amp; Hours
+                  </label>
+                  <select 
+                    value={newDuration} 
+                    onChange={(e) => setNewDuration(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>6 Weeks / 30 Hours</option>
+                    <option>4 Weeks / 20 Hours (Crash Course)</option>
+                    <option>8 Weeks / 45 Hours (Comprehensive)</option>
+                    <option>12 Weeks / 60 Hours (Full Diploma)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2-Column: Lead Instructor & Course Level */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Assigned Lead Instructor
+                  </label>
+                  <select 
+                    value={newInstructor} 
+                    onChange={(e) => setNewInstructor(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Hamza Arshid (Lead Assessor)</option>
+                    <option>Prof. Alistair Finch (Oxford / British Council)</option>
+                    <option>Sarah Jenkins (Senior IELTS Examiner)</option>
+                    <option>Dr. Rohit Mehta (IELTS Medical Track)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Difficulty Level
+                  </label>
+                  <select 
+                    value={newLevel} 
+                    onChange={(e) => setNewLevel(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Intermediate to Advanced</option>
+                    <option>All Levels Welcome</option>
+                    <option>Advanced Masterclass</option>
+                    <option>Foundation / Beginner</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Initial Asset Upload */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Syllabus / Introductory Video Asset
+                </label>
+                <label className="border-2 border-dashed border-slate-200 hover:border-purple-500 rounded-2xl p-6 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    accept="video/mp4,application/pdf,text/markdown"
+                  />
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-slate-900 font-bold">
+                    {selectedFile ? selectedFile.name : 'Click to upload or drag & drop file'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB uploaded` : 'MP4 Video Lecture, PDF Syllabus, or Markdown (Max 100MB)'}
+                  </p>
+                </label>
+              </div>
+
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
-              <button onClick={handleCreateCourse} disabled={isSubmitting || !newTitle.trim()} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm">
-                Create &amp; Publish Course
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                Cancel
               </button>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleCreateCourse('draft')} 
+                  disabled={isSubmitting || !newTitle.trim()} 
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-800 text-sm font-bold transition-colors shadow-sm"
+                >
+                  Save as Draft
+                </button>
+                <button 
+                  onClick={() => handleCreateCourse('published')} 
+                  disabled={isSubmitting || !newTitle.trim()} 
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Create &amp; Publish Course
+                </button>
+              </div>
             </div>
 
           </div>

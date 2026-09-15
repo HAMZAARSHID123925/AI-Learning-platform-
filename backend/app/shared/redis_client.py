@@ -52,14 +52,13 @@ def get_redis_client() -> Any:
 async def get_redis() -> AsyncGenerator[Any, None]:
     pool = _get_pool()
     if pool:
+        client = redis.Redis(connection_pool=pool)
         try:
-            client = redis.Redis(connection_pool=pool)
             yield client
+        finally:
             await client.aclose()
-            return
-        except Exception:
-            pass
-    yield _mock_redis
+    else:
+        yield _mock_redis
 
 
 async def close_redis_pool() -> None:
