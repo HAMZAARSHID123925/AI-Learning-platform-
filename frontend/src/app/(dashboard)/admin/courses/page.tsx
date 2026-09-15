@@ -5,14 +5,34 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
-  Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2
+  Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2,
+  ShieldAlert, DollarSign, ToggleLeft, ToggleRight, UserCheck, UserX, AlertTriangle, KeyRound
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 
+interface UserRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Student' | 'Instructor' | 'Admin';
+  status: 'active' | 'suspended';
+  joinedDate: string;
+  targetBand: string;
+}
+
+interface AuditRecord {
+  id: string;
+  event: string;
+  actor: string;
+  ip: string;
+  timestamp: string;
+  status: 'SUCCESS' | 'WARNING' | 'ALERT';
+}
+
 export default function AdminCoursesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'analytics' | 'prompts'>('published');
+  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts'>('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // RBAC Route Guard: Admin privileges required
@@ -32,6 +52,34 @@ export default function AdminCoursesPage() {
   const [newTitle, setNewTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // User Management State
+  const [usersList, setUsersList] = useState<UserRecord[]>([
+    { id: 'usr-1', name: 'Dr. Rohit Mehta', email: 'rohit.mehta@nhs.uk', role: 'Student', status: 'active', joinedDate: 'Sep 02, 2026', targetBand: '8.0' },
+    { id: 'usr-2', name: 'Prof. Alistair Finch', email: 'finch@oxford.ac.uk', role: 'Instructor', status: 'active', joinedDate: 'Aug 14, 2026', targetBand: 'Staff' },
+    { id: 'usr-3', name: 'Sarah Chen', email: 'sarah.c@utoronto.ca', role: 'Student', status: 'active', joinedDate: 'Sep 09, 2026', targetBand: '7.5' },
+    { id: 'usr-4', name: 'Hamza Arshid', email: 'admin@ppacademia.com', role: 'Admin', status: 'active', joinedDate: 'Aug 01, 2026', targetBand: 'System' },
+    { id: 'usr-5', name: 'Marcus Sterling', email: 'marcus.s@outlook.com', role: 'Student', status: 'suspended', joinedDate: 'Aug 29, 2026', targetBand: '6.5' }
+  ]);
+  const [userSearch, setUserSearch] = useState('');
+
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AuditRecord[]>([
+    { id: 'log-1', event: 'AUTH_LOGIN_SUCCESS', actor: 'rohit.mehta@nhs.uk', ip: '192.168.1.42', timestamp: '2 mins ago', status: 'SUCCESS' },
+    { id: 'log-2', event: 'ROLE_PROMOTION', actor: 'admin@ppacademia.com', ip: '127.0.0.1', timestamp: '14 mins ago', status: 'SUCCESS' },
+    { id: 'log-3', event: 'FAILED_LOGIN_ATTEMPT', actor: 'unknown_ip@bot.net', ip: '45.134.22.10', timestamp: '1 hour ago', status: 'ALERT' },
+    { id: 'log-4', event: 'ASSESSMENT_EVAL_COMPLETE', actor: 'sarah.c@utoronto.ca', ip: '192.168.1.88', timestamp: '2 hours ago', status: 'SUCCESS' },
+    { id: 'log-5', event: 'PASSWORD_RESET_REQUEST', actor: 'marcus.s@outlook.com', ip: '82.102.14.3', timestamp: '3 hours ago', status: 'WARNING' }
+  ]);
+
+  // System Feature Flags State
+  const [featureFlags, setFeatureFlags] = useState({
+    aiGradingEngine: true,
+    speechRealTimeTTS: true,
+    peerSpeakingRooms: true,
+    studentCertificateExport: true,
+    maintenanceMode: false
+  });
 
   // AI Prompt Tuning State
   const [speakingPrompt, setSpeakingPrompt] = useState(
@@ -55,6 +103,30 @@ export default function AdminCoursesPage() {
     totalSessions: 0,
   });
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const handleRoleChange = (userId: string, newRole: 'Student' | 'Instructor' | 'Admin') => {
+    setUsersList(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    toast.success("Role Updated", `User role updated to ${newRole}`);
+  };
+
+  const handleToggleStatus = (userId: string) => {
+    setUsersList(prev => prev.map(u => {
+      if (u.id === userId) {
+        const nextStatus = u.status === 'active' ? 'suspended' : 'active';
+        toast.success("Account Status Changed", `User is now ${nextStatus}`);
+        return { ...u, status: nextStatus };
+      }
+      return u;
+    }));
+  };
+
+  const handleToggleFlag = (key: keyof typeof featureFlags) => {
+    setFeatureFlags(prev => {
+      const nextVal = !prev[key];
+      toast.success("Feature Flag Updated", `${key} is now ${nextVal ? 'ENABLED' : 'DISABLED'}`);
+      return { ...prev, [key]: nextVal };
+    });
+  };
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -206,10 +278,10 @@ export default function AdminCoursesPage() {
           </div>
           
           <nav className="p-4 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Management</div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Curriculum</div>
             <button 
               onClick={() => setActiveTab('published')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab !== 'prompts' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <BookOpen className="w-4 h-4" />
               Courses &amp; Content
@@ -220,6 +292,36 @@ export default function AdminCoursesPage() {
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
               AI Prompt Tuning
+            </button>
+
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Administration</div>
+            <button 
+              onClick={() => setActiveTab('users')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Users className="w-4 h-4 text-blue-400" />
+              User Roles &amp; Access
+            </button>
+            <button 
+              onClick={() => setActiveTab('revenue')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <DollarSign className="w-4 h-4 text-amber-400" />
+              Revenue &amp; Plans
+            </button>
+            <button 
+              onClick={() => setActiveTab('audit')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <ShieldAlert className="w-4 h-4 text-red-400" />
+              Security Audit Logs
+            </button>
+            <button 
+              onClick={() => setActiveTab('flags')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'flags' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <ToggleRight className="w-4 h-4 text-indigo-400" />
+              System Feature Flags
             </button>
           </nav>
         </div>
@@ -432,6 +534,216 @@ export default function AdminCoursesPage() {
                   </tbody>
                 </table>
               </div>
+              )}
+
+              {/* TAB: USERS & ROLES */}
+              {activeTab === 'users' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">User Management &amp; Role Enforcement</h2>
+                      <p className="text-xs text-slate-500">Promote staff members, adjust permissions, and monitor candidate statuses</p>
+                    </div>
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text"
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder="Search by name or email..."
+                        className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 w-64 shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate / Staff</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role Access</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Band</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {usersList.filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase())).map((u) => (
+                          <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-bold text-slate-900 text-sm">{u.name}</div>
+                              <div className="text-xs text-slate-500">{u.email}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <select 
+                                value={u.role}
+                                onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                                className={`text-xs font-bold px-2.5 py-1 rounded-lg border focus:outline-none ${
+                                  u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                  u.role === 'Instructor' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                  'bg-blue-50 text-blue-700 border-blue-200'
+                                }`}
+                              >
+                                <option value="Student">Student</option>
+                                <option value="Instructor">Instructor</option>
+                                <option value="Admin">Admin</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-700">
+                              {u.targetBand}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
+                                u.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                              }`}>
+                                {u.status === 'active' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {u.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-slate-500 font-medium">
+                              {u.joinedDate}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button 
+                                onClick={() => handleToggleStatus(u.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  u.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                }`}
+                              >
+                                {u.status === 'active' ? 'Suspend' : 'Activate'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: REVENUE & PLANS */}
+              {activeTab === 'revenue' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Subscription &amp; Revenue Telemetry</h2>
+                    <p className="text-xs text-slate-500">Real-time breakdown of MRR, active student tier conversions, and institutional licenses</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Monthly Recurring (MRR)</p>
+                      <p className="text-3xl font-extrabold text-slate-900">$18,450</p>
+                      <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5" /> +24% vs last month
+                      </p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Active Pro Subscribers</p>
+                      <p className="text-3xl font-extrabold text-slate-900">382</p>
+                      <p className="text-xs text-slate-500 font-medium mt-2">Band 7.5+ Accelerator Plan</p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Enterprise / Uni Seats</p>
+                      <p className="text-3xl font-extrabold text-slate-900">120</p>
+                      <p className="text-xs text-purple-600 font-bold mt-2">4 Partner Colleges</p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Free Trial Conversions</p>
+                      <p className="text-3xl font-extrabold text-slate-900">38.4%</p>
+                      <p className="text-xs text-emerald-600 font-bold mt-2">Top 5% in EdTech</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: AUDIT LOGS */}
+              {activeTab === 'audit' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Security &amp; FERPA Compliance Audit Trail</h2>
+                    <p className="text-xs text-slate-500">Every authentication attempt, role alteration, and grading transaction recorded in PostgreSQL</p>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Event Name</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actor / User</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Timestamp</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-mono text-xs">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4 font-bold text-slate-900">
+                              {log.event}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600">
+                              {log.actor}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500">
+                              {log.ip}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500 font-sans">
+                              {log.timestamp}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className={`px-2 py-0.5 rounded-md font-sans text-[11px] font-bold ${
+                                log.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
+                                log.status === 'ALERT' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {log.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: SYSTEM FEATURE FLAGS */}
+              {activeTab === 'flags' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Global Feature Flags &amp; Kill Switches</h2>
+                    <p className="text-xs text-slate-500">Instantly activate or throttle AI evaluation modules and student tools globally without redeploying</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'aiGradingEngine' as const, title: 'AI 4-Pillar Evaluation Engine', desc: 'Auto-grade essays and speaking simulator recordings via Claude/Llama APIs' },
+                      { key: 'speechRealTimeTTS' as const, title: 'Native British Voice Synthesis (TTS)', desc: 'Pronunciation audio generation for vocabulary and mock listening tests' },
+                      { key: 'peerSpeakingRooms' as const, title: '1-on-1 Peer Speaking Club Matcher', desc: 'Live student-to-student WebRTC audio stages and cue card shuffler' },
+                      { key: 'studentCertificateExport' as const, title: 'Official IELTS Readiness PDF Export', desc: 'Allow candidates to generate and download signed readiness certificates' },
+                      { key: 'maintenanceMode' as const, title: 'Global Platform Maintenance Banner', desc: 'Display scheduled maintenance warning to candidate portals' },
+                    ].map((flag) => {
+                      const enabled = featureFlags[flag.key];
+                      return (
+                        <div key={flag.key} className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 mb-1">{flag.title}</p>
+                            <p className="text-xs text-slate-500 leading-relaxed">{flag.desc}</p>
+                          </div>
+                          <button
+                            onClick={() => handleToggleFlag(flag.key)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                              enabled ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : null}
+                            <span>{enabled ? 'Active' : 'Disabled'}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {/* ANALYTICS TAB CONTENT */}
