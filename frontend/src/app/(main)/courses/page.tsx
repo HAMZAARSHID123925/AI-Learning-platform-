@@ -1,11 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { fetchWithAuth } from "@/lib/api";
 
 export default function CoursesPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [expandedModules, setExpandedModules] = useState<number[]>([1]);
+  const [liveCourses, setLiveCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadPublishedCourses() {
+      try {
+        setLoading(true);
+        const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.items || [];
+          setLiveCourses(items.filter((c: any) => c.status === 'published'));
+        }
+      } catch (err) {
+        console.warn("Using flagship catalog courses:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPublishedCourses();
+  }, []);
 
   const toggleModule = (id: number) => {
     setExpandedModules(prev => 
@@ -116,6 +138,39 @@ export default function CoursesPage() {
 {/* 2. Main Course Grid (3-column layout) */}
 <section className="max-w-[80rem] mx-auto px-4 py-space-lg w-full">
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
+
+{/* Live Admin-Published Courses */}
+{liveCourses.map((course) => (
+  <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-[#027FFF]/30">
+    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
+      <div className="flex flex-col items-center">
+        <span className="material-symbols-outlined text-white text-[48px] mb-2">school</span>
+        <span className="text-white font-bold text-lg">{course.title}</span>
+      </div>
+      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+        <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-xs shadow-sm">
+          Live &amp; Published
+        </span>
+        <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-xs backdrop-blur-sm">
+          {course.module_count || 4} Modules
+        </span>
+      </div>
+    </div>
+    <div className="flex flex-col flex-1 p-6 justify-between gap-4">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{course.title}</h2>
+        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{course.description || 'Full examiner-curated syllabus with interactive quizzes and AI assessments.'}</p>
+      </div>
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span className="text-lg font-extrabold text-slate-900">Included in Pro</span>
+        <Link href="/signup" className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs">
+          Enroll Now &rarr;
+        </Link>
+      </div>
+    </div>
+  </div>
+))}
+
 {/* Course Card 1: Academic English & Test Prep Masterclass */}
 <div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
 {/* Thumbnail / Visual Banner */}

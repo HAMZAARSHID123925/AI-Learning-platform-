@@ -694,7 +694,7 @@ export default function DashboardPage() {
               {/* Enrolled Courses */}
               {enrolledCourses.length > 0 && (
                 <div>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">Enrolled Courses</h2>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">My Enrolled Courses</h2>
                   <div className="space-y-3">
                     {enrolledCourses.map(c => (
                       <div key={c.course_id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-[#027FFF]/50 transition-colors">
@@ -719,6 +719,45 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              {/* Discover & Self-Enroll in Available Courses */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Explore Available Curriculum</h3>
+                    <p className="text-xs text-slate-500 font-medium">Examiner-calibrated courses published on the platform</p>
+                  </div>
+                  <Link href="/courses" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
+                    View Full Catalog <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { id: 'c-1', title: 'IELTS Academic Writing Masterclass', modules: 6, tag: 'Band 7.5+' },
+                    { id: 'c-2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', modules: 8, tag: 'Band 8.0+' },
+                    { id: 'c-3', title: 'Advanced Lexical Collocations & GRA Inversion', modules: 4, tag: 'Band 8.5+' }
+                  ].map(crs => (
+                    <div key={crs.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF]">
+                            {crs.tag}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-semibold">{crs.modules} Modules</span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-900 leading-snug">{crs.title}</h4>
+                      </div>
+                      <Link 
+                        href="/dashboard/lesson"
+                        className="w-full py-2 rounded-xl bg-white hover:bg-[#027FFF] hover:text-white text-[#027FFF] border border-[#027FFF]/30 text-xs font-bold transition-all text-center shadow-2xs"
+                      >
+                        Start Learning &rarr;
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {/* Quick Adaptive Modules */}
               <div>
