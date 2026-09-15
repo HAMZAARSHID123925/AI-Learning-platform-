@@ -20,41 +20,65 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
 
-    try {
-      // UI TESTING MOCK
-      if (false) {
-        setTimeout(() => {
-          router.push('/login?registered=true');
-        }, 800);
-        return;
-      }
+    const cleanFirst = firstName.trim();
+    const cleanLast = lastName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
+    if (!cleanFirst || !cleanLast || !cleanEmail || !cleanPassword) {
+      setError('Please fill in all required fields.');
+      toast.error('Incomplete Form', 'All fields are required.');
+      return;
+    }
+
+    if (cleanPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      toast.error('Weak Password', 'Password must be at least 8 characters.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
       const response = await fetch('http://localhost:8000/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email,
-          password: password,
-          first_name: firstName,
-          last_name: lastName,
+          email: cleanEmail,
+          password: cleanPassword,
+          first_name: cleanFirst,
+          last_name: cleanLast,
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const msg = data.message || (data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : 'Registration failed');
+        let msg = 'Registration failed. Please check your information.';
+        if (typeof data.detail === 'string') {
+          msg = data.detail;
+        } else if (data.message) {
+          msg = data.message;
+        } else if (response.status === 409) {
+          msg = 'An account with this email address already exists.';
+        }
         throw new Error(msg);
       }
 
-      toast.success('Account Created!', 'Please log in with your new credentials.');
+      toast.success('Account Created Successfully!', 'Please log in with your new credentials.');
       router.push('/login?registered=true');
     } catch (err: unknown) {
-      const msg = (err as Error).message || 'An error occurred. Please try again.';
-      setError(msg);
-      toast.error('Signup Failed', msg);
+      const msg = (err as Error).message || 'Unable to reach the registration service.';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('connection refused')) {
+        const devMsg = 'Backend server is offline (http://localhost:8000). Please start FastAPI.';
+        setError(devMsg);
+        toast.error('Backend Offline', devMsg);
+      } else {
+        setError(msg);
+        toast.error('Registration Failed', msg);
+      }
     } finally {
       setLoading(false);
     }
