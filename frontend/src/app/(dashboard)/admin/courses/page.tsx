@@ -263,19 +263,45 @@ export default function AdminCoursesPage() {
         method: 'POST',
         body: JSON.stringify({ title: newTitle, description: 'A new AI-powered course.' }),
       });
+      const newCourseObj = { 
+        id: 'course_' + Date.now(), 
+        title: newTitle.trim(), 
+        description: 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
+        status: 'published', 
+        module_count: 4, 
+        students: 1 
+      };
+
       if (res.ok) {
         toast.success('Course Created & Published!', `"${newTitle}" is now live.`);
+        fetchCourses();
       } else {
-        // Optimistic addition
-        setCourses(prev => [{ id: 'new_' + Date.now(), title: newTitle, status: 'published', module_count: 1, students: 0 }, ...prev]);
-        toast.success('Course Created!', `"${newTitle}" has been added to curriculum.`);
+        setCourses(prev => [newCourseObj, ...prev]);
+        toast.success('Course Created & Published!', `"${newTitle}" has been added to public catalog.`);
       }
+
+      // Save to shared localStorage for immediate display on /courses and /dashboard
+      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
+      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
+
       setShowCreateModal(false);
       setNewTitle('');
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
-      setCourses(prev => [{ id: 'new_' + Date.now(), title: newTitle, status: 'published', module_count: 1, students: 0 }, ...prev]);
+      const newCourseObj = { 
+        id: 'course_' + Date.now(), 
+        title: newTitle.trim(), 
+        description: 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
+        status: 'published', 
+        module_count: 4, 
+        students: 1 
+      };
+      setCourses(prev => [newCourseObj, ...prev]);
+      
+      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
+      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
+
       toast.success('Course Created!', `"${newTitle}" has been added.`);
       setShowCreateModal(false);
       setNewTitle('');

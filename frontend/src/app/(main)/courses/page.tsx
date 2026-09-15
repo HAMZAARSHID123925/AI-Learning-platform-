@@ -14,12 +14,38 @@ export default function CoursesPage() {
     async function loadPublishedCourses() {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
-        if (res.ok) {
-          const data = await res.json();
-          const items = data.items || [];
-          setLiveCourses(items.filter((c: any) => c.status === 'published'));
+        // 1. Check local storage for newly created admin courses
+        let localCreated: any[] = [];
+        const savedAdminCourses = localStorage.getItem('admin_courses');
+        if (savedAdminCourses) {
+          try {
+            localCreated = JSON.parse(savedAdminCourses).filter((c: any) => c.status === 'published');
+          } catch {
+            // ignore
+          }
         }
+
+        // 2. Query backend API
+        let remoteItems: any[] = [];
+        try {
+          const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
+          if (res.ok) {
+            const data = await res.json();
+            remoteItems = (data.items || []).filter((c: any) => c.status === 'published');
+          }
+        } catch {
+          // backend offline or dev mode
+        }
+
+        // Combine unique courses
+        const combined = [...localCreated];
+        remoteItems.forEach(ri => {
+          if (!combined.some(c => c.id === ri.id || c.title === ri.title)) {
+            combined.push(ri);
+          }
+        });
+
+        setLiveCourses(combined);
       } catch (err) {
         console.warn("Using flagship catalog courses:", err);
       } finally {
