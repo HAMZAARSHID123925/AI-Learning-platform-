@@ -34,6 +34,43 @@ export default function AdminCoursesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts'>('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCurriculumModal, setShowCurriculumModal] = useState(false);
+  const [showCohortModal, setShowCohortModal] = useState(false);
+  const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState<any | null>(null);
+  const [selectedCourseForCohort, setSelectedCourseForCohort] = useState<any | null>(null);
+
+  // Curriculum Builder State
+  const [modulesList, setModulesList] = useState<Array<{
+    id: string;
+    title: string;
+    lessons: Array<{ id: string; title: string; type: 'video' | 'quiz' | 'doc'; duration: string }>;
+  }>>([
+    {
+      id: 'm-1',
+      title: 'Module 1: Task 2 Advanced Lexical & GRA Inversion',
+      lessons: [
+        { id: 'l-1', title: 'Video: Mastering Inverted Syntax for Band 8.5', type: 'video', duration: '12 mins' },
+        { id: 'l-2', title: 'Interactive Checkpoint: Conditionals & Inversion Quiz', type: 'quiz', duration: '5 mins' },
+        { id: 'l-3', title: 'Cambridge Scoring Rubric Cheatsheet (PDF)', type: 'doc', duration: '3 mins' }
+      ]
+    },
+    {
+      id: 'm-2',
+      title: 'Module 2: Coherence & Discourse Linkers',
+      lessons: [
+        { id: 'l-4', title: 'Video: Eliminating Repetitive Transitions', type: 'video', duration: '15 mins' },
+        { id: 'l-5', title: 'Diagnostic Exercise: Paragraph Flow Drill', type: 'quiz', duration: '8 mins' }
+      ]
+    }
+  ]);
+  const [newModuleTitle, setNewModuleTitle] = useState('');
+  const [newLessonTitle, setNewLessonTitle] = useState('');
+  const [selectedModuleId, setSelectedModuleId] = useState('m-1');
+  const [newLessonType, setNewLessonType] = useState<'video' | 'quiz' | 'doc'>('video');
+
+  // Cohort Assigner State
+  const [cohortName, setCohortName] = useState('Fall 2026 Band 8.0 Fast-Track');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(['usr-1', 'usr-3']);
 
   // RBAC Route Guard: Admin privileges required
   useEffect(() => {
@@ -516,7 +553,29 @@ export default function AdminCoursesPage() {
                         <td className="px-6 py-4 text-sm text-slate-600 font-medium">
                           {(course.students || 0).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourseForCurriculum(course);
+                              setShowCurriculumModal(true);
+                            }}
+                            className="px-3 py-1.5 mr-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200 shadow-2xs"
+                          >
+                            Edit Curriculum
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourseForCohort(course);
+                              setShowCohortModal(true);
+                            }}
+                            className="px-3 py-1.5 mr-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors border border-purple-200 shadow-2xs"
+                          >
+                            Assign Cohort
+                          </button>
+
                           {course.status !== 'published' && (
                             <button 
                               onClick={(e) => handlePublishCourse(e, course.id)}
@@ -525,9 +584,6 @@ export default function AdminCoursesPage() {
                               Publish
                             </button>
                           )}
-                          <button className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
                         </td>
                       </tr>
                     )))}
@@ -858,6 +914,215 @@ export default function AdminCoursesPage() {
               <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
               <button onClick={handleCreateCourse} disabled={isSubmitting || !newTitle.trim()} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm">
                 Create &amp; Publish Course
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* CURRICULUM & LESSON BUILDER MODAL */}
+      {showCurriculumModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Curriculum &amp; Lesson Builder</h2>
+                <p className="text-xs text-slate-500">{selectedCourseForCurriculum?.title || 'IELTS Academic Course'}</p>
+              </div>
+              <button onClick={() => setShowCurriculumModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              
+              {/* Existing Modules & Lessons */}
+              <div className="space-y-4">
+                {modulesList.map((mod, modIdx) => (
+                  <div key={mod.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-purple-600" />
+                        {mod.title}
+                      </span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
+                        {mod.lessons.length} Lessons
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 pl-4 border-l-2 border-purple-200">
+                      {mod.lessons.map((les) => (
+                        <div key={les.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                              les.type === 'video' ? 'bg-blue-100 text-blue-700' :
+                              les.type === 'quiz' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {les.type.toUpperCase()}
+                            </span>
+                            <span className="font-medium text-slate-800">{les.title}</span>
+                          </div>
+                          <span className="text-slate-400 font-medium">{les.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Lesson to Module Form */}
+              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200 space-y-3">
+                <p className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Add New Lesson to Curriculum
+                </p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <select 
+                    value={selectedModuleId}
+                    onChange={(e) => setSelectedModuleId(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none"
+                  >
+                    {modulesList.map(m => (
+                      <option key={m.id} value={m.id}>{m.title}</option>
+                    ))}
+                  </select>
+
+                  <input 
+                    type="text"
+                    value={newLessonTitle}
+                    onChange={(e) => setNewLessonTitle(e.target.value)}
+                    placeholder="Lesson Title (e.g. Video: Speaking Part 3 Strategy)"
+                    className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    {(['video', 'quiz', 'doc'] as const).map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewLessonType(t)}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          newLessonType === t ? 'bg-purple-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {t.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newLessonTitle.trim()) return;
+                      setModulesList(prev => prev.map(m => {
+                        if (m.id === selectedModuleId) {
+                          return {
+                            ...m,
+                            lessons: [...m.lessons, {
+                              id: 'les-' + Date.now(),
+                              title: newLessonTitle.trim(),
+                              type: newLessonType,
+                              duration: '10 mins'
+                            }]
+                          };
+                        }
+                        return m;
+                      }));
+                      toast.success("Lesson Added", `"${newLessonTitle}" attached to module.`);
+                      setNewLessonTitle('');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors shadow-xs"
+                  >
+                    Save Lesson
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setShowCurriculumModal(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+              >
+                Close &amp; Save Curriculum
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* BULK COHORT ASSIGNER MODAL */}
+      {showCohortModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Assign Course to Student Cohort</h2>
+                <p className="text-xs text-slate-500">{selectedCourseForCohort?.title || 'Selected Course'}</p>
+              </div>
+              <button onClick={() => setShowCohortModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Cohort / Batch Label</label>
+                <input 
+                  type="text"
+                  value={cohortName}
+                  onChange={(e) => setCohortName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Select Students to Enroll ({selectedStudentIds.length} Selected)</label>
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl">
+                  {usersList.filter(u => u.role === 'Student').map((stu) => {
+                    const isChecked = selectedStudentIds.includes(stu.id);
+                    return (
+                      <div 
+                        key={stu.id}
+                        onClick={() => {
+                          setSelectedStudentIds(prev => isChecked ? prev.filter(id => id !== stu.id) : [...prev, stu.id]);
+                        }}
+                        className={`p-3.5 flex items-center justify-between cursor-pointer transition-colors text-xs ${isChecked ? 'bg-purple-50/60' : 'hover:bg-slate-50'}`}
+                      >
+                        <div>
+                          <p className="font-bold text-slate-900">{stu.name}</p>
+                          <p className="text-[11px] text-slate-500">{stu.email} • Target Band {stu.targetBand}</p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-4 h-4 text-purple-600 rounded border-slate-300 pointer-events-none"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => setShowCohortModal(false)} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900">Cancel</button>
+              <button 
+                onClick={() => {
+                  toast.success("Cohort Enrolled! 🎓", `Successfully assigned ${selectedStudentIds.length} students to "${cohortName}".`);
+                  setShowCohortModal(false);
+                }} 
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                Enroll &amp; Notify Cohort
               </button>
             </div>
 
