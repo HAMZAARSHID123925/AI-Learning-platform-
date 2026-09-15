@@ -11,9 +11,11 @@ import {
   LayoutDashboard, BookOpen, Headphones, PenTool, Mic, 
   LineChart as LineChartIcon, Settings, Video, LogOut, Bell, Users,
   BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight,
-  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight
+  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight,
+  HelpCircle, Award
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
+import DiagnosticPlacementModal from '@/components/DiagnosticPlacementModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SkillMasteryItem {
@@ -67,6 +69,14 @@ export default function DashboardPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Student');
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<{
+    estimatedBand: number;
+    levelName: string;
+    targetMilestone: string;
+    strengths: string[];
+    weaknesses: string[];
+  } | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,8 +95,22 @@ export default function DashboardPage() {
 
     const savedTrack = localStorage.getItem('courseTrack');
     const savedName = localStorage.getItem('user_name');
+    const diagnosticDone = localStorage.getItem('diagnostic_completed');
+    const savedDiagData = localStorage.getItem('diagnostic_data');
+
     if (savedName) setUserName(savedName);
     if (savedTrack) setCourseTrack(savedTrack);
+    
+    if (savedDiagData) {
+      try {
+        setDiagnosticResult(JSON.parse(savedDiagData));
+      } catch {
+        // ignore parse error
+      }
+    } else if (!diagnosticDone && savedTrack) {
+      // Prompt new users who haven't completed the 5-min diagnostic yet
+      setShowDiagnostic(true);
+    }
 
     setIsAuth(true);
     loadAllData();
@@ -351,7 +375,15 @@ export default function DashboardPage() {
             </span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowDiagnostic(true)}
+              className="text-xs font-bold text-[#027FFF] hover:text-[#026bd6] px-3 py-1.5 rounded-lg bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/60 transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{diagnosticResult ? `Diagnostic: Band ${diagnosticResult.estimatedBand}` : '5-Min Placement Test'}</span>
+            </button>
+
             <button 
               onClick={() => { localStorage.removeItem('courseTrack'); setCourseTrack(null); }}
               className="text-xs font-bold text-slate-600 hover:text-[#027FFF] px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 transition-colors"
@@ -861,6 +893,16 @@ export default function DashboardPage() {
 
         </main>
       </div>
+
+      {/* 5-Min Diagnostic Level Placement Modal */}
+      <DiagnosticPlacementModal
+        isOpen={showDiagnostic}
+        onClose={() => setShowDiagnostic(false)}
+        onComplete={(res) => {
+          setDiagnosticResult(res);
+          loadAllData();
+        }}
+      />
     </div>
   );
 }
