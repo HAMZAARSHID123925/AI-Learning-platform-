@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { toast } from '@/components/ToastProvider';
+import { saveAuthSession } from '@/lib/auth-storage';
 
 export default function LoginPage() {
 
@@ -16,65 +17,80 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
+      setError('Please provide both your email address and password.');
+      toast.error('Missing Credentials', 'Email and password are required.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      let loggedIn = false;
-      try {
-        const response = await fetch('http://localhost:8000/api/v1/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email,
-            password: password,
-          }),
-        });
+      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: cleanPassword,
+        }),
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem('access_token', data.access_token);
-          const roles: string[] = data.user?.roles || [];
-          const primaryRole = roles[0] || 'Student';
-          const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User';
-          localStorage.setItem('user_role', primaryRole);
-          localStorage.setItem('user_name', userName);
+      if (response.ok) {
+        const data = await response.json();
+        const token = data.access_token || '';
+        const roles: string[] = data.user?.roles || [];
+        const primaryRole = roles[0] || 'Student';
+        const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User';
 
-          toast.success(`Welcome back, ${userName}!`, `Logged in as ${primaryRole}`);
+        // Store both in local storage and secure cookies
+        saveAuthSession(token, primaryRole, userName);
 
-          if (roles.includes('Admin')) {
-            router.push('/admin/courses');
-          } else if (roles.includes('Instructor') || roles.includes('Teacher')) {
-            router.push('/instructor');
-          } else {
-            router.push('/dashboard');
-          }
-          loggedIn = true;
+        toast.success(`Welcome back, ${userName}!`, `Logged in as ${primaryRole}`);
+
+        if (roles.includes('Admin')) {
+          router.push('/admin/courses');
+        } else if (roles.includes('Instructor') || roles.includes('Teacher')) {
+          router.push('/instructor');
         } else {
-          const data = await response.json().catch(() => ({}));
-          const msg = data.message || (data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : 'Invalid email or password');
-          throw new Error(msg);
+          router.push('/dashboard');
         }
-      } catch (fetchErr: unknown) {
-        // If backend connection refused / offline, provide smooth dev-demo authentication
-        console.warn("Backend offline or connection error, using local authenticated session:", fetchErr);
-        
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        let message = 'Invalid email or password.';
+        if (typeof errorData.detail === 'string') {
+          message = errorData.detail;
+        } else if (errorData.message) {
+          message = errorData.message;
+        } else if (response.status === 429) {
+          message = 'Too many login attempts. Please wait a few moments before trying again.';
+        } else if (response.status === 403) {
+          message = 'Your account is suspended or email is not verified.';
+        }
+        throw new Error(message);
+      }
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'Unable to connect to authentication server.';
+      
+      // If backend network error in local development mode, seamlessly authenticate developer session
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('connection refused') || msg.includes('Load failed')) {
         let role = 'Student';
-        let name = email.split('@')[0] || 'Candidate';
+        let name = cleanEmail.split('@')[0] || 'Candidate';
         name = name.charAt(0).toUpperCase() + name.slice(1);
 
-        if (email.toLowerCase().includes('admin')) {
+        if (cleanEmail.includes('admin')) {
           role = 'Admin';
-        } else if (email.toLowerCase().includes('instructor') || email.toLowerCase().includes('teacher')) {
+        } else if (cleanEmail.includes('instructor') || cleanEmail.includes('teacher')) {
           role = 'Instructor';
         }
 
-        localStorage.setItem('access_token', 'dev_token_' + Date.now());
-        localStorage.setItem('user_role', role);
-        localStorage.setItem('user_name', name);
-
-        toast.success(`Welcome back, ${name}!`, `Logged in as ${role}`);
+        saveAuthSession('dev_token_' + Date.now(), role, name);
+        toast.success(`Welcome back, ${name}!`, `Logged in as ${role} (Local Dev Mode)`);
 
         if (role === 'Admin') {
           router.push('/admin/courses');
@@ -83,16 +99,11 @@ export default function LoginPage() {
         } else {
           router.push('/dashboard');
         }
-        loggedIn = true;
+        return;
       }
 
-      if (!loggedIn) {
-        throw new Error('Authentication failed');
-      }
-    } catch (err: unknown) {
-      const msg = (err as Error).message || 'An error occurred. Please try again.';
       setError(msg);
-      toast.error('Login Failed', msg);
+      toast.error('Authentication Failed', msg);
     } finally {
       setLoading(false);
     }

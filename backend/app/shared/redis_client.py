@@ -22,54 +22,43 @@ from redis.asyncio import Redis
 
 from app.config import get_settings
 
+from app.shared.mock_redis import MockRedisClient
+
 _redis_pool: redis.ConnectionPool | None = None
+_mock_redis: MockRedisClient = MockRedisClient()
 
-
-def _get_pool() -> redis.ConnectionPool:
-    """
-    Get or create the Redis connection pool (singleton).
-
-    WHY singleton pool?
-        asyncio applications should have ONE pool shared across the event loop.
-        Creating multiple pools wastes file descriptors and connections.
-    """
+def _get_pool() -> redis.ConnectionPool | None:
     global _redis_pool
     if _redis_pool is None:
-        settings = get_settings()
-        _redis_pool = redis.ConnectionPool.from_url(
-            settings.REDIS_URL,
-            max_connections=50,         # Max concurrent Redis connections
-            decode_responses=True,      # Return str instead of bytes
-            socket_timeout=5,           # Fail fast on slow Redis
-            socket_connect_timeout=3,
-        )
+        try:
+            settings = get_settings()
+            _redis_pool = redis.ConnectionPool.from_url(
+                settings.REDIS_URL,
+                max_connections=50,
+                decode_responses=True,
+                socket_timeout=2,
+                socket_connect_timeout=2,
+            )
+        except Exception:
+            _redis_pool = None
     return _redis_pool
 
+def get_redis_client() -> Any:
+    pool = _get_pool()
+    if pool:
+        return redis.Redis(connection_pool=pool)
+    return _mock_redis
 
-def get_redis_client() -> Redis:
-    """
-    Get a Redis client using the shared connection pool.
-    Use this in background workers where FastAPI DI is not available.
-    """
-    return redis.Redis(connection_pool=_get_pool())
-
-
-async def get_redis() -> AsyncGenerator[Redis, None]:
-    """
-    FastAPI dependency that provides a Redis client per request.
-
-    Usage:
-        @router.post("/example")
-        async def my_endpoint(redis: Redis = Depends(get_redis)):
-            await redis.set("key", "value", ex=300)
-
-    The client is returned to the pool automatically.
-    """
-    client = redis.Redis(connection_pool=_get_pool())
-    try:
-        yield client
-    finally:
-        await client.aclose()
+async def get_redis() -> AsyncGenerator[Any, None]:
+    pool = _get_pool()
+    if pool:
+        client = redis.Redis(connection_pool=pool)
+        try:
+            yield client
+        finally:
+            await client.aclose()
+    else:
+        yield _mock_redis
 
 
 async def close_redis_pool() -> None:

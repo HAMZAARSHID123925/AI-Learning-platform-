@@ -81,6 +81,18 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             <LayoutDashboard className="w-4 h-4" />
             Overview
           </Link>
+
+          <Link 
+            href="/courses" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/courses') 
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <BookOpen className={`w-4 h-4 ${isActive('/courses') ? 'text-white' : 'text-cyan-400'}`} />
+            Course Catalog
+          </Link>
           
           <Link 
             href="/dashboard/adaptive" 

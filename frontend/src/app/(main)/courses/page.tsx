@@ -1,11 +1,85 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { fetchWithAuth } from "@/lib/api";
 
 export default function CoursesPage() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("all");
   const [expandedModules, setExpandedModules] = useState<number[]>([1]);
+  const [liveCourses, setLiveCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleEnroll = (courseTitle: string, courseId: string = 'c_' + Date.now(), totalLessons: number = 24) => {
+    // 1. Save enrollment in local storage for student active courses
+    if (typeof window !== 'undefined') {
+      const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
+      if (!existing.some((c: any) => c.course_title === courseTitle || c.course_id === courseId)) {
+        const newEnrollment = {
+          course_id: courseId,
+          course_title: courseTitle,
+          total_lessons: totalLessons,
+          completed_lessons: 0,
+          percentage: 0
+        };
+        localStorage.setItem('student_enrolled_courses', JSON.stringify([newEnrollment, ...existing]));
+      }
+
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        router.push('/dashboard');
+      } else {
+        router.push(`/signup?enrollCourse=${encodeURIComponent(courseTitle)}`);
+      }
+    }
+  };
+
+  useEffect(() => {
+    async function loadPublishedCourses() {
+      try {
+        setLoading(true);
+        // 1. Check local storage for newly created admin courses
+        let localCreated: any[] = [];
+        const savedAdminCourses = localStorage.getItem('admin_courses');
+        if (savedAdminCourses) {
+          try {
+            localCreated = JSON.parse(savedAdminCourses).filter((c: any) => c.status === 'published');
+          } catch {
+            // ignore
+          }
+        }
+
+        // 2. Query backend API
+        let remoteItems: any[] = [];
+        try {
+          const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
+          if (res.ok) {
+            const data = await res.json();
+            remoteItems = (data.items || []).filter((c: any) => c.status === 'published');
+          }
+        } catch {
+          // backend offline or dev mode
+        }
+
+        // Combine unique courses
+        const combined = [...localCreated];
+        remoteItems.forEach(ri => {
+          if (!combined.some(c => c.id === ri.id || c.title === ri.title)) {
+            combined.push(ri);
+          }
+        });
+
+        setLiveCourses(combined);
+      } catch (err) {
+        console.warn("Using flagship catalog courses:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPublishedCourses();
+  }, []);
 
   const toggleModule = (id: number) => {
     setExpandedModules(prev => 
@@ -116,6 +190,42 @@ export default function CoursesPage() {
 {/* 2. Main Course Grid (3-column layout) */}
 <section className="max-w-[80rem] mx-auto px-4 py-space-lg w-full">
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
+
+{/* Live Admin-Published Courses */}
+{liveCourses.map((course) => (
+  <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-[#027FFF]/30">
+    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
+      <div className="flex flex-col items-center">
+        <span className="material-symbols-outlined text-white text-[48px] mb-2">school</span>
+        <span className="text-white font-bold text-lg">{course.title}</span>
+      </div>
+      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+        <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-xs shadow-sm">
+          Live &amp; Published
+        </span>
+        <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-xs backdrop-blur-sm">
+          {course.module_count || 4} Modules
+        </span>
+      </div>
+    </div>
+    <div className="flex flex-col flex-1 p-6 justify-between gap-4">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{course.title}</h2>
+        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{course.description || 'Full examiner-curated syllabus with interactive quizzes and AI assessments.'}</p>
+      </div>
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span className="text-lg font-extrabold text-slate-900">{course.price || 'Included in Pro'}</span>
+        <button 
+          onClick={() => handleEnroll(course.title, course.id, (course.module_count || 4) * 6)} 
+          className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs"
+        >
+          Enroll Now &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+))}
+
 {/* Course Card 1: Academic English & Test Prep Masterclass */}
 <div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
 {/* Thumbnail / Visual Banner */}
@@ -196,9 +306,12 @@ export default function CoursesPage() {
 <span>View Syllabus</span>
 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
 </button>
-<Link className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center" href="/signup">
-                  Enroll Now
-                </Link>
+<button 
+  onClick={() => handleEnroll('Academic English & Test Prep Masterclass', 'course-academic-masterclass', 28)}
+  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
+>
+  Enroll Now
+</button>
 </div>
 </div>
 </div>
@@ -282,9 +395,12 @@ export default function CoursesPage() {
 <span>View Syllabus</span>
 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
 </button>
-<Link className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center" href="/signup">
-                  Enroll Now
-                </Link>
+<button 
+  onClick={() => handleEnroll('General English Fast-Track', 'course-general-fast-track', 18)}
+  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
+>
+  Enroll Now
+</button>
 </div>
 </div>
 </div>
@@ -368,9 +484,12 @@ export default function CoursesPage() {
 <span>View Syllabus</span>
 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
 </button>
-<Link className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center" href="/signup">
-                  Enroll Now
-                </Link>
+<button 
+  onClick={() => handleEnroll('Intensive English Writing & Grammar Bootcamp', 'course-grammar-bootcamp', 10)}
+  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
+>
+  Enroll Now
+</button>
 </div>
 </div>
 </div>

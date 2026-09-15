@@ -5,15 +5,72 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
-  Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2
+  Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2,
+  ShieldAlert, DollarSign, ToggleLeft, ToggleRight, UserCheck, UserX, AlertTriangle, KeyRound
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 
+interface UserRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Student' | 'Instructor' | 'Admin';
+  status: 'active' | 'suspended';
+  joinedDate: string;
+  targetBand: string;
+}
+
+interface AuditRecord {
+  id: string;
+  event: string;
+  actor: string;
+  ip: string;
+  timestamp: string;
+  status: 'SUCCESS' | 'WARNING' | 'ALERT';
+}
+
 export default function AdminCoursesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'analytics' | 'prompts'>('published');
+  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts'>('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCurriculumModal, setShowCurriculumModal] = useState(false);
+  const [showCohortModal, setShowCohortModal] = useState(false);
+  const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState<any | null>(null);
+  const [selectedCourseForCohort, setSelectedCourseForCohort] = useState<any | null>(null);
+
+  // Curriculum Builder State
+  const [modulesList, setModulesList] = useState<Array<{
+    id: string;
+    title: string;
+    lessons: Array<{ id: string; title: string; type: 'video' | 'quiz' | 'doc'; duration: string }>;
+  }>>([
+    {
+      id: 'm-1',
+      title: 'Module 1: Task 2 Advanced Lexical & GRA Inversion',
+      lessons: [
+        { id: 'l-1', title: 'Video: Mastering Inverted Syntax for Band 8.5', type: 'video', duration: '12 mins' },
+        { id: 'l-2', title: 'Interactive Checkpoint: Conditionals & Inversion Quiz', type: 'quiz', duration: '5 mins' },
+        { id: 'l-3', title: 'Cambridge Scoring Rubric Cheatsheet (PDF)', type: 'doc', duration: '3 mins' }
+      ]
+    },
+    {
+      id: 'm-2',
+      title: 'Module 2: Coherence & Discourse Linkers',
+      lessons: [
+        { id: 'l-4', title: 'Video: Eliminating Repetitive Transitions', type: 'video', duration: '15 mins' },
+        { id: 'l-5', title: 'Diagnostic Exercise: Paragraph Flow Drill', type: 'quiz', duration: '8 mins' }
+      ]
+    }
+  ]);
+  const [newModuleTitle, setNewModuleTitle] = useState('');
+  const [newLessonTitle, setNewLessonTitle] = useState('');
+  const [selectedModuleId, setSelectedModuleId] = useState('m-1');
+  const [newLessonType, setNewLessonType] = useState<'video' | 'quiz' | 'doc'>('video');
+
+  // Cohort Assigner State
+  const [cohortName, setCohortName] = useState('Fall 2026 Band 8.0 Fast-Track');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(['usr-1', 'usr-3']);
 
   // RBAC Route Guard: Admin privileges required
   useEffect(() => {
@@ -30,8 +87,44 @@ export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
+  const [newCategory, setNewCategory] = useState('IELTS Preparation');
+  const [newTargetBand, setNewTargetBand] = useState('Band 7.5+');
+  const [newPrice, setNewPrice] = useState('$49.00');
+  const [newDuration, setNewDuration] = useState('6 Weeks / 30 Hours');
+  const [newInstructor, setNewInstructor] = useState('Hamza Arshid (Lead Assessor)');
+  const [newLevel, setNewLevel] = useState('Intermediate to Advanced');
+  const [newStatus, setNewStatus] = useState<'published' | 'draft'>('published');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // User Management State
+  const [usersList, setUsersList] = useState<UserRecord[]>([
+    { id: 'usr-1', name: 'Dr. Rohit Mehta', email: 'rohit.mehta@nhs.uk', role: 'Student', status: 'active', joinedDate: 'Sep 02, 2026', targetBand: '8.0' },
+    { id: 'usr-2', name: 'Prof. Alistair Finch', email: 'finch@oxford.ac.uk', role: 'Instructor', status: 'active', joinedDate: 'Aug 14, 2026', targetBand: 'Staff' },
+    { id: 'usr-3', name: 'Sarah Chen', email: 'sarah.c@utoronto.ca', role: 'Student', status: 'active', joinedDate: 'Sep 09, 2026', targetBand: '7.5' },
+    { id: 'usr-4', name: 'Hamza Arshid', email: 'admin@ppacademia.com', role: 'Admin', status: 'active', joinedDate: 'Aug 01, 2026', targetBand: 'System' },
+    { id: 'usr-5', name: 'Marcus Sterling', email: 'marcus.s@outlook.com', role: 'Student', status: 'suspended', joinedDate: 'Aug 29, 2026', targetBand: '6.5' }
+  ]);
+  const [userSearch, setUserSearch] = useState('');
+
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AuditRecord[]>([
+    { id: 'log-1', event: 'AUTH_LOGIN_SUCCESS', actor: 'rohit.mehta@nhs.uk', ip: '192.168.1.42', timestamp: '2 mins ago', status: 'SUCCESS' },
+    { id: 'log-2', event: 'ROLE_PROMOTION', actor: 'admin@ppacademia.com', ip: '127.0.0.1', timestamp: '14 mins ago', status: 'SUCCESS' },
+    { id: 'log-3', event: 'FAILED_LOGIN_ATTEMPT', actor: 'unknown_ip@bot.net', ip: '45.134.22.10', timestamp: '1 hour ago', status: 'ALERT' },
+    { id: 'log-4', event: 'ASSESSMENT_EVAL_COMPLETE', actor: 'sarah.c@utoronto.ca', ip: '192.168.1.88', timestamp: '2 hours ago', status: 'SUCCESS' },
+    { id: 'log-5', event: 'PASSWORD_RESET_REQUEST', actor: 'marcus.s@outlook.com', ip: '82.102.14.3', timestamp: '3 hours ago', status: 'WARNING' }
+  ]);
+
+  // System Feature Flags State
+  const [featureFlags, setFeatureFlags] = useState({
+    aiGradingEngine: true,
+    speechRealTimeTTS: true,
+    peerSpeakingRooms: true,
+    studentCertificateExport: true,
+    maintenanceMode: false
+  });
 
   // AI Prompt Tuning State
   const [speakingPrompt, setSpeakingPrompt] = useState(
@@ -55,6 +148,30 @@ export default function AdminCoursesPage() {
     totalSessions: 0,
   });
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const handleRoleChange = (userId: string, newRole: 'Student' | 'Instructor' | 'Admin') => {
+    setUsersList(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    toast.success("Role Updated", `User role updated to ${newRole}`);
+  };
+
+  const handleToggleStatus = (userId: string) => {
+    setUsersList(prev => prev.map(u => {
+      if (u.id === userId) {
+        const nextStatus = u.status === 'active' ? 'suspended' : 'active';
+        toast.success("Account Status Changed", `User is now ${nextStatus}`);
+        return { ...u, status: nextStatus };
+      }
+      return u;
+    }));
+  };
+
+  const handleToggleFlag = (key: keyof typeof featureFlags) => {
+    setFeatureFlags(prev => {
+      const nextVal = !prev[key];
+      toast.success("Feature Flag Updated", `${key} is now ${nextVal ? 'ENABLED' : 'DISABLED'}`);
+      return { ...prev, [key]: nextVal };
+    });
+  };
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -146,30 +263,67 @@ export default function AdminCoursesPage() {
     }
   };
 
-  const handleCreateCourse = async () => {
-    if (!newTitle) return;
+  const handleCreateCourse = async (overrideStatus?: 'published' | 'draft') => {
+    if (!newTitle.trim()) return;
     setIsSubmitting(true);
+    const finalStatus = overrideStatus || newStatus;
+    
+    const newCourseObj = { 
+      id: 'course_' + Date.now(), 
+      title: newTitle.trim(), 
+      description: newDescription.trim() || 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
+      category: newCategory,
+      target_band: newTargetBand,
+      price: newPrice,
+      duration: newDuration,
+      instructor: newInstructor,
+      level: newLevel,
+      status: finalStatus, 
+      module_count: 4, 
+      students: 0,
+      thumbnail_url: selectedFile ? URL.createObjectURL(selectedFile) : undefined
+    };
+
     try {
       const res = await fetchWithAuth('/courses', {
         method: 'POST',
-        body: JSON.stringify({ title: newTitle, description: 'A new AI-powered course.' }),
+        body: JSON.stringify({ 
+          title: newTitle.trim(), 
+          description: newDescription.trim(),
+          category: newCategory,
+          target_band: newTargetBand,
+          price: newPrice,
+          status: finalStatus
+        }),
       });
+
       if (res.ok) {
-        toast.success('Course Created & Published!', `"${newTitle}" is now live.`);
+        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now registered.`);
+        fetchCourses();
       } else {
-        // Optimistic addition
-        setCourses(prev => [{ id: 'new_' + Date.now(), title: newTitle, status: 'published', module_count: 1, students: 0 }, ...prev]);
-        toast.success('Course Created!', `"${newTitle}" has been added to curriculum.`);
+        setCourses(prev => [newCourseObj, ...prev]);
+        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now live.`);
       }
+
+      // Save to shared localStorage for immediate display on /courses and /dashboard
+      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
+      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
+
       setShowCreateModal(false);
       setNewTitle('');
+      setNewDescription('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
-      setCourses(prev => [{ id: 'new_' + Date.now(), title: newTitle, status: 'published', module_count: 1, students: 0 }, ...prev]);
-      toast.success('Course Created!', `"${newTitle}" has been added.`);
+      setCourses(prev => [newCourseObj, ...prev]);
+      
+      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
+      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
+
+      toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" has been added.`);
       setShowCreateModal(false);
       setNewTitle('');
+      setSelectedFile(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -206,10 +360,10 @@ export default function AdminCoursesPage() {
           </div>
           
           <nav className="p-4 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Management</div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Curriculum</div>
             <button 
               onClick={() => setActiveTab('published')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab !== 'prompts' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <BookOpen className="w-4 h-4" />
               Courses &amp; Content
@@ -220,6 +374,36 @@ export default function AdminCoursesPage() {
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
               AI Prompt Tuning
+            </button>
+
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Administration</div>
+            <button 
+              onClick={() => setActiveTab('users')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Users className="w-4 h-4 text-blue-400" />
+              User Roles &amp; Access
+            </button>
+            <button 
+              onClick={() => setActiveTab('revenue')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <DollarSign className="w-4 h-4 text-amber-400" />
+              Revenue &amp; Plans
+            </button>
+            <button 
+              onClick={() => setActiveTab('audit')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <ShieldAlert className="w-4 h-4 text-red-400" />
+              Security Audit Logs
+            </button>
+            <button 
+              onClick={() => setActiveTab('flags')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'flags' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <ToggleRight className="w-4 h-4 text-indigo-400" />
+              System Feature Flags
             </button>
           </nav>
         </div>
@@ -414,7 +598,29 @@ export default function AdminCoursesPage() {
                         <td className="px-6 py-4 text-sm text-slate-600 font-medium">
                           {(course.students || 0).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourseForCurriculum(course);
+                              setShowCurriculumModal(true);
+                            }}
+                            className="px-3 py-1.5 mr-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200 shadow-2xs"
+                          >
+                            Edit Curriculum
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourseForCohort(course);
+                              setShowCohortModal(true);
+                            }}
+                            className="px-3 py-1.5 mr-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors border border-purple-200 shadow-2xs"
+                          >
+                            Assign Cohort
+                          </button>
+
                           {course.status !== 'published' && (
                             <button 
                               onClick={(e) => handlePublishCourse(e, course.id)}
@@ -423,15 +629,222 @@ export default function AdminCoursesPage() {
                               Publish
                             </button>
                           )}
-                          <button className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
                         </td>
                       </tr>
                     )))}
                   </tbody>
                 </table>
               </div>
+              )}
+
+              {/* TAB: USERS & ROLES */}
+              {activeTab === 'users' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">User Management &amp; Role Enforcement</h2>
+                      <p className="text-xs text-slate-500">Promote staff members, adjust permissions, and monitor candidate statuses</p>
+                    </div>
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text"
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder="Search by name or email..."
+                        className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 w-64 shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate / Staff</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role Access</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Band</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {usersList.filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase())).map((u) => (
+                          <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-bold text-slate-900 text-sm">{u.name}</div>
+                              <div className="text-xs text-slate-500">{u.email}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <select 
+                                value={u.role}
+                                onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                                className={`text-xs font-bold px-2.5 py-1 rounded-lg border focus:outline-none ${
+                                  u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                  u.role === 'Instructor' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                  'bg-blue-50 text-blue-700 border-blue-200'
+                                }`}
+                              >
+                                <option value="Student">Student</option>
+                                <option value="Instructor">Instructor</option>
+                                <option value="Admin">Admin</option>
+                              </select>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-semibold text-slate-700">
+                              {u.targetBand}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
+                                u.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                              }`}>
+                                {u.status === 'active' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {u.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-slate-500 font-medium">
+                              {u.joinedDate}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button 
+                                onClick={() => handleToggleStatus(u.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  u.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                }`}
+                              >
+                                {u.status === 'active' ? 'Suspend' : 'Activate'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: REVENUE & PLANS */}
+              {activeTab === 'revenue' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Subscription &amp; Revenue Telemetry</h2>
+                    <p className="text-xs text-slate-500">Real-time breakdown of MRR, active student tier conversions, and institutional licenses</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Monthly Recurring (MRR)</p>
+                      <p className="text-3xl font-extrabold text-slate-900">$18,450</p>
+                      <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5" /> +24% vs last month
+                      </p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Active Pro Subscribers</p>
+                      <p className="text-3xl font-extrabold text-slate-900">382</p>
+                      <p className="text-xs text-slate-500 font-medium mt-2">Band 7.5+ Accelerator Plan</p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Enterprise / Uni Seats</p>
+                      <p className="text-3xl font-extrabold text-slate-900">120</p>
+                      <p className="text-xs text-purple-600 font-bold mt-2">4 Partner Colleges</p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Free Trial Conversions</p>
+                      <p className="text-3xl font-extrabold text-slate-900">38.4%</p>
+                      <p className="text-xs text-emerald-600 font-bold mt-2">Top 5% in EdTech</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: AUDIT LOGS */}
+              {activeTab === 'audit' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Security &amp; FERPA Compliance Audit Trail</h2>
+                    <p className="text-xs text-slate-500">Every authentication attempt, role alteration, and grading transaction recorded in PostgreSQL</p>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Event Name</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actor / User</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Timestamp</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-mono text-xs">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4 font-bold text-slate-900">
+                              {log.event}
+                            </td>
+                            <td className="px-6 py-4 text-slate-600">
+                              {log.actor}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500">
+                              {log.ip}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500 font-sans">
+                              {log.timestamp}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span className={`px-2 py-0.5 rounded-md font-sans text-[11px] font-bold ${
+                                log.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
+                                log.status === 'ALERT' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {log.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: SYSTEM FEATURE FLAGS */}
+              {activeTab === 'flags' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Global Feature Flags &amp; Kill Switches</h2>
+                    <p className="text-xs text-slate-500">Instantly activate or throttle AI evaluation modules and student tools globally without redeploying</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'aiGradingEngine' as const, title: 'AI 4-Pillar Evaluation Engine', desc: 'Auto-grade essays and speaking simulator recordings via Claude/Llama APIs' },
+                      { key: 'speechRealTimeTTS' as const, title: 'Native British Voice Synthesis (TTS)', desc: 'Pronunciation audio generation for vocabulary and mock listening tests' },
+                      { key: 'peerSpeakingRooms' as const, title: '1-on-1 Peer Speaking Club Matcher', desc: 'Live student-to-student WebRTC audio stages and cue card shuffler' },
+                      { key: 'studentCertificateExport' as const, title: 'Official IELTS Readiness PDF Export', desc: 'Allow candidates to generate and download signed readiness certificates' },
+                      { key: 'maintenanceMode' as const, title: 'Global Platform Maintenance Banner', desc: 'Display scheduled maintenance warning to candidate portals' },
+                    ].map((flag) => {
+                      const enabled = featureFlags[flag.key];
+                      return (
+                        <div key={flag.key} className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 mb-1">{flag.title}</p>
+                            <p className="text-xs text-slate-500 leading-relaxed">{flag.desc}</p>
+                          </div>
+                          <button
+                            onClick={() => handleToggleFlag(flag.key)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                              enabled ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : null}
+                            <span>{enabled ? 'Active' : 'Disabled'}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {/* ANALYTICS TAB CONTENT */}
@@ -497,55 +910,414 @@ export default function AdminCoursesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Create New Course</h2>
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-purple-600" />
+                  Create &amp; Configure New Course
+                </h2>
+                <p className="text-xs text-slate-500">Design syllabus, target band score, pricing model, and media assets.</p>
+              </div>
               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <div className="space-y-6">
+            <div className="p-6 overflow-y-auto space-y-5">
+              {/* Course Title */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Title <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={newTitle} 
+                  onChange={(e) => setNewTitle(e.target.value)} 
+                  placeholder="e.g. IELTS Academic Writing Task 2 Masterclass" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors" 
+                />
+              </div>
+
+              {/* Description & Syllabus Overview */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Description &amp; Syllabus Overview
+                </label>
+                <textarea 
+                  rows={3}
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="Describe what students will achieve in this course..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors resize-none"
+                />
+              </div>
+
+              {/* 2-Column: Track Category & Target Band */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Course Title</label>
-                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g. IELTS Writing Task 2 Mastery" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors" />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Track Alignment</label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Track Alignment / Category
+                  </label>
+                  <select 
+                    value={newCategory} 
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
                     <option>IELTS Preparation</option>
+                    <option>IELTS Academic</option>
+                    <option>IELTS General Training</option>
                     <option>General English</option>
+                    <option>Business English &amp; Fluency</option>
+                    <option>Grammar &amp; Vocabulary Booster</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Upload Initial Asset (Video or PDF)</label>
-                  <label className="border-2 border-dashed border-slate-200 hover:border-purple-500 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      accept="video/mp4,application/pdf,text/markdown"
-                    />
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UploadCloud className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <p className="text-sm text-slate-900 font-bold mb-1">
-                      {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'MP4, PDF, or Markdown (Max 100MB)'}
-                    </p>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Target Band / Level
                   </label>
+                  <select 
+                    value={newTargetBand} 
+                    onChange={(e) => setNewTargetBand(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Band 7.5+</option>
+                    <option>Band 8.0+ (Elite)</option>
+                    <option>Band 8.5+</option>
+                    <option>Band 6.5 - 7.0 (Target)</option>
+                    <option>C1 Advanced (CEFR)</option>
+                    <option>B2 Upper Intermediate</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2-Column: Pricing Tier & Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Pricing &amp; Access Tier
+                  </label>
+                  <select 
+                    value={newPrice} 
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>$49.00 (Standard)</option>
+                    <option>$0 (Free Access)</option>
+                    <option>$79.00 (Pro Cohort)</option>
+                    <option>$129.00 (1-on-1 Mentored)</option>
+                    <option>Included in Pro Subscription</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Course Duration &amp; Hours
+                  </label>
+                  <select 
+                    value={newDuration} 
+                    onChange={(e) => setNewDuration(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>6 Weeks / 30 Hours</option>
+                    <option>4 Weeks / 20 Hours (Crash Course)</option>
+                    <option>8 Weeks / 45 Hours (Comprehensive)</option>
+                    <option>12 Weeks / 60 Hours (Full Diploma)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2-Column: Lead Instructor & Course Level */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Assigned Lead Instructor
+                  </label>
+                  <select 
+                    value={newInstructor} 
+                    onChange={(e) => setNewInstructor(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Hamza Arshid (Lead Assessor)</option>
+                    <option>Prof. Alistair Finch (Oxford / British Council)</option>
+                    <option>Sarah Jenkins (Senior IELTS Examiner)</option>
+                    <option>Dr. Rohit Mehta (IELTS Medical Track)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Difficulty Level
+                  </label>
+                  <select 
+                    value={newLevel} 
+                    onChange={(e) => setNewLevel(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-purple-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Intermediate to Advanced</option>
+                    <option>All Levels Welcome</option>
+                    <option>Advanced Masterclass</option>
+                    <option>Foundation / Beginner</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Initial Asset Upload */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Syllabus / Introductory Video Asset
+                </label>
+                <label className="border-2 border-dashed border-slate-200 hover:border-purple-500 rounded-2xl p-6 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    accept="video/mp4,application/pdf,text/markdown"
+                  />
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-slate-900 font-bold">
+                    {selectedFile ? selectedFile.name : 'Click to upload or drag & drop file'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB uploaded` : 'MP4 Video Lecture, PDF Syllabus, or Markdown (Max 100MB)'}
+                  </p>
+                </label>
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                Cancel
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleCreateCourse('draft')} 
+                  disabled={isSubmitting || !newTitle.trim()} 
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-800 text-sm font-bold transition-colors shadow-sm"
+                >
+                  Save as Draft
+                </button>
+                <button 
+                  onClick={() => handleCreateCourse('published')} 
+                  disabled={isSubmitting || !newTitle.trim()} 
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Create &amp; Publish Course
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* CURRICULUM & LESSON BUILDER MODAL */}
+      {showCurriculumModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Curriculum &amp; Lesson Builder</h2>
+                <p className="text-xs text-slate-500">{selectedCourseForCurriculum?.title || 'IELTS Academic Course'}</p>
+              </div>
+              <button onClick={() => setShowCurriculumModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              
+              {/* Existing Modules & Lessons */}
+              <div className="space-y-4">
+                {modulesList.map((mod, modIdx) => (
+                  <div key={mod.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-purple-600" />
+                        {mod.title}
+                      </span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
+                        {mod.lessons.length} Lessons
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 pl-4 border-l-2 border-purple-200">
+                      {mod.lessons.map((les) => (
+                        <div key={les.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                              les.type === 'video' ? 'bg-blue-100 text-blue-700' :
+                              les.type === 'quiz' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {les.type.toUpperCase()}
+                            </span>
+                            <span className="font-medium text-slate-800">{les.title}</span>
+                          </div>
+                          <span className="text-slate-400 font-medium">{les.duration}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Lesson to Module Form */}
+              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-200 space-y-3">
+                <p className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Add New Lesson to Curriculum
+                </p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <select 
+                    value={selectedModuleId}
+                    onChange={(e) => setSelectedModuleId(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none"
+                  >
+                    {modulesList.map(m => (
+                      <option key={m.id} value={m.id}>{m.title}</option>
+                    ))}
+                  </select>
+
+                  <input 
+                    type="text"
+                    value={newLessonTitle}
+                    onChange={(e) => setNewLessonTitle(e.target.value)}
+                    placeholder="Lesson Title (e.g. Video: Speaking Part 3 Strategy)"
+                    className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    {(['video', 'quiz', 'doc'] as const).map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewLessonType(t)}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                          newLessonType === t ? 'bg-purple-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {t.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newLessonTitle.trim()) return;
+                      setModulesList(prev => prev.map(m => {
+                        if (m.id === selectedModuleId) {
+                          return {
+                            ...m,
+                            lessons: [...m.lessons, {
+                              id: 'les-' + Date.now(),
+                              title: newLessonTitle.trim(),
+                              type: newLessonType,
+                              duration: '10 mins'
+                            }]
+                          };
+                        }
+                        return m;
+                      }));
+                      toast.success("Lesson Added", `"${newLessonTitle}" attached to module.`);
+                      setNewLessonTitle('');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors shadow-xs"
+                  >
+                    Save Lesson
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setShowCurriculumModal(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+              >
+                Close &amp; Save Curriculum
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* BULK COHORT ASSIGNER MODAL */}
+      {showCohortModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Assign Course to Student Cohort</h2>
+                <p className="text-xs text-slate-500">{selectedCourseForCohort?.title || 'Selected Course'}</p>
+              </div>
+              <button onClick={() => setShowCohortModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Cohort / Batch Label</label>
+                <input 
+                  type="text"
+                  value={cohortName}
+                  onChange={(e) => setCohortName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Select Students to Enroll ({selectedStudentIds.length} Selected)</label>
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl">
+                  {usersList.filter(u => u.role === 'Student').map((stu) => {
+                    const isChecked = selectedStudentIds.includes(stu.id);
+                    return (
+                      <div 
+                        key={stu.id}
+                        onClick={() => {
+                          setSelectedStudentIds(prev => isChecked ? prev.filter(id => id !== stu.id) : [...prev, stu.id]);
+                        }}
+                        className={`p-3.5 flex items-center justify-between cursor-pointer transition-colors text-xs ${isChecked ? 'bg-purple-50/60' : 'hover:bg-slate-50'}`}
+                      >
+                        <div>
+                          <p className="font-bold text-slate-900">{stu.name}</p>
+                          <p className="text-[11px] text-slate-500">{stu.email} • Target Band {stu.targetBand}</p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-4 h-4 text-purple-600 rounded border-slate-300 pointer-events-none"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Cancel</button>
-              <button onClick={handleCreateCourse} disabled={isSubmitting || !newTitle.trim()} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm">
-                Create &amp; Publish Course
+              <button onClick={() => setShowCohortModal(false)} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900">Cancel</button>
+              <button 
+                onClick={() => {
+                  toast.success("Cohort Enrolled! 🎓", `Successfully assigned ${selectedStudentIds.length} students to "${cohortName}".`);
+                  setShowCohortModal(false);
+                }} 
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                Enroll &amp; Notify Cohort
               </button>
             </div>
 

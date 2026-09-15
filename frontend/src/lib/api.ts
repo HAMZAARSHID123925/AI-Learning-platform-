@@ -5,13 +5,15 @@
  * All pages should use fetchWithAuth() instead of raw fetch().
  */
 
+import { getStoredAccessToken, saveAuthSession } from './auth-storage';
+
 const API_BASE = 'http://localhost:8000/api/v1';
 
 let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
 async function tryRefreshToken(): Promise<string | null> {
-  const token = localStorage.getItem('access_token');
+  const token = getStoredAccessToken();
   if (!token) return null;
 
   try {
@@ -27,7 +29,9 @@ async function tryRefreshToken(): Promise<string | null> {
     }
     const data = await res.json();
     const newToken = data.access_token;
-    localStorage.setItem('access_token', newToken);
+    if (newToken) {
+      localStorage.setItem('access_token', newToken);
+    }
     return newToken;
   } catch {
     return null;
@@ -38,7 +42,7 @@ export async function fetchWithAuth(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = localStorage.getItem('access_token');
+  const token = getStoredAccessToken();
 
   const makeRequest = (t: string | null) =>
     fetch(`${API_BASE}${path}`, {

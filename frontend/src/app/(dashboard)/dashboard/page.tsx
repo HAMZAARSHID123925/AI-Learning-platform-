@@ -11,9 +11,12 @@ import {
   LayoutDashboard, BookOpen, Headphones, PenTool, Mic, 
   LineChart as LineChartIcon, Settings, Video, LogOut, Bell, Users,
   BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight,
-  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight
+  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight,
+  HelpCircle, Award
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
+import { toast } from '@/components/ToastProvider';
+import DiagnosticPlacementModal from '@/components/DiagnosticPlacementModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SkillMasteryItem {
@@ -25,7 +28,7 @@ interface SkillMasteryItem {
 interface CourseProgress {
   course_id: string;
   course_title: string;
-  course_slug: string;
+  course_slug?: string;
   total_lessons: number;
   completed_lessons: number;
   percentage: number;
@@ -67,6 +70,15 @@ export default function DashboardPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Student');
+  const [studentEnrolledCourses, setStudentEnrolledCourses] = useState<CourseProgress[]>([]);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<{
+    estimatedBand: number;
+    levelName: string;
+    targetMilestone: string;
+    strengths: string[];
+    weaknesses: string[];
+  } | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,8 +97,44 @@ export default function DashboardPage() {
 
     const savedTrack = localStorage.getItem('courseTrack');
     const savedName = localStorage.getItem('user_name');
+    const diagnosticDone = localStorage.getItem('diagnostic_completed');
+    const savedDiagData = localStorage.getItem('diagnostic_data');
+
     if (savedName) setUserName(savedName);
     if (savedTrack) setCourseTrack(savedTrack);
+    
+    // Load student's enrolled courses from local storage
+    const savedEnrolled = localStorage.getItem('student_enrolled_courses');
+    if (savedEnrolled) {
+      try {
+        setStudentEnrolledCourses(JSON.parse(savedEnrolled));
+      } catch {
+        // ignore
+      }
+    } else {
+      const defaultCourse: CourseProgress = {
+        course_id: 'default-track-course',
+        course_title: (savedTrack === 'general') 
+          ? 'General English Communicative Fluency' 
+          : 'IELTS Academic Writing & Speaking Masterclass',
+        total_lessons: 28,
+        completed_lessons: 2,
+        percentage: 8
+      };
+      setStudentEnrolledCourses([defaultCourse]);
+      localStorage.setItem('student_enrolled_courses', JSON.stringify([defaultCourse]));
+    }
+
+    if (savedDiagData) {
+      try {
+        setDiagnosticResult(JSON.parse(savedDiagData));
+      } catch {
+        // ignore parse error
+      }
+    } else if (!diagnosticDone && savedTrack) {
+      // Prompt new users who haven't completed the 5-min diagnostic yet
+      setShowDiagnostic(true);
+    }
 
     setIsAuth(true);
     loadAllData();
@@ -242,7 +290,27 @@ export default function DashboardPage() {
     body: `Score ${(f.score_at_flag * 100).toFixed(0)}% — below threshold of ${(f.threshold * 100).toFixed(0)}%. Status: ${f.status}.`,
   }));
 
-  const enrolledCourses = dashData?.enrolled_courses ?? [];
+  const handleEnrollInCourse = (crs: { id: string; title: string; modules?: number }) => {
+    const isAlreadyEnrolled = studentEnrolledCourses.some(c => c.course_id === crs.id || c.course_title === crs.title);
+    if (isAlreadyEnrolled) {
+      router.push('/dashboard/lesson');
+      return;
+    }
+
+    const newCourse: CourseProgress = {
+      course_id: crs.id,
+      course_title: crs.title,
+      total_lessons: (crs.modules || 4) * 4,
+      completed_lessons: 0,
+      percentage: 0
+    };
+    const updated = [newCourse, ...studentEnrolledCourses];
+    setStudentEnrolledCourses(updated);
+    localStorage.setItem('student_enrolled_courses', JSON.stringify(updated));
+    toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
+  };
+
+  const enrolledCourses = dashData?.enrolled_courses?.length ? dashData.enrolled_courses : studentEnrolledCourses;
 
   // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
   return (
@@ -275,6 +343,11 @@ export default function DashboardPage() {
               Overview
             </Link>
             
+            <Link href="/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
+              <BookOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              Course Catalog
+            </Link>
+
             <Link href="/dashboard/adaptive" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
               <BrainCircuit className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
               Adaptive Engine
@@ -351,7 +424,15 @@ export default function DashboardPage() {
             </span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowDiagnostic(true)}
+              className="text-xs font-bold text-[#027FFF] hover:text-[#026bd6] px-3 py-1.5 rounded-lg bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/60 transition-colors flex items-center gap-1.5 shadow-xs"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{diagnosticResult ? `Diagnostic: Band ${diagnosticResult.estimatedBand}` : '5-Min Placement Test'}</span>
+            </button>
+
             <button 
               onClick={() => { localStorage.removeItem('courseTrack'); setCourseTrack(null); }}
               className="text-xs font-bold text-slate-600 hover:text-[#027FFF] px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 transition-colors"
@@ -605,6 +686,79 @@ export default function DashboardPage() {
 
           </div>
 
+          {/* ── MY ACTIVE ENROLLED COURSES (HERO SECTION) ── */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Active Curriculum</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">My Enrolled Courses &amp; Learning Tracks</h2>
+                <p className="text-xs text-slate-500">Pick up where you left off or explore new modules.</p>
+              </div>
+              <Link 
+                href="/courses" 
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-[#027FFF] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 w-fit shadow-2xs"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                Browse Full Catalog &rarr;
+              </Link>
+            </div>
+
+            {enrolledCourses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {enrolledCourses.map((c, idx) => (
+                  <div 
+                    key={c.course_id || idx} 
+                    className="bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200/80 rounded-2xl p-5 shadow-2xs hover:border-[#027FFF] transition-all flex flex-col justify-between gap-4 group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#027FFF]/10 text-[#027FFF]">
+                          {isIELTS ? 'IELTS Track' : 'General Track'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-600">
+                          {c.completed_lessons} / {c.total_lessons} Lessons
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-black text-slate-900 group-hover:text-[#027FFF] transition-colors line-clamp-2">
+                        {c.course_title}
+                      </h3>
+                    </div>
+
+                    <div>
+                      <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden mb-2">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#027FFF] to-cyan-400 rounded-full transition-all duration-700"
+                          style={{ width: `${Math.max(5, c.percentage)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                        <span className="text-xs font-bold text-slate-500">{c.percentage.toFixed(0)}% Done</span>
+                        <Link 
+                          href="/dashboard/lesson" 
+                          className="px-3.5 py-1.5 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
+                        >
+                          Continue Lesson <ArrowUpRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
+                <BookOpen className="w-10 h-10 mx-auto text-slate-400 mb-2 opacity-60" />
+                <h3 className="text-sm font-bold text-slate-800 mb-1">No courses enrolled yet</h3>
+                <p className="text-xs text-slate-500 mb-4">Explore the course catalog to enroll in examiner-curated preparation modules.</p>
+                <Link href="/courses" className="px-4 py-2 rounded-xl bg-[#027FFF] text-white text-xs font-bold">
+                  Browse Courses
+                </Link>
+              </div>
+            )}
+          </div>
+
           {/* ── CHARTS ROW: White Cards with Modern Shadow ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -653,40 +807,63 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── BOTTOM ROW: Courses & Modules ── */}
+          {/* ── BOTTOM ROW: Curriculum Exploration & AI Insights ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Enrolled Courses & Modules */}
+            {/* Left 2 Cols: Explore Available Curriculum & Modules */}
             <div className="lg:col-span-2 space-y-6">
 
-              {/* Enrolled Courses */}
-              {enrolledCourses.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">Enrolled Courses</h2>
-                  <div className="space-y-3">
-                    {enrolledCourses.map(c => (
-                      <div key={c.course_id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:border-[#027FFF]/50 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-bold text-slate-900">{c.course_title}</span>
-                          <span className="text-xs text-slate-500 font-semibold">{c.completed_lessons}/{c.total_lessons} Lessons</span>
-                        </div>
-                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-[#027FFF] to-cyan-400 rounded-full transition-all duration-700"
-                            style={{ width: `${c.percentage}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between mt-2.5">
-                          <span className="text-xs font-bold text-slate-500">{c.percentage.toFixed(0)}% Complete</span>
-                          <Link href="/dashboard/lesson" className="text-xs font-extrabold text-[#027FFF] hover:underline flex items-center gap-1">
-                            Continue Lesson <ArrowUpRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
+              {/* Discover & Self-Enroll in Available Courses */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Explore Available Curriculum</h3>
+                    <p className="text-xs text-slate-500 font-medium">Examiner-calibrated courses published on the platform</p>
                   </div>
+                  <Link href="/courses" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
+                    View Full Catalog <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { id: 'c-1', title: 'IELTS Academic Writing Masterclass', modules: 6, tag: 'Band 7.5+' },
+                    { id: 'c-2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', modules: 8, tag: 'Band 8.0+' },
+                    { id: 'c-3', title: 'Advanced Lexical Collocations & GRA Inversion', modules: 4, tag: 'Band 8.5+' }
+                  ].map(crs => {
+                    const isEnrolled = enrolledCourses.some(c => c.course_id === crs.id || c.course_title === crs.title);
+                    return (
+                      <div key={crs.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF]">
+                              {crs.tag}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-semibold">{crs.modules} Modules</span>
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-900 leading-snug">{crs.title}</h4>
+                        </div>
+                        {isEnrolled ? (
+                          <Link 
+                            href="/dashboard/lesson"
+                            className="w-full py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-2xs"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Enrolled • Continue &rarr;
+                          </Link>
+                        ) : (
+                          <button 
+                            onClick={() => handleEnrollInCourse(crs)}
+                            className="w-full py-2 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all text-center shadow-xs"
+                          >
+                            + Enroll in Course
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Quick Adaptive Modules */}
               <div>
@@ -861,6 +1038,16 @@ export default function DashboardPage() {
 
         </main>
       </div>
+
+      {/* 5-Min Diagnostic Level Placement Modal */}
+      <DiagnosticPlacementModal
+        isOpen={showDiagnostic}
+        onClose={() => setShowDiagnostic(false)}
+        onComplete={(res) => {
+          setDiagnosticResult(res);
+          loadAllData();
+        }}
+      />
     </div>
   );
 }
