@@ -30,7 +30,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      // First attempt relative Next.js API route (immune to CORS cross-origin blocks)
+      let response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,16 +40,34 @@ export default function LoginPage() {
           email: cleanEmail,
           password: cleanPassword,
         }),
-      });
+      }).catch(() => null);
 
-      if (response.ok) {
+      // Fallback to FastAPI backend if Next.js route is bypassed
+      if (!response || !response.ok) {
+        const fastapiRes = await fetch('http://localhost:8000/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: cleanPassword,
+          }),
+        }).catch(() => null);
+
+        if (fastapiRes && fastapiRes.ok) {
+          response = fastapiRes;
+        }
+      }
+
+      if (response && response.ok) {
         const data = await response.json();
         const token = data.access_token || '';
         const roles: string[] = data.user?.roles || [];
         const primaryRole = roles[0] || 'Student';
         const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || data.user?.email || 'User';
 
-        // Store both in local storage and secure cookies
+        // Store in secure cookies and memory
         saveAuthSession(token, primaryRole, userName);
 
         toast.success(`Welcome back, ${userName}!`, `Logged in as ${primaryRole}`);
@@ -61,15 +80,15 @@ export default function LoginPage() {
           router.push('/dashboard');
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = response ? await response.json().catch(() => ({})) : {};
         let message = 'Invalid email or password.';
         if (typeof errorData.detail === 'string') {
           message = errorData.detail;
         } else if (errorData.message) {
           message = errorData.message;
-        } else if (response.status === 429) {
+        } else if (response && response.status === 429) {
           message = 'Too many login attempts. Please wait a few moments before trying again.';
-        } else if (response.status === 403) {
+        } else if (response && response.status === 403) {
           message = 'Your account is suspended or email is not verified.';
         }
         throw new Error(message);

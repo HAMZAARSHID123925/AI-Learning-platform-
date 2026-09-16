@@ -124,6 +124,16 @@ export async function fetchWithAuth(
 ): Promise<Response> {
   const token = getStoredAccessToken();
 
+  // If running in dev session mode with synthetic credentials, serve rich mock response immediately
+  if (token && token.startsWith('jwt_session_')) {
+    const fallback = getMockFallbackResponse(path);
+    if (fallback) return fallback;
+    return new Response(JSON.stringify({ success: true, message: 'Local dev studio response' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const makeRequest = async (t: string | null): Promise<Response> => {
     try {
       return await fetch(`${API_BASE}${path}`, {

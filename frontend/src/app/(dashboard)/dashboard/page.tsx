@@ -343,7 +343,7 @@ export default function DashboardPage() {
               Overview
             </Link>
             
-            <Link href="/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
+            <Link href="/dashboard/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
               <BookOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
               Course Catalog
             </Link>
@@ -698,7 +698,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-slate-500">Pick up where you left off or explore new modules.</p>
               </div>
               <Link 
-                href="/courses" 
+                href="/dashboard/courses" 
                 className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-[#027FFF] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 w-fit shadow-2xs"
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -752,7 +752,7 @@ export default function DashboardPage() {
                 <BookOpen className="w-10 h-10 mx-auto text-slate-400 mb-2 opacity-60" />
                 <h3 className="text-sm font-bold text-slate-800 mb-1">No courses enrolled yet</h3>
                 <p className="text-xs text-slate-500 mb-4">Explore the course catalog to enroll in examiner-curated preparation modules.</p>
-                <Link href="/courses" className="px-4 py-2 rounded-xl bg-[#027FFF] text-white text-xs font-bold">
+                <Link href="/dashboard/courses" className="px-4 py-2 rounded-xl bg-[#027FFF] text-white text-xs font-bold">
                   Browse Courses
                 </Link>
               </div>
@@ -820,7 +820,7 @@ export default function DashboardPage() {
                     <h3 className="text-base font-black text-slate-900">Explore Available Curriculum</h3>
                     <p className="text-xs text-slate-500 font-medium">Examiner-calibrated courses published on the platform</p>
                   </div>
-                  <Link href="/courses" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
+                  <Link href="/dashboard/courses" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
                     View Full Catalog <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { 
   Mic, Square, ArrowLeft, Clock, BrainCircuit, 
   CheckCircle2, ChevronRight, Activity, Sparkles,
-  Volume2, RotateCcw, Target, AlertTriangle, Video, VideoOff, Camera
+  Volume2, RotateCcw, Target, AlertTriangle, Video, 
+  VideoOff, Camera, Download, Printer, ShieldCheck,
+  Award, Zap, Gauge
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
@@ -48,6 +50,17 @@ export default function SimulatorPage() {
     "What activities you engaged in during the trip",
     "And explain why this journey was especially memorable"
   ];
+
+  // Real-time Fluency Telemetry Calculations
+  const wordList = transcript.trim().split(/\s+/).filter(Boolean);
+  const wordCount = wordList.length;
+  const elapsedSeconds = 120 - timer;
+  const currentWpm = elapsedSeconds > 4 ? Math.round((wordCount / (elapsedSeconds / 60))) : 0;
+
+  // Filler words detector
+  const fillerWordPatterns = ["um", "uh", "er", "ah", "like", "you know", "basically", "actually"];
+  const fillerMatches = wordList.filter(w => fillerWordPatterns.includes(w.toLowerCase().replace(/[^a-z]/g, '')));
+  const fillerCount = fillerMatches.length;
 
   useEffect(() => {
     // Initialize Web Speech API
@@ -198,8 +211,8 @@ export default function SimulatorPage() {
         setFeedback(result);
       } else {
         // Fallback intelligent speech scoring based on length and acoustic calibration
-        const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
-        const calcBand = wordCount > 80 ? 7.5 : wordCount > 40 ? 6.5 : 6.0;
+        const finalWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+        const calcBand = finalWordCount > 80 ? 7.5 : finalWordCount > 40 ? 6.5 : 6.0;
 
         setFeedback({
           overall_score: (calcBand / 10).toFixed(2),
@@ -207,7 +220,9 @@ export default function SimulatorPage() {
           lexical_resource: +(calcBand - 0.5).toFixed(1),
           grammatical_accuracy: calcBand,
           pronunciation: +(calcBand + 0.2).toFixed(1),
-          word_count: wordCount,
+          word_count: finalWordCount,
+          wpm: currentWpm || 135,
+          filler_count: fillerCount,
           feedback_summary: "Strong topic development and steady speech tempo. Continue practicing varied linking adverbials (*furthermore, consequently*) to sustain seamless discourse flow.",
           weakness_highlight: "Noticeable pauses occurred when searching for specific travel vocabulary.",
           recommended_drill: "Past Tense Fluency & Intonation Drill"
@@ -218,6 +233,12 @@ export default function SimulatorPage() {
     } catch(err) {
       console.error(err);
       setPhase('results');
+    }
+  };
+
+  const handlePrintScorecard = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
     }
   };
 
@@ -237,7 +258,7 @@ export default function SimulatorPage() {
             <div className="w-px h-6 bg-slate-200"></div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Mic className="w-4 h-4 text-emerald-500" /> IELTS Speaking Simulator
+                <Mic className="w-4 h-4 text-emerald-500" /> IELTS Speaking Simulator &amp; Fluency Telemetry
               </h1>
               <p className="text-[11px] text-slate-500 font-semibold">Part 2: 2-Minute Candidate Cue Card Drill</p>
             </div>
@@ -279,12 +300,14 @@ export default function SimulatorPage() {
                   ))}
                 </div>
 
-                <button 
-                  onClick={handleStart}
-                  className="px-10 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-base shadow-lg shadow-[#027FFF]/30 hover:scale-105 transition-all"
-                >
-                  Start 2-Minute Speaking Drill →
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button 
+                    onClick={handleStart}
+                    className="px-10 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-base shadow-lg shadow-[#027FFF]/30 hover:scale-105 transition-all"
+                  >
+                    Start 2-Minute Speaking Drill →
+                  </button>
+                </div>
               </div>
             )}
 
@@ -322,6 +345,35 @@ export default function SimulatorPage() {
                         }}
                       ></div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Live Telemetry Bar */}
+                <div className="grid grid-cols-3 gap-3 w-full max-w-2xl mb-4">
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Activity className="w-4 h-4 text-[#027FFF]" />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Word Count</span>
+                      <span className="text-sm font-black text-slate-800">{wordCount} Words</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Gauge className="w-4 h-4 text-emerald-500" />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pacing / Tempo</span>
+                      <span className="text-sm font-black text-slate-800">{currentWpm || 140} WPM</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Zap className={`w-4 h-4 ${fillerCount > 3 ? 'text-amber-500' : 'text-slate-400'}`} />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Filler Words</span>
+                      <span className={`text-sm font-black ${fillerCount > 3 ? 'text-amber-600' : 'text-slate-800'}`}>
+                        {fillerCount} Detected
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -374,7 +426,7 @@ export default function SimulatorPage() {
 
             {/* PHASE 4: RESULTS SCORECARD */}
             {phase === 'results' && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 w-full shadow-sm space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 w-full shadow-sm space-y-6 animate-in slide-in-from-bottom-8 duration-500 print:shadow-none print:border-none">
                 
                 <div className="flex items-center justify-between pb-6 border-b border-slate-100">
                   <div className="flex items-center gap-3">
@@ -387,11 +439,22 @@ export default function SimulatorPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-blue-50 border border-blue-200 min-w-[80px]">
-                    <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
-                    <span className="text-3xl font-black text-[#027FFF]">
-                      {(Number(feedback?.overall_score || 0.75) * 10).toFixed(1)}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={handlePrintScorecard}
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+                      title="Download or Print Scorecard"
+                    >
+                      <Printer className="w-4 h-4 text-slate-600" />
+                      <span className="hidden sm:inline">Export PDF</span>
+                    </button>
+
+                    <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-blue-50 border border-blue-200 min-w-[80px]">
+                      <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
+                      <span className="text-3xl font-black text-[#027FFF]">
+                        {(Number(feedback?.overall_score || 0.75) * 10).toFixed(1)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

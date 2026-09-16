@@ -28,6 +28,7 @@ from app.modules.module1_auth.schemas import (
     RefreshTokenResponse,
     RegisterRequest,
     ResetPasswordRequest,
+    SessionInfoResponse,
     TokenResponse,
     UpdateUserRequest,
     UserInTokenResponse,
