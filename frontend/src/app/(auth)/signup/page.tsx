@@ -72,7 +72,8 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      // First attempt relative Next.js API route (immune to CORS cross-origin blocks)
+      let response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,28 +84,28 @@ export default function SignupPage() {
           first_name: cleanFirst,
           last_name: cleanLast,
         }),
-      });
+      }).catch(() => null);
 
-      const data = await response.json().catch(() => ({}));
+      if (!response || !response.ok) {
+        const fastapiRes = await fetch('http://localhost:8000/api/v1/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: cleanPassword,
+            first_name: cleanFirst,
+            last_name: cleanLast,
+          }),
+        }).catch(() => null);
 
-      if (!response.ok) {
-        let msg = 'Registration failed. Please check your information.';
-        if (typeof data.detail === 'string') {
-          msg = data.detail;
-        } else if (data.message) {
-          msg = data.message;
-        } else if (response.status === 409) {
-          msg = 'An account with this email address already exists.';
+        if (fastapiRes && fastapiRes.ok) {
+          response = fastapiRes;
         }
-        throw new Error(msg);
       }
 
-      toast.success('Account Created Successfully!', 'Please log in with your new credentials.');
-      router.push('/login?registered=true');
-    } catch (err: unknown) {
-      const msg = (err as Error).message || 'Unable to reach the registration service.';
-      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('connection refused') || msg.includes('Load failed')) {
-        // Graceful local dev session creation
+      if (response && response.ok) {
         const fullName = `${cleanFirst} ${cleanLast}`.trim() || 'Candidate';
         let role = 'Student';
         if (cleanEmail.includes('admin')) role = 'Admin';
@@ -117,29 +118,43 @@ export default function SignupPage() {
           const params = new URLSearchParams(window.location.search);
           const enrollCourseParam = params.get('enrollCourse');
           if (enrollCourseParam) {
-            const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
-            if (!existing.some((c: any) => c.course_title === enrollCourseParam)) {
-              existing.unshift({
-                course_id: 'enrolled_' + Date.now(),
-                course_title: enrollCourseParam,
-                total_lessons: 28,
-                completed_lessons: 0,
-                percentage: 0
-              });
-              localStorage.setItem('student_enrolled_courses', JSON.stringify(existing));
-            }
+            try {
+              const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
+              if (!existing.some((c: any) => c.course_title === enrollCourseParam)) {
+                existing.unshift({
+                  course_id: 'enrolled_' + Date.now(),
+                  course_title: enrollCourseParam,
+                  total_lessons: 28,
+                  completed_lessons: 0,
+                  percentage: 0
+                });
+                localStorage.setItem('student_enrolled_courses', JSON.stringify(existing));
+              }
+            } catch {}
           }
         }
 
-        toast.success(`Account Created! Welcome, ${cleanFirst}!`, `Signed in as ${role}`);
-        
+        toast.success('Account Created Successfully! 🎉', `Welcome, ${fullName}!`);
         if (role === 'Admin') router.push('/admin/courses');
         else if (role === 'Instructor') router.push('/instructor');
         else router.push('/dashboard');
-      } else {
-        setError(msg);
-        toast.error('Registration Failed', msg);
+        return;
       }
+
+      const data = response ? await response.json().catch(() => ({})) : {};
+      let msg = 'Registration failed. Please check your information.';
+      if (typeof data.detail === 'string') {
+        msg = data.detail;
+      } else if (data.message) {
+        msg = data.message;
+      } else if (response && response.status === 409) {
+        msg = 'An account with this email address already exists.';
+      }
+      throw new Error(msg);
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'Unable to reach the registration service.';
+      setError(msg);
+      toast.error('Registration Notice', msg);
     } finally {
       setLoading(false);
     }

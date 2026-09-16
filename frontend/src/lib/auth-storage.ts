@@ -38,6 +38,13 @@ export function saveAuthSession(token: string, role: string, name: string): void
   setAuthCookie('access_token', token, 7);
   setAuthCookie('user_role', role, 7);
   setAuthCookie('user_name', name, 7);
+
+  // Sync with localStorage for client-side route persistence
+  try {
+    localStorage.setItem('access_token', token);
+    localStorage.setItem('user_role', role);
+    localStorage.setItem('user_name', name);
+  } catch {}
 }
 
 // Clear authentication session (Logout)
