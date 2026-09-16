@@ -223,25 +223,25 @@ export default function TransformationsPage() {
     <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
       <DashboardSidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-32 bg-[#F0F4F8]">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
           <div>
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Brain className="w-8 h-8 text-[#027FFF]" /> Cambridge C2 Key Word Transformations
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <Brain className="w-7 h-7 text-[#027FFF]" /> Cambridge C2 Key Word Transformations
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Authentic Use of English Part 4 &amp; IELTS Band 8.5+ syntactic agility drills with strict 3–6 word constraints.
             </p>
           </div>
 
           {/* Telemetry Badges */}
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex items-center gap-2">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-xs flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Streak</span>
@@ -249,7 +249,7 @@ export default function TransformationsPage() {
               </div>
             </div>
 
-            <div className="px-4 py-2.5 rounded-2xl bg-blue-50 border border-blue-200 shadow-sm flex items-center gap-2">
+            <div className="px-4 py-2.5 rounded-2xl bg-blue-50 border border-blue-200 shadow-xs flex items-center gap-2">
               <Award className="w-4 h-4 text-[#027FFF]" />
               <div>
                 <span className="text-[10px] text-[#027FFF] font-bold uppercase block">Total Marks</span>
@@ -259,24 +259,26 @@ export default function TransformationsPage() {
           </div>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-          <span className="text-xs font-extrabold uppercase text-slate-400 mr-2 shrink-0 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" /> Filter Category:
+        {/* Category Filters Bar */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-2.5 shadow-sm mb-6 flex items-center gap-2 overflow-x-auto">
+          <span className="text-xs font-extrabold uppercase text-slate-500 px-2 shrink-0 flex items-center gap-1.5">
+            <Filter className="w-3.5 h-3.5 text-[#027FFF]" /> Filter:
           </span>
-          {['All', 'Inversion & Subjunctive', 'Fixed Idioms & Prepositions', 'Passives & Impersonal', 'Nominalization & Phrasals'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => { setSelectedCategory(cat); setCurrentIndex(0); handleReset(); }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                selectedCategory === cat
-                  ? 'bg-[#027FFF] text-white shadow-md shadow-blue-500/20'
-                  : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          <div className="flex items-center gap-1.5 min-w-max">
+            {['All', 'Inversion & Subjunctive', 'Fixed Idioms & Prepositions', 'Passives & Impersonal', 'Nominalization & Phrasals'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => { setSelectedCategory(cat); setCurrentIndex(0); handleReset(); }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  selectedCategory === cat
+                    ? 'bg-[#027FFF] text-white shadow-sm'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Drill Content Grid */}
