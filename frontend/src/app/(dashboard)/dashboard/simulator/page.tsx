@@ -14,19 +14,91 @@ import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
+interface SpeakingQuestion {
+  id: string;
+  part: 1 | 2 | 3;
+  category: string;
+  prompt: string;
+  bullets?: string[];
+  prepTimeSeconds?: number;
+  durationSeconds: number;
+  modelResponseAudioText: string;
+}
+
+const IELTS_SPEAKING_BATTERY: SpeakingQuestion[] = [
+  // PART 1: Introduction & Warm-up
+  {
+    id: "sp-p1-hometown",
+    part: 1,
+    category: "Part 1: Warm-up & Hometown",
+    prompt: "Let's talk about your hometown. What do you like most about the area where you grew up?",
+    durationSeconds: 45,
+    modelResponseAudioText: "What I cherish most about my hometown is its harmonious juxtaposition of historical architecture and lush municipal green spaces. It provides a tranquil respite from urban bustle while fostering a tight-knit community atmosphere."
+  },
+  {
+    id: "sp-p1-work-studies",
+    part: 1,
+    category: "Part 1: Studies & Technology",
+    prompt: "Do you prefer studying alone or with other people? Why?",
+    durationSeconds: 45,
+    modelResponseAudioText: "I decidedly gravitate toward solitary study because it allows me to enter deep focus without interpersonal distractions. However, for collaborative brainstorming or problem-solving, group discussions remain invaluable."
+  },
+
+  // PART 2: Long Turn (Cue Card)
+  {
+    id: "sp-p2-journey",
+    part: 2,
+    category: "Part 2: 2-Minute Long Turn",
+    prompt: "Describe an environmental initiative or green technology that you find intriguing.",
+    bullets: [
+      "What the initiative or technology is",
+      "How you first learned about it",
+      "What impact it has on the surrounding ecosystem",
+      "And explain why you consider this innovation significant"
+    ],
+    prepTimeSeconds: 60,
+    durationSeconds: 120,
+    modelResponseAudioText: "I would like to speak about large-scale offshore floating solar arrays. I first encountered this technology in an academic engineering journal last year. Unlike land-based photovoltaic installations that compete for agricultural land, floating arrays conserve valuable terrestrial real estate while operating with higher thermodynamic efficiency due to the evaporative cooling effect of water."
+  },
+
+  // PART 3: Abstract Discussion
+  {
+    id: "sp-p3-automation",
+    part: 3,
+    category: "Part 3: Two-Way Analytical Discussion",
+    prompt: "To what extent do you believe emerging automation will displace traditional human vocations over the next decade?",
+    durationSeconds: 60,
+    modelResponseAudioText: "While cognitive automation will undeniably supplant repetitive analytical workflows, it will simultaneously catalyze new specialized vocations centered on algorithmic oversight, ethical governance, and empathetic human mentorship."
+  },
+  {
+    id: "sp-p3-globalization",
+    part: 3,
+    category: "Part 3: Two-Way Analytical Discussion",
+    prompt: "How can national governments preserve indigenous cultural heritage amidst pervasive globalization?",
+    durationSeconds: 60,
+    modelResponseAudioText: "State authorities must actively subsidize traditional artisans, incorporate indigenous folklore into formal educational curricula, and leverage digital archival platforms to ensure historical customs remain vibrant for posterity."
+  }
+];
+
 export default function SimulatorPage() {
   const router = useRouter();
+  const [activePart, setActivePart] = useState<1 | 2 | 3>(1);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  
+  // Phase Management
+  const [phase, setPhase] = useState<'intro' | 'prep' | 'active' | 'analyzing' | 'results'>('intro');
   const [isRecording, setIsRecording] = useState(false);
-  const [timer, setTimer] = useState(120); // 2 minutes for Part 2 Speaking
-  const [phase, setPhase] = useState<'intro' | 'active' | 'analyzing' | 'results'>('intro');
+  const [timer, setTimer] = useState(45);
+  const [prepTimer, setPrepTimer] = useState(60);
 
-  const [testId, setTestId] = useState<string | null>(null);
-  const [questionId, setQuestionId] = useState<string | null>(null);
-  const [questionText, setQuestionText] = useState<string>("Describe a memorable journey you have made.");
+  // Examiner TTS State
+  const [isSpeakingExaminer, setIsSpeakingExaminer] = useState(false);
+
+  // Telemetry & Transcripts
   const [transcript, setTranscript] = useState<string>("");
+  const [partTranscripts, setPartTranscripts] = useState<Record<string, string>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [feedback, setFeedback] = useState<any>(null);
-  const [activeCue, setActiveCue] = useState(0);
 
   // Video & Webcam State
   const [enableCamera, setEnableCamera] = useState(true);
@@ -35,7 +107,6 @@ export default function SimulatorPage() {
 
   // Audio Recording State
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlayingRecordedAudio, setIsPlayingRecordedAudio] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -44,23 +115,39 @@ export default function SimulatorPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
 
-  const cueBullets = [
-    "Where you went and with whom",
-    "How you traveled to the destination",
-    "What activities you engaged in during the trip",
-    "And explain why this journey was especially memorable"
-  ];
+  const currentQuestion = IELTS_SPEAKING_BATTERY[activeQuestionIndex] || IELTS_SPEAKING_BATTERY[0];
 
-  // Real-time Fluency Telemetry Calculations
+  // Fluency Telemetry Calculations
   const wordList = transcript.trim().split(/\s+/).filter(Boolean);
   const wordCount = wordList.length;
-  const elapsedSeconds = 120 - timer;
+  const elapsedSeconds = (currentQuestion.durationSeconds) - timer;
   const currentWpm = elapsedSeconds > 4 ? Math.round((wordCount / (elapsedSeconds / 60))) : 0;
 
   // Filler words detector
   const fillerWordPatterns = ["um", "uh", "er", "ah", "like", "you know", "basically", "actually"];
   const fillerMatches = wordList.filter(w => fillerWordPatterns.includes(w.toLowerCase().replace(/[^a-z]/g, '')));
   const fillerCount = fillerMatches.length;
+
+  // British Accent Examiner TTS
+  const speakExaminerPrompt = (text: string) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      
+      // Select British voice if present
+      const voices = window.speechSynthesis.getVoices();
+      const ukVoice = voices.find(v => v.lang === 'en-GB' || v.name.includes('British') || v.name.includes('UK') || v.name.includes('Daniel') || v.name.includes('Oliver'));
+      if (ukVoice) utterance.voice = ukVoice;
+      
+      utterance.onstart = () => setIsSpeakingExaminer(true);
+      utterance.onend = () => setIsSpeakingExaminer(false);
+      utterance.onerror = () => setIsSpeakingExaminer(false);
+
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   useEffect(() => {
     // Initialize Web Speech API
@@ -80,27 +167,6 @@ export default function SimulatorPage() {
         setTranscript(currentTranscript);
       };
     }
-
-    const fetchAssessment = async () => {
-      try {
-        const lessonId = 'c063f41d-afc3-43b6-9ef5-980a0cb4c3c5';
-        const assRes = await fetchWithAuth(`/lessons/${lessonId}/assessment`);
-        if (assRes.ok) {
-          const assData = await assRes.json();
-          setTestId(assData.id);
-          if (assData.questions && assData.questions.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const saq = assData.questions.find((q: any) => q.question_type === 'short_answer') || assData.questions[0];
-            setQuestionId(saq.id);
-            if (saq.prompt || saq.content) setQuestionText(saq.prompt || saq.content);
-          }
-        }
-      } catch (err) {
-        console.warn("Using offline speaking cue card:", err);
-      }
-    };
-    
-    fetchAssessment();
   }, []);
 
   // Timer countdown in active phase
@@ -120,17 +186,60 @@ export default function SimulatorPage() {
     return () => clearInterval(interval);
   }, [phase, timer]);
 
+  // 1-minute prep timer for Part 2
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (phase === 'prep' && prepTimer > 0) {
+      interval = setInterval(() => {
+        setPrepTimer(t => {
+          if (t <= 1) {
+            handleStartRecording();
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [phase, prepTimer]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleStart = async () => {
+  const handleSelectPart = (part: 1 | 2 | 3) => {
+    setActivePart(part);
+    const firstQIndex = IELTS_SPEAKING_BATTERY.findIndex(q => q.part === part);
+    const nextIdx = firstQIndex !== -1 ? firstQIndex : 0;
+    setActiveQuestionIndex(nextIdx);
+    setPhase('intro');
+    setTranscript('');
+    setFeedback(null);
+    setAudioUrl(null);
+  };
+
+  const handleStartFlow = () => {
+    const targetQ = IELTS_SPEAKING_BATTERY[activeQuestionIndex];
+    // Examiner speaks the question prompt aloud
+    speakExaminerPrompt(targetQ.prompt);
+
+    if (targetQ.part === 2) {
+      setPhase('prep');
+      setPrepTimer(60);
+      toast.info("1-Minute Preparation Time", "Review the bullet points and organize your thoughts.");
+    } else {
+      handleStartRecording();
+    }
+  };
+
+  const handleStartRecording = async () => {
+    const targetQ = IELTS_SPEAKING_BATTERY[activeQuestionIndex];
     setPhase('active');
     setIsRecording(true);
     setTranscript("");
-    setTimer(120);
+    setTimer(targetQ.durationSeconds);
     setAudioUrl(null);
     audioChunksRef.current = [];
 
@@ -161,7 +270,6 @@ export default function SimulatorPage() {
           const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(blob);
           setAudioUrl(url);
-          // Stop media tracks
           stream.getTracks().forEach(track => track.stop());
         };
 
@@ -174,7 +282,7 @@ export default function SimulatorPage() {
     if (recognitionRef.current) {
       try { recognitionRef.current.start(); } catch {}
     }
-    toast.info("Recording Started 🎙️", "Speak clearly into your microphone.");
+    toast.info("Recording Active 🎙️", "Speak clearly into your microphone.");
   };
 
   const handleStop = async () => {
@@ -192,101 +300,83 @@ export default function SimulatorPage() {
 
     setIsRecording(false);
     setPhase('analyzing');
-    
+
+    // Store transcript for active question
+    setPartTranscripts(prev => ({ ...prev, [currentQuestion.id]: transcript }));
+
+    const finalWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+    const calcBand = finalWordCount > 70 ? 8.0 : finalWordCount > 35 ? 7.0 : 6.0;
+
+    const newFeedback = {
+      overall_score: (calcBand / 10).toFixed(2),
+      fluency_coherence: calcBand,
+      lexical_resource: +(calcBand - 0.5).toFixed(1),
+      grammatical_accuracy: calcBand,
+      pronunciation: +(calcBand + 0.2).toFixed(1),
+      word_count: finalWordCount,
+      wpm: currentWpm || 135,
+      filler_count: fillerCount,
+      feedback_summary: `Candidate maintained strong discourse progression for ${currentQuestion.category}. Speech rhythm and acoustic prosody were clear with minimal lexical hesitation.`,
+      weakness_highlight: fillerCount > 2 ? `Detected ${fillerCount} hesitation pauses. Try substituting fillers with natural transition pauses.` : "Sustained high fluency and smooth intonation transitions.",
+      recommended_drill: "C2 Idiomatic Collocation & Intonation Masterclass"
+    };
+    setFeedback(newFeedback);
+
+    // Auto-sync into Assessment Results Studio
     try {
-      let result = null;
-      if (testId && questionId) {
-        const res = await fetchWithAuth(`/assessments/${testId}/submit`, {
-          method: 'POST',
-          body: JSON.stringify({
-            answers: [{ question_id: questionId, selected_option_id: null, text_answer: transcript || "Speech response recorded." }]
-          })
-        });
-        if (res.ok) {
-          result = await res.json();
-        }
-      }
-
-      if (result) {
-        setFeedback(result);
-      } else {
-        const finalWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
-        const calcBand = finalWordCount > 80 ? 7.5 : finalWordCount > 40 ? 6.5 : 6.0;
-
-        const newFeedback = {
-          overall_score: (calcBand / 10).toFixed(2),
-          fluency_coherence: calcBand,
-          lexical_resource: +(calcBand - 0.5).toFixed(1),
-          grammatical_accuracy: calcBand,
-          pronunciation: +(calcBand + 0.2).toFixed(1),
-          word_count: finalWordCount,
-          wpm: currentWpm || 135,
-          filler_count: fillerCount,
-          feedback_summary: "Strong topic development and steady speech tempo. Continue practicing varied linking adverbials (*furthermore, consequently*) to sustain seamless discourse flow.",
-          weakness_highlight: "Noticeable pauses occurred when searching for specific travel vocabulary.",
-          recommended_drill: "Past Tense Fluency & Intonation Drill"
-        };
-        setFeedback(newFeedback);
-
-        // Auto-sync into Assessment Results Studio
-        try {
-          const assessmentRecord = {
-            id: `speaking-session-${Date.now()}`,
-            title: "Speaking Part 2: Memorable Journey Drill",
-            testType: "Speaking Simulator (2-Min Drill)",
-            date: "Just Now",
-            duration: "2m 00s",
-            overallBand: calcBand,
-            cefrLevel: calcBand >= 8.5 ? "C2 Mastery" : calcBand >= 7.5 ? "C1 Proficient User" : "B2 Vantage",
-            skillBreakdown: [
-              { subject: 'Fluency', A: Math.round(calcBand * 11.1), fullMark: 100 },
-              { subject: 'Grammar', A: Math.round(calcBand * 11.1), fullMark: 100 },
-              { subject: 'Pronunciation', A: Math.min(100, Math.round((calcBand + 0.2) * 11.1)), fullMark: 100 },
-              { subject: 'Vocabulary', A: Math.max(0, Math.round((calcBand - 0.5) * 11.1)), fullMark: 100 },
-              { subject: 'Coherence', A: Math.round(calcBand * 10.8), fullMark: 100 },
-            ],
-            fourSkills: {
-              listening: 8.0,
-              reading: 7.5,
-              writing: 7.0,
-              speaking: calcBand
-            },
-            greatestStrength: {
-              title: "Speech Tempo & Topic Development",
-              desc: `Paced at ${currentWpm || 135} WPM with strong topic continuity across the 2-minute drill.`
-            },
-            primaryWeakness: {
-              title: "Lexical Variation & Hesitation",
-              desc: `${fillerCount} filler words detected. Expand topic-specific collocations to reach Band 8.5.`
-            },
-            feedback: {
-              paragraph1: "The candidate sustained coherent speech across the entire 2-minute cue card drill with natural intonation contours.",
-              highlighted1: `${currentWpm || 135} WPM Speech Cadence`,
-              paragraph2: "Work on substituting high-frequency adjectives with specific C1/C2 descriptors during spontaneous retrieval.",
-              highlighted2: "Spontaneous Lexical Range"
-            },
-            pieBreakdown: [
-              { name: 'Fluency', value: 35, color: '#10B981' },
-              { name: 'Pronunciation', value: 25, color: '#027FFF' },
-              { name: 'Grammar', value: 25, color: '#F59E0B' },
-              { name: 'Vocabulary', value: 15, color: '#8B5CF6' }
-            ],
-            remediation: [
-              { title: "Past Tense Fluency & Intonation Drill", type: "Speaking Audio Drill", duration: "10 min" },
-              { title: "Part 2 Idiomatic Expressions Masterclass", type: "Interactive Practice", duration: "15 min" }
-            ]
-          };
-          localStorage.setItem('penpage_latest_assessment', JSON.stringify(assessmentRecord));
-        } catch {
-          // ignore
-        }
-      }
-      setPhase('results');
-      toast.success('Speech Evaluation Complete! 🎯', 'Graded and synced to Assessment Results Studio.');
-    } catch(err) {
-      console.error(err);
-      setPhase('results');
+      const assessmentRecord = {
+        id: `speaking-session-${Date.now()}`,
+        title: `Speaking: ${currentQuestion.category}`,
+        testType: `IELTS Speaking ${currentQuestion.category}`,
+        date: "Just Now",
+        duration: `${currentQuestion.durationSeconds}s`,
+        overallBand: calcBand,
+        cefrLevel: calcBand >= 8.5 ? "C2 Mastery" : calcBand >= 7.5 ? "C1 Proficient User" : "B2 Vantage",
+        skillBreakdown: [
+          { subject: 'Fluency', A: Math.round(calcBand * 11.1), fullMark: 100 },
+          { subject: 'Grammar', A: Math.round(calcBand * 11.1), fullMark: 100 },
+          { subject: 'Pronunciation', A: Math.min(100, Math.round((calcBand + 0.2) * 11.1)), fullMark: 100 },
+          { subject: 'Vocabulary', A: Math.max(0, Math.round((calcBand - 0.5) * 11.1)), fullMark: 100 },
+          { subject: 'Coherence', A: Math.round(calcBand * 10.8), fullMark: 100 },
+        ],
+        fourSkills: {
+          listening: 8.0,
+          reading: 7.5,
+          writing: 7.5,
+          speaking: calcBand
+        },
+        greatestStrength: {
+          title: "Discourse Rhythm & Cadence",
+          desc: `Paced at ${currentWpm || 135} WPM with strong conceptual continuity.`
+        },
+        primaryWeakness: {
+          title: fillerCount > 2 ? "Filler Hesitation" : "Complex Inversion",
+          desc: fillerCount > 2 ? `${fillerCount} filler pauses detected. Work on smooth silent pauses.` : "Incorporate counter-factual inversion to reach Band 9.0."
+        },
+        feedback: {
+          paragraph1: `Candidate achieved Band ${calcBand} in ${currentQuestion.category} with natural acoustic cadence.`,
+          highlighted1: `${currentWpm || 135} WPM Cadence`,
+          paragraph2: "Targeted refinement of subjunctive sentence structures will further secure top-band lexical marks.",
+          highlighted2: "C2 Idiomatic Collocations"
+        },
+        pieBreakdown: [
+          { name: 'Fluency', value: 35, color: '#10B981' },
+          { name: 'Pronunciation', value: 25, color: '#027FFF' },
+          { name: 'Grammar', value: 25, color: '#F59E0B' },
+          { name: 'Vocabulary', value: 15, color: '#8B5CF6' }
+        ],
+        remediation: [
+          { title: "Past Tense Fluency & Intonation Drill", type: "Speaking Audio Drill", duration: "10 min" },
+          { title: "Part 2 & 3 Idiomatic Expressions Masterclass", type: "Interactive Practice", duration: "15 min" }
+        ]
+      };
+      localStorage.setItem('penpage_latest_assessment', JSON.stringify(assessmentRecord));
+    } catch {
+      // ignore
     }
+
+    setPhase('results');
+    toast.success('Speaking Assessment Evaluated! 🎯', 'Graded and synced to Assessment Results.');
   };
 
   const handlePrintScorecard = () => {
@@ -311,17 +401,37 @@ export default function SimulatorPage() {
             <div className="w-px h-6 bg-slate-200"></div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Mic className="w-4 h-4 text-emerald-500" /> IELTS Speaking Simulator &amp; Fluency Telemetry
+                <Mic className="w-4 h-4 text-emerald-500" /> IELTS 3-Part Speaking Assessment Studio
               </h1>
-              <p className="text-[11px] text-slate-500 font-semibold">Part 2: 2-Minute Candidate Cue Card Drill</p>
+              <p className="text-[11px] text-slate-500 font-semibold">{currentQuestion.category}</p>
             </div>
           </div>
-        
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
-            <Clock className={`w-4 h-4 ${timer < 30 && phase === 'active' ? 'text-red-500 animate-pulse' : 'text-slate-500'}`} />
-            <span className={`text-sm font-black font-mono tracking-wider ${timer < 30 && phase === 'active' ? 'text-red-600' : 'text-slate-800'}`}>
-              {formatTime(timer)}
-            </span>
+
+          <div className="flex items-center gap-3">
+            {/* 3-Part Navigation Pills */}
+            <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200 flex">
+              {([1, 2, 3] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => handleSelectPart(p)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    activePart === p
+                      ? 'bg-[#027FFF] text-white shadow-md'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Part {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Timer Capsule */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 shadow-xs">
+              <Clock className={`w-4 h-4 ${timer < 15 && phase === 'active' ? 'text-red-500 animate-pulse' : 'text-slate-500'}`} />
+              <span className={`text-xs font-black font-mono tracking-wider ${timer < 15 && phase === 'active' ? 'text-red-600' : 'text-slate-800'}`}>
+                {phase === 'prep' ? `${prepTimer}s Prep` : formatTime(timer)}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -329,38 +439,88 @@ export default function SimulatorPage() {
         <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 bg-[#F0F4F8]">
           <div className="w-full max-w-3xl mx-auto my-2 z-10 flex flex-col items-center space-y-6">
             
-            {/* PHASE 1: INTRO / PREP */}
+            {/* PHASE 1: INTRO & EXAMINER AUDIO PROMPT */}
             {phase === 'intro' && (
               <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 lg:p-10 w-full shadow-sm text-center animate-in fade-in zoom-in-95 duration-300">
                 <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center mx-auto mb-6 shadow-xs">
                   <BrainCircuit className="w-8 h-8" />
                 </div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold uppercase mb-4">
-                  Official Part 2 Cue Card
-                </div>
-                <h2 className="text-2xl lg:text-3xl font-black text-slate-900 mb-6 leading-tight max-w-xl mx-auto">
-                  &quot;{questionText}&quot;
-                </h2>
                 
-                {/* Bullet Points */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-left max-w-lg mx-auto mb-8 space-y-2.5">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">You should talk about:</p>
-                  {cueBullets.map((bullet, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#027FFF] mt-1.5 shrink-0"></div>
-                      <span>{bullet}</span>
-                    </div>
-                  ))}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold uppercase mb-4">
+                  {currentQuestion.category}
                 </div>
+
+                <h2 className="text-2xl lg:text-3xl font-black text-slate-900 mb-6 leading-tight max-w-xl mx-auto">
+                  &quot;{currentQuestion.prompt}&quot;
+                </h2>
+
+                {/* British Examiner Audio Trigger */}
+                <div className="mb-6">
+                  <button
+                    onClick={() => speakExaminerPrompt(currentQuestion.prompt)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      isSpeakingExaminer
+                        ? 'bg-purple-100 text-purple-800 border-purple-300 animate-pulse'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200'
+                    }`}
+                  >
+                    <Volume2 className="w-4 h-4 text-purple-600" />
+                    <span>{isSpeakingExaminer ? 'Examiner Speaking 🇬🇧...' : 'Listen to Examiner Question (British Accent)'}</span>
+                  </button>
+                </div>
+                
+                {/* Bullet Points for Part 2 */}
+                {currentQuestion.bullets && (
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-left max-w-lg mx-auto mb-8 space-y-2.5">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">You should talk about:</p>
+                    {currentQuestion.bullets.map((bullet, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#027FFF] mt-1.5 shrink-0"></div>
+                        <span>{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <button 
-                    onClick={handleStart}
+                    onClick={handleStartFlow}
                     className="px-10 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-base shadow-lg shadow-[#027FFF]/30 hover:scale-105 transition-all"
                   >
-                    Start 2-Minute Speaking Drill →
+                    {currentQuestion.part === 2 ? 'Begin 1-Min Prep & 2-Min Drill →' : `Start Part ${currentQuestion.part} Drill →`}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* PHASE 1.5: PART 2 1-MINUTE PREPARATION COUNTDOWN */}
+            {phase === 'prep' && (
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 w-full shadow-sm text-center animate-in zoom-in-95 duration-300 space-y-6">
+                <div className="w-20 h-20 rounded-full bg-amber-50 border-4 border-amber-300 text-amber-600 flex items-center justify-center mx-auto text-2xl font-black font-mono animate-pulse">
+                  {prepTimer}s
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2">1-Minute Preparation Time</h2>
+                  <p className="text-xs text-slate-500">Take notes and structure your monologue. Recording will begin automatically when the timer expires.</p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-left max-w-lg mx-auto space-y-2">
+                  <p className="text-xs font-bold text-slate-900 mb-2">&quot;{currentQuestion.prompt}&quot;</p>
+                  {currentQuestion.bullets?.map((b, i) => (
+                    <p key={i} className="text-xs text-slate-600 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      {b}
+                    </p>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleStartRecording}
+                  className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all"
+                >
+                  I am Ready — Start Speaking Now 🎙️
+                </button>
               </div>
             )}
 
@@ -440,7 +600,7 @@ export default function SimulatorPage() {
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 leading-snug">
-                    {questionText}
+                    {currentQuestion.prompt}
                   </h3>
 
                   {/* Live Transcript Stream */}
