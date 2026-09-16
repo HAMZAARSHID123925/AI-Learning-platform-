@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutDashboard, BrainCircuit, BookOpen, Headphones, PenTool, Mic, 
+  LayoutDashboard, BrainCircuit, Brain, BookOpen, Headphones, PenTool, Mic, 
   Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award,
   ShieldCheck, User, Menu, X
 } from 'lucide-react';
@@ -183,6 +183,18 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
                 <Mic className={`w-4 h-4 ${isActive('/dashboard/simulator') ? 'text-white' : 'text-emerald-400'}`} />
                 Speaking Studio
               </Link>
+
+              <Link 
+                href="/dashboard/transformations" 
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  isActive('/dashboard/transformations') 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Brain className={`w-4 h-4 ${isActive('/dashboard/transformations') ? 'text-white' : 'text-indigo-400'}`} />
+                C2 Transformations 🧩
+              </Link>
             </>
           ) : (
             <>
@@ -250,6 +262,18 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             Community Hub
           </Link>
 
+          <Link 
+            href="/dashboard/settings" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/settings') 
+                ? 'bg-slate-700 text-white shadow-lg' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Settings className={`w-4 h-4 ${isActive('/dashboard/settings') ? 'text-white' : 'text-slate-400'}`} />
+            Target &amp; Settings
+          </Link>
+
           {/* 🔒 STRICT RBAC ISOLATION */}
           {(isInstructor || isAdmin) && (
             <>
@@ -292,17 +316,20 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
       
       {/* User Profile & Sign Out at Sidebar Bottom */}
       <div className="p-4 border-t border-slate-800 space-y-2">
-        <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800">
+        <Link 
+          href="/dashboard/settings"
+          className="flex items-center gap-3 px-2 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors group"
+        >
           <div className="w-8 h-8 rounded-lg bg-[#027FFF] text-white font-bold flex items-center justify-center text-xs shadow-sm">
             {userName ? userName[0].toUpperCase() : 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">{userName}</p>
+            <p className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors truncate">{userName}</p>
             <span className="text-[10px] font-semibold text-slate-400 capitalize block">
               {isAdmin ? '🛡️ Administrator' : isInstructor ? '👨‍🏫 Instructor' : '🎓 Student'}
             </span>
           </div>
-        </div>
+        </Link>
 
         <button 
           onClick={handleSignOut}
