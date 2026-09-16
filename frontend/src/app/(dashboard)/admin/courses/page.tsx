@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { 
   Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
   Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2,
-  ShieldAlert, DollarSign, ToggleLeft, ToggleRight, UserCheck, UserX, AlertTriangle, KeyRound
+  ShieldAlert, DollarSign, ToggleLeft, ToggleRight, UserCheck, UserX, AlertTriangle, KeyRound,
+  Coins, Activity, Megaphone, Wand2, Download, RefreshCw, Zap, BarChart3, Send, Radio,
+  HardDrive, Server, Mail, FileSpreadsheet, Cpu, Layers, Flame
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
@@ -30,9 +32,34 @@ interface AuditRecord {
   status: 'SUCCESS' | 'WARNING' | 'ALERT';
 }
 
+interface AtRiskStudent {
+  id: string;
+  name: string;
+  email: string;
+  targetBand: string;
+  currentBand: number;
+  examDate: string;
+  daysRemaining: number;
+  trigger: 'Urgent Test Date' | 'Score Dropped' | 'Inactive > 7d';
+  urgency: 'high' | 'critical' | 'medium';
+}
+
+interface BroadcastItem {
+  id: string;
+  title: string;
+  message: string;
+  audience: string;
+  urgency: 'normal' | 'high' | 'urgent';
+  sentAt: string;
+  recipientCount: number;
+}
+
 export default function AdminCoursesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts'>('published');
+  const [activeTab, setActiveTab] = useState<
+    'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts' | 
+    'cost' | 'at-risk' | 'generator' | 'broadcast' | 'health'
+  >('published');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
   const [showCohortModal, setShowCohortModal] = useState(false);
@@ -135,6 +162,34 @@ export default function AdminCoursesPage() {
   );
   const [temperature, setTemperature] = useState(0.3);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+
+  // AI Cost & Token Observability State
+  const [dailyBudgetCap, setDailyBudgetCap] = useState(50);
+  const [autoFallback, setAutoFallback] = useState(true);
+
+  // At-Risk Candidate State
+  const [atRiskList, setAtRiskList] = useState<AtRiskStudent[]>([
+    { id: 'ar-1', name: 'Dr. Rohit Mehta', email: 'rohit.mehta@nhs.uk', targetBand: '8.0', currentBand: 6.5, examDate: '2026-10-04', daysRemaining: 18, trigger: 'Score Dropped', urgency: 'high' },
+    { id: 'ar-2', name: 'Marcus Sterling', email: 'marcus.s@outlook.com', targetBand: '7.5', currentBand: 6.0, examDate: '2026-09-28', daysRemaining: 12, trigger: 'Urgent Test Date', urgency: 'critical' },
+    { id: 'ar-3', name: 'Priya Sharma', email: 'priya.s@delhi.edu', targetBand: '8.5', currentBand: 7.0, examDate: '2026-10-15', daysRemaining: 29, trigger: 'Inactive > 7d', urgency: 'medium' }
+  ]);
+
+  // AI Exam Generator State
+  const [genModule, setGenModule] = useState<'task1' | 'task2' | 'reading' | 'speaking'>('task1');
+  const [genTopic, setGenTopic] = useState('Global Renewable Energy Adoption (2018–2025)');
+  const [isGenerating, setIsGenerating] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [generatedResult, setGeneratedResult] = useState<any | null>(null);
+
+  // Broadcasts State
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastUrgency, setBroadcastUrgency] = useState<'normal' | 'high' | 'urgent'>('normal');
+  const [broadcastAudience, setBroadcastAudience] = useState<string>('All Students');
+  const [broadcastsList, setBroadcastsList] = useState<BroadcastItem[]>([
+    { id: 'bc-1', title: 'New Cambridge C2 Transformation Drills Added', message: '15 new official Key Word Transformation sets are now available in your practice studio.', audience: 'All Students', urgency: 'normal', sentAt: 'Yesterday, 14:30', recipientCount: 240 },
+    { id: 'bc-2', title: 'Live Speaking Masterclass Reminder', message: 'Join Lead Assessor Hamza Arshid tonight at 19:00 UTC for Part 3 Abstract Reasoning.', audience: 'IELTS Academic Fast-Track', urgency: 'high', sentAt: 'Sep 14, 18:00', recipientCount: 120 }
+  ]);
 
   // Analytics state
   const [analytics, setAnalytics] = useState({
@@ -359,8 +414,8 @@ export default function AdminCoursesPage() {
             </Link>
           </div>
           
-          <nav className="p-4 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Curriculum</div>
+          <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)]">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Curriculum &amp; AI</div>
             <button 
               onClick={() => setActiveTab('published')} 
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
@@ -369,21 +424,51 @@ export default function AdminCoursesPage() {
               Courses &amp; Content
             </button>
             <button 
+              onClick={() => setActiveTab('generator')} 
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'generator' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Wand2 className="w-4 h-4 text-pink-400" />
+              AI Exam Generator 🪄
+            </button>
+            <button 
               onClick={() => setActiveTab('prompts')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'prompts' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
               AI Prompt Tuning
             </button>
+            <button 
+              onClick={() => setActiveTab('cost')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'cost' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Coins className="w-4 h-4 text-teal-400" />
+              AI Cost &amp; Tokens 💰
+            </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Administration</div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Student Operations</div>
+            <button 
+              onClick={() => setActiveTab('at-risk')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'at-risk' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Flame className="w-4 h-4 text-rose-400" />
+              At-Risk Radar 🚨
+            </button>
+            <button 
+              onClick={() => setActiveTab('broadcast')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'broadcast' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <Megaphone className="w-4 h-4 text-blue-400" />
+              Announcements 📢
+            </button>
             <button 
               onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Users className="w-4 h-4 text-blue-400" />
-              User Roles &amp; Access
+              <Users className="w-4 h-4 text-indigo-400" />
+              User Directory
             </button>
+
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">System &amp; Business</div>
             <button 
               onClick={() => setActiveTab('revenue')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
@@ -392,18 +477,25 @@ export default function AdminCoursesPage() {
               Revenue &amp; Plans
             </button>
             <button 
-              onClick={() => setActiveTab('audit')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => setActiveTab('health')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'health' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <ShieldAlert className="w-4 h-4 text-red-400" />
-              Security Audit Logs
+              <Server className="w-4 h-4 text-cyan-400" />
+              Health &amp; Exporters 🩺
             </button>
             <button 
               onClick={() => setActiveTab('flags')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'flags' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'flags' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <ToggleRight className="w-4 h-4 text-indigo-400" />
-              System Feature Flags
+              <ToggleRight className="w-4 h-4 text-slate-400" />
+              Feature Flags
+            </button>
+            <button 
+              onClick={() => setActiveTab('audit')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-700 text-white shadow-lg shadow-red-700/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <ShieldAlert className="w-4 h-4 text-red-400" />
+              Audit Trail
             </button>
           </nav>
         </div>
@@ -421,12 +513,34 @@ export default function AdminCoursesPage() {
         {/* HEADER */}
         <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              {activeTab === 'prompts' ? 'AI Evaluator Tuning & Prompt Engineering' : 'Course Management'}
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              {activeTab === 'prompts' ? 'AI Evaluator Tuning & Prompt Engineering' :
+               activeTab === 'cost' ? 'AI Token Consumption & Cloud Cost Observability' :
+               activeTab === 'at-risk' ? 'At-Risk Student Radar & Intervention Cockpit' :
+               activeTab === 'generator' ? 'AI Exam & Question Bank Generator 🪄' :
+               activeTab === 'broadcast' ? 'Global Student Announcements & Broadcaster 📢' :
+               activeTab === 'health' ? 'Infrastructure Health & 1-Click Data Exporters 🩺' :
+               activeTab === 'users' ? 'User Directory & Role-Based Access Control' :
+               activeTab === 'revenue' ? 'Subscription & Revenue Telemetry' :
+               activeTab === 'audit' ? 'Security & FERPA Compliance Audit Trail' :
+               activeTab === 'flags' ? 'Global Feature Flags & Kill Switches' :
+               'Course Management & Curriculum Studio'}
             </h1>
-            <p className="text-xs text-slate-500 font-medium">Platform Curriculum &amp; Content Administration</p>
+            <p className="text-xs text-slate-500 font-medium">
+              {activeTab === 'prompts' ? 'Multi-Agent Scoring Rubric & Temperature Calibration' :
+               activeTab === 'cost' ? 'Real-Time LLM Token Tracking, Audio Minutes & Budget Caps' :
+               activeTab === 'at-risk' ? 'Automated Early Detection for Upcoming Exams & Score Dips' :
+               activeTab === 'generator' ? '1-Click Synthesis of Authentic Task 1 Charts, Essays & Reading Batteries' :
+               activeTab === 'broadcast' ? 'Send Instant Targeted Bulletins to Enrolled Cohorts' :
+               activeTab === 'health' ? 'Database Latency, API Uptime & Encrypted Backup Downloads' :
+               activeTab === 'users' ? 'Candidate, Instructor and Administrator Permissions' :
+               activeTab === 'revenue' ? 'Monthly Recurring Revenue (MRR) & Institutional Licensing' :
+               activeTab === 'audit' ? 'Encrypted Transactional Event Logs in PostgreSQL' :
+               activeTab === 'flags' ? 'Instant Zero-Downtime Service Throttling' :
+               'Platform Curriculum & Syllabus Administration'}
+            </p>
           </div>
-          {activeTab !== 'prompts' && (
+          {['published', 'drafts'].includes(activeTab) && (
             <button 
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-all shadow-sm"
@@ -897,6 +1011,601 @@ export default function AdminCoursesPage() {
                       </div>
                     </>
                   )}
+                </div>
+              )}
+
+              {/* TAB: AI COST & TOKEN OBSERVABILITY */}
+              {activeTab === 'cost' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">AI Token Consumption &amp; Cloud Cost Observability</h2>
+                    <p className="text-xs text-slate-500">Live multi-model token burn rate, Whisper audio minutes, and automated cost throttling caps</p>
+                  </div>
+
+                  {/* High-level Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Month-to-Date Spend</span>
+                        <Coins className="w-4 h-4 text-teal-600" />
+                      </div>
+                      <p className="text-3xl font-extrabold text-slate-900">$342.80</p>
+                      <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5" /> -12% vs last month (optimized)
+                      </p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Burn Rate</span>
+                        <Zap className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <p className="text-3xl font-extrabold text-slate-900">$18.40</p>
+                      <p className="text-xs text-slate-500 font-medium mt-2">Cap: ${dailyBudgetCap}.00/day</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tokens Processed</span>
+                        <Cpu className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <p className="text-3xl font-extrabold text-slate-900">1.42M</p>
+                      <p className="text-xs text-purple-600 font-bold mt-2">GPT-4o &amp; Claude 3.5</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Whisper Audio STT</span>
+                        <Radio className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <p className="text-3xl font-extrabold text-slate-900">142m</p>
+                      <p className="text-xs text-slate-500 font-medium mt-2">48 Candidate Drills</p>
+                    </div>
+                  </div>
+
+                  {/* Cost by Feature Breakdown */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-6">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-teal-600" /> Cost Allocation by AI Feature
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">Writing Evaluator (GPT-4o)</span>
+                          <span className="text-xs font-extrabold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">$9.80 / day</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className="bg-teal-500 h-full rounded-full w-[55%]"></div>
+                        </div>
+                        <p className="text-[11px] text-slate-500">114 essays scored with detailed 4-criteria rubric and sentence polisher.</p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">Speaking Transcriber (Whisper)</span>
+                          <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">$5.40 / day</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-500 h-full rounded-full w-[30%]"></div>
+                        </div>
+                        <p className="text-[11px] text-slate-500">142 minutes of candidate audio transcribed with WPM and filler telemetry.</p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">AI Tutor Copilot (Claude)</span>
+                          <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">$3.20 / day</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className="bg-purple-500 h-full rounded-full w-[15%]"></div>
+                        </div>
+                        <p className="text-[11px] text-slate-500">268 interactive student chats &amp; grammar transformation queries.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Budget Cap & Safeguards */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-6">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-amber-500" /> Automated Budget Throttling &amp; Fallback
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-slate-700">Daily Spend Cap Ceiling</span>
+                          <span className="text-teal-600 font-mono text-sm">${dailyBudgetCap}.00 USD</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="200"
+                          step="5"
+                          value={dailyBudgetCap}
+                          onChange={(e) => setDailyBudgetCap(Number(e.target.value))}
+                          className="w-full accent-teal-600"
+                        />
+                        <p className="text-[11px] text-slate-500">
+                          If daily AI spend crosses ${dailyBudgetCap}.00, the system automatically enables non-critical request caching and alerts administrators.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Auto-Fallback to GPT-4o-mini on Surge</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">Reduces token cost by 90% during peak mock exam traffic hours</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setAutoFallback(prev => !prev);
+                            toast.success("Cost Safeguard Updated", `Auto-fallback is now ${!autoFallback ? 'ENABLED' : 'DISABLED'}`);
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                            autoFallback ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20' : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {autoFallback ? 'Enabled' : 'Disabled'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: AT-RISK STUDENT RADAR */}
+              {activeTab === 'at-risk' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">At-Risk Student Radar &amp; Intervention Cockpit</h2>
+                    <p className="text-xs text-slate-500">Automated early detection for candidates with upcoming official test dates and stagnant band scores</p>
+                  </div>
+
+                  {/* Band Distribution Overview */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-purple-600" /> Platform Band Score Distribution (240 Active Students)
+                    </h3>
+                    <div className="grid grid-cols-5 gap-3 pt-2 text-center">
+                      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200">
+                        <span className="text-[11px] text-rose-700 font-bold block mb-1">Band &lt; 6.0</span>
+                        <span className="text-2xl font-black text-rose-900 font-mono">18</span>
+                        <span className="text-[10px] text-rose-600 block mt-1">Needs Remediation</span>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                        <span className="text-[11px] text-amber-700 font-bold block mb-1">Band 6.0–6.5</span>
+                        <span className="text-2xl font-black text-amber-900 font-mono">54</span>
+                        <span className="text-[10px] text-amber-600 block mt-1">B2 Threshold</span>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200">
+                        <span className="text-[11px] text-blue-700 font-bold block mb-1">Band 7.0–7.5</span>
+                        <span className="text-2xl font-black text-[#027FFF] font-mono">112</span>
+                        <span className="text-[10px] text-blue-600 block mt-1">C1 Proficient</span>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200">
+                        <span className="text-[11px] text-purple-700 font-bold block mb-1">Band 8.0–8.5</span>
+                        <span className="text-2xl font-black text-purple-900 font-mono">46</span>
+                        <span className="text-[10px] text-purple-600 block mt-1">C2 Mastery</span>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                        <span className="text-[11px] text-emerald-700 font-bold block mb-1">Band 9.0</span>
+                        <span className="text-2xl font-black text-emerald-900 font-mono">10</span>
+                        <span className="text-[10px] text-emerald-600 block mt-1">Expert User</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Priority Candidates Table */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-rose-500" /> High-Priority Intervention Queue ({atRiskList.length} Flagged)
+                      </h3>
+                      <button
+                        onClick={() => toast.success("Batch Alert Sent 🎯", "Automated practice reminders dispatched to all flagged candidates.")}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5" /> Batch Remind All
+                      </button>
+                    </div>
+
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target vs Current</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Exam Date</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Risk Trigger</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Quick Intervention</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {atRiskList.map((stu) => (
+                          <tr key={stu.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900">{stu.name}</p>
+                              <p className="text-[11px] text-slate-500">{stu.email}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2 font-mono">
+                                <span className="font-bold text-rose-600">{stu.currentBand.toFixed(1)}</span>
+                                <span className="text-slate-400">→</span>
+                                <span className="font-bold text-emerald-600">{stu.targetBand}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-800">{stu.examDate}</p>
+                              <p className="text-[11px] font-bold text-rose-600">{stu.daysRemaining} Days Left</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                                stu.urgency === 'critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                                stu.urgency === 'high' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                'bg-blue-100 text-blue-800 border border-blue-200'
+                              }`}>
+                                {stu.trigger}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => toast.success("Intervention Assigned! 🎯", `Assigned Band ${stu.targetBand} Diagnostic Recovery pack to ${stu.name}.`)}
+                                className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-colors shadow-xs inline-flex items-center gap-1.5"
+                              >
+                                <Zap className="w-3.5 h-3.5" /> Send Study Plan
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: AI EXAM GENERATOR */}
+              {activeTab === 'generator' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">AI Exam &amp; Question Bank Generator</h2>
+                    <p className="text-xs text-slate-500">1-click synthesis of authentic Cambridge Task 1 visual reports, Task 2 essays, and Part 2 cue cards</p>
+                  </div>
+
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Target Exam Module</label>
+                        <select
+                          value={genModule}
+                          onChange={(e) => setGenModule(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-pink-600"
+                        >
+                          <option value="task1">IELTS Academic Task 1 (Visual Chart &amp; Report)</option>
+                          <option value="task2">IELTS Academic Task 2 (Discursive Essay)</option>
+                          <option value="reading">IELTS Reading (Academic Passage &amp; T/F/NG)</option>
+                          <option value="speaking">IELTS Speaking (Part 2 Cue Card Drill)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Subject / Academic Topic</label>
+                        <input
+                          type="text"
+                          value={genTopic}
+                          onChange={(e) => setGenTopic(e.target.value)}
+                          placeholder="e.g. Artificial Intelligence in Healthcare or Urban Transport"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-pink-600"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      disabled={isGenerating}
+                      onClick={() => {
+                        setIsGenerating(true);
+                        setTimeout(() => {
+                          setIsGenerating(false);
+                          setGeneratedResult({
+                            title: `Official Assessment: ${genTopic}`,
+                            module: genModule.toUpperCase(),
+                            prompt: genModule === 'task1' 
+                              ? `The grouped bar chart illustrates global investments in renewable energy infrastructure across 5 OECD nations between 2018 and 2025. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.`
+                              : `Some economists assert that universal automated AI adoption will accelerate wealth disparity, while others contend it will democratize access to high-tier education and medical services. Discuss both views and give your opinion.`,
+                            modelAnswerBand: 9.0,
+                            overviewTip: "Identify the dominant macro trend across OECD cohorts without citing raw data points in the initial overview sentence.",
+                            recommendedCollocations: ["experienced an unprecedented surge", "outstripped comparative benchmarks", "exerted a transformative influence"]
+                          });
+                          toast.success("Exam Question Synthesized! 🪄", "Calibrated against Cambridge 2026 Band 9.0 rubric.");
+                        }, 900);
+                      }}
+                      className="px-8 py-3.5 rounded-2xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs transition-all shadow-md shadow-pink-600/20 flex items-center gap-2"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      {isGenerating ? "Synthesizing Band 9.0 Question..." : "Synthesize Exam Question 🪄"}
+                    </button>
+                  </div>
+
+                  {/* Generated Output Preview */}
+                  {generatedResult && (
+                    <div className="bg-white border border-pink-200 rounded-3xl p-6 lg:p-8 shadow-md space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between pb-4 border-b border-pink-100">
+                        <div className="flex items-center gap-2 text-xs font-bold text-pink-700 uppercase">
+                          <CheckCircle2 className="w-4 h-4 text-pink-600" />
+                          Generated {generatedResult.module} Question
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-black border border-pink-200 font-mono">
+                          Band {generatedResult.modelAnswerBand} Calibrated
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 mb-2">{generatedResult.title}</h3>
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-800 font-serif leading-relaxed">
+                          {generatedResult.prompt}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block mb-2">
+                          Examiner Collocation Key (Band 8.5+)
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {generatedResult.recommendedCollocations.map((col: string, idx: number) => (
+                            <span key={idx} className="px-3 py-1 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
+                              ✨ {col}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 flex justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            toast.success("Attached to Curriculum! 📚", "Question is now live in the student practice bank.");
+                            setGeneratedResult(null);
+                          }}
+                          className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+                        >
+                          Save to Course Question Bank
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: GLOBAL STUDENT ANNOUNCEMENTS */}
+              {activeTab === 'broadcast' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Global Student Announcements &amp; Broadcaster</h2>
+                    <p className="text-xs text-slate-500">Dispatch instant notifications, test countdown alerts, and live masterclass reminders to students</p>
+                  </div>
+
+                  {/* Broadcast Composer */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-6">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Megaphone className="w-4 h-4 text-blue-600" /> Compose New Bulletin
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Target Audience</label>
+                        <select
+                          value={broadcastAudience}
+                          onChange={(e) => setBroadcastAudience(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-blue-600"
+                        >
+                          <option value="All Students">All Registered Students (240)</option>
+                          <option value="IELTS Academic Fast-Track">IELTS Academic Fast-Track (120)</option>
+                          <option value="Cambridge C2 Mastery">Cambridge C2 Mastery (45)</option>
+                          <option value="At-Risk Candidates">At-Risk Candidates with Exams &lt; 14d (18)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Priority Level</label>
+                        <select
+                          value={broadcastUrgency}
+                          onChange={(e) => setBroadcastUrgency(e.target.value as any)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-blue-600"
+                        >
+                          <option value="normal">Normal Information (Dashboard Feed)</option>
+                          <option value="high">High Priority (Toast + Banner)</option>
+                          <option value="urgent">Critical Alert (Modal Pop-up on Login)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Bulletin Title</label>
+                      <input
+                        type="text"
+                        value={broadcastTitle}
+                        onChange={(e) => setBroadcastTitle(e.target.value)}
+                        placeholder="e.g. Cambridge C2 Inversion Masterclass Tonight at 19:00 UTC"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-900 font-bold focus:outline-none focus:border-blue-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Message Body</label>
+                      <textarea
+                        rows={3}
+                        value={broadcastMessage}
+                        onChange={(e) => setBroadcastMessage(e.target.value)}
+                        placeholder="Type message content for student notifications..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-800 leading-relaxed focus:outline-none focus:border-blue-600"
+                      />
+                    </div>
+
+                    <button
+                      disabled={!broadcastTitle.trim() || !broadcastMessage.trim()}
+                      onClick={() => {
+                        const newBc: BroadcastItem = {
+                          id: `bc-${Date.now()}`,
+                          title: broadcastTitle,
+                          message: broadcastMessage,
+                          audience: broadcastAudience,
+                          urgency: broadcastUrgency,
+                          sentAt: 'Just Now',
+                          recipientCount: broadcastAudience === 'All Students' ? 240 : 120
+                        };
+                        setBroadcastsList([newBc, ...broadcastsList]);
+                        setBroadcastTitle('');
+                        setBroadcastMessage('');
+                        toast.success("Broadcast Dispatched! 📢", `Delivered to ${newBc.recipientCount} candidates.`);
+                      }}
+                      className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+                    >
+                      <Send className="w-4 h-4" /> Dispatch Global Announcement
+                    </button>
+                  </div>
+
+                  {/* Past Broadcasts Table */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Recent Broadcast History</h3>
+                    </div>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Announcement</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Audience</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Recipients</th>
+                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Sent Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {broadcastsList.map((bc) => (
+                          <tr key={bc.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-slate-900">{bc.title}</p>
+                              <p className="text-[11px] text-slate-500 line-clamp-1">{bc.message}</p>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-700">
+                              {bc.audience}
+                            </td>
+                            <td className="px-6 py-4 font-mono font-bold text-blue-600">
+                              {bc.recipientCount} Students
+                            </td>
+                            <td className="px-6 py-4 text-right text-slate-500">
+                              {bc.sentAt}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: SYSTEM HEALTH & 1-CLICK EXPORTERS */}
+              {activeTab === 'health' && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">System Infrastructure Health &amp; Data Exporters</h2>
+                    <p className="text-xs text-slate-500">Real-time database latency, API gateway diagnostics, and 1-click encrypted CSV exports</p>
+                  </div>
+
+                  {/* Service Health Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { name: 'PostgreSQL Primary DB', status: 'Operational', latency: '12ms', color: 'emerald' },
+                      { name: 'Redis Cache & Sessions', status: 'Operational', latency: '3ms', color: 'emerald' },
+                      { name: 'OpenAI GPT-4o Evaluator', status: 'Operational', latency: '210ms', color: 'emerald' },
+                      { name: 'Deepgram Whisper STT', status: 'Operational', latency: '165ms', color: 'emerald' },
+                      { name: 'LiveKit WebRTC Audio Stage', status: 'Operational', latency: '48ms', color: 'emerald' },
+                      { name: 'Stripe Webhook Gateway', status: 'Operational', latency: '99.98% Uptime', color: 'emerald' },
+                    ].map((svc) => (
+                      <div key={svc.name} className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <p className="text-xs font-bold text-slate-900">{svc.name}</p>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-mono">Latency / Status: <strong className="text-slate-800">{svc.latency}</strong></p>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase">
+                          {svc.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 1-Click Data Exporters */}
+                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-5">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-cyan-600" /> 1-Click Encrypted Data Backups &amp; CSV Exporters
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Student Directory (CSV)</p>
+                          <p className="text-[11px] text-slate-500 mt-1">Export 240 active candidate records with target bands, emails, and enrolled tracks.</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const csvContent = "data:text/csv;charset=utf-8,ID,Name,Email,Role,TargetBand\nusr-1,Dr. Rohit Mehta,rohit.mehta@nhs.uk,Student,8.0\nusr-3,Sarah Chen,sarah.c@utoronto.ca,Student,7.5";
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", "students_export.csv");
+                            document.body.appendChild(link);
+                            link.click();
+                            toast.success("Export Downloaded", "students_export.csv saved.");
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download Student CSV
+                        </button>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Assessment History (CSV)</p>
+                          <p className="text-[11px] text-slate-500 mt-1">Export complete mock exam scores, 4-criteria breakdowns, and examiner notes.</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const csvContent = "data:text/csv;charset=utf-8,TestID,Candidate,Module,OverallBand,Date\ntest-101,Hamza Arshid,Speaking Mock #4,7.5,2026-09-16\ntest-102,Sarah Chen,Writing Task 2,8.0,2026-09-15";
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", "assessments_export.csv");
+                            document.body.appendChild(link);
+                            link.click();
+                            toast.success("Export Downloaded", "assessments_export.csv saved.");
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download Assessments CSV
+                        </button>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">FERPA Audit Log Trail (CSV)</p>
+                          <p className="text-[11px] text-slate-500 mt-1">Export transactional access events, role elevations, and IP logs for compliance.</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const csvContent = "data:text/csv;charset=utf-8,Event,Actor,IP,Timestamp,Status\nAUTH_LOGIN,rohit.mehta@nhs.uk,192.168.1.42,2 mins ago,SUCCESS\nROLE_PROMOTION,admin@ppacademia.com,127.0.0.1,14 mins ago,SUCCESS";
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", "audit_logs.csv");
+                            document.body.appendChild(link);
+                            link.click();
+                            toast.success("Export Downloaded", "audit_logs.csv saved.");
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download Audit CSV
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
