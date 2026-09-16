@@ -123,6 +123,42 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
     collocations: ["disseminate information", "widely disseminated", "disseminate research findings"],
     exampleSentence: "Academic institutions must effectively disseminate scientific discoveries to the broader public.",
     topic: "Education"
+  },
+  {
+    id: 8,
+    word: "Paradigm",
+    syllables: "PAR · a · digm",
+    phonetic: "/ˈpær.ə.daɪm/",
+    partOfSpeech: "noun",
+    bandLevel: "Band 9.0",
+    definition: "A typical pattern or model of something; a distinct conceptual framework.",
+    collocations: ["paradigm shift", "dominant paradigm", "new pedagogical paradigm"],
+    exampleSentence: "The integration of generative artificial intelligence represents a fundamental paradigm shift in modern pedagogy.",
+    topic: "Technology"
+  },
+  {
+    id: 9,
+    word: "Precipitous",
+    syllables: "pre · CIP · i · tous",
+    phonetic: "/prɪˈsɪp.ɪ.təs/",
+    partOfSpeech: "adjective",
+    bandLevel: "Band 9.0",
+    definition: "Dangerously high or steep; occurring rapidly and without caution.",
+    collocations: ["precipitous decline", "precipitous drop", "precipitous surge"],
+    exampleSentence: "During the 2020 fiscal quarter, coal consumption experienced a precipitous decline across Western Europe.",
+    topic: "Environment"
+  },
+  {
+    id: 10,
+    word: "Democratize",
+    syllables: "de · MOC · ra · tize",
+    phonetic: "/dɪˈmɒk.rə.taɪz/",
+    partOfSpeech: "verb",
+    bandLevel: "Band 8.5",
+    definition: "To make something accessible to everyone, not just a privileged minority.",
+    collocations: ["democratize access", "democratize higher education", "democratize information"],
+    exampleSentence: "Open digital courseware has the potential to democratize high-caliber education for remote communities.",
+    topic: "Society"
   }
 ];
 

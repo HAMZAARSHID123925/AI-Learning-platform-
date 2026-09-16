@@ -75,25 +75,92 @@ const SAMPLE_TRANSFORMATIONS: SentenceUpgrade[] = [
   }
 ];
 
-const TASK2_PROMPT = {
-  title: "IELTS Academic Writing Task 2",
-  timeLimit: 40,
-  minWords: 250,
-  prompt: "Some people believe that artificial intelligence will replace human teachers in the future, while others think teachers will always be necessary.\n\nDiscuss both views and give your own opinion. Give reasons for your answer and include any relevant examples from your own knowledge or experience.",
-  modelAnswer: `In contemporary discourse, the proposition that artificial intelligence may eventually supplant human educators has sparked considerable debate. While detractors maintain that technological automation cannot replicate empathetic pedagogical mentorship, proponents argue that machine-learning algorithms offer unprecedented bespoke adaptability. In my view, notwithstanding the remarkable computational efficiency of algorithmic instruction, the holistic development of learners remains fundamentally contingent upon human guidance.
+interface Task2PromptData {
+  id: string;
+  title: string;
+  category: "Opinion / Agree-Disagree" | "Discussion (Both Views)" | "Problem & Solution" | "Advantages & Disadvantages";
+  timeLimit: number;
+  minWords: number;
+  prompt: string;
+  modelAnswer: string;
+}
+
+const TASK2_PROMPT_CATALOG: Task2PromptData[] = [
+  {
+    id: "task2-ai-education",
+    title: "AI in Education vs Human Teachers",
+    category: "Discussion (Both Views)",
+    timeLimit: 40,
+    minWords: 250,
+    prompt: "Some people believe that artificial intelligence will replace human teachers in the future, while others think teachers will always be necessary.\n\nDiscuss both views and give your own opinion. Give reasons for your answer and include any relevant examples from your own knowledge or experience.",
+    modelAnswer: `In contemporary discourse, the proposition that artificial intelligence may eventually supplant human educators has sparked considerable debate. While detractors maintain that technological automation cannot replicate empathetic pedagogical mentorship, proponents argue that machine-learning algorithms offer unprecedented bespoke adaptability. In my view, notwithstanding the remarkable computational efficiency of algorithmic instruction, the holistic development of learners remains fundamentally contingent upon human guidance.
 
 On the one hand, leading advocates of automated learning contend that intelligent tutoring systems possess the capacity to democratize high-caliber education. Unlike human instructors constrained by time and cognitive bandwidth, adaptive neural networks can diagnose learner weaknesses in real time, delivering customized micro-drills tailored to individual comprehension rates. For instance, empirical studies demonstrate that computerized spaced-repetition modules accelerate vocabulary retention by up to forty percent. Consequently, algorithmic systems undeniably alleviate administrative pedagogical burdens and optimize analytical skill acquisition.
 
 Notwithstanding this assertion, the essential ethos of education extends far beyond mechanistic information dissemination. Were educators to be eliminated entirely from classroom environments, students would inevitably suffer a deficit in socio-emotional scaffolding and critical philosophical inquiry. Human teachers model moral resilience, stimulate ethical discourse, and provide compassionate intervention during periods of academic distress—facets of mentorship that algorithmic synthesis fundamentally cannot simulate.
 
 In conclusion, while artificial intelligence undeniably constitutes a transformative pedagogical adjunct capable of optimizing analytical drill execution, it cannot replace human educators. A balanced paradigm wherein automated tools support rather than supplant human mentorship represents the optimal trajectory for modern education.`
+  },
+  {
+    id: "task2-renewable-energy",
+    title: "Government Subsidies for Fossil Fuels vs Clean Energy",
+    category: "Opinion / Agree-Disagree",
+    timeLimit: 40,
+    minWords: 250,
+    prompt: "Governments should heavily tax fossil fuel consumption and allocate all revenues directly to renewable energy research.\n\nTo what extent do you agree or disagree with this statement?",
+    modelAnswer: `The accelerating ramifications of anthropogenic climate change have catalyzed intense deliberation regarding the fiscal intervention strategies of state authorities. It is emphatically argued that levying punitive taxation on fossil fuels while redirecting municipal fiscal reserves exclusively toward renewable energy research is essential for planetary preservation. I wholeheartedly concur with this stance on the grounds of both ecological urgency and technological acceleration.
+
+Primarily, the imposition of carbon surcharges constitutes a formidable economic disincentive that compels multinational conglomerates to curtail carbon-intensive operations. When the marginal cost of emissions surpasses the expense of green retrofitting, industrial entities inevitably pivot toward energy-efficient manufacturing paradigms. Furthermore, penalizing hydrocarbon dependency generates substantial sovereign revenues that can be channelled directly into cutting-edge battery storage and nuclear fusion research.
+
+Additionally, public research funding remains the foundational catalyst for breakthrough green infrastructure. Private energy providers frequently hesitate to fund high-risk renewable developments due to protracted amortization periods. Were state treasuries to subsidize advanced offshore wind grids and solar thermal storage systems, renewable generation would rapidly attain grid parity, precipitating a structural decarbonization of the global economy.
+
+In conclusion, aggressively penalizing non-renewable consumption while prioritizing clean energy innovation represents an indispensable imperative. Governments must enact these fiscal measures decisively before irreversible ecological tipping points are breached.`
+  },
+  {
+    id: "task2-remote-work",
+    title: "Ubiquitous Telecommuting & Urban Depopulation",
+    category: "Advantages & Disadvantages",
+    timeLimit: 40,
+    minWords: 250,
+    prompt: "An increasing number of professionals are now working remotely from home rather than in traditional office spaces.\n\nDo the advantages of this trend outweigh the disadvantages?",
+    modelAnswer: `The proliferation of digital communication networks and cloud architectures has precipitated a monumental shift toward remote employment. While remote working introduces certain communication frictions and professional isolation, I firmly contend that its substantial environmental and productivity advantages overwhelmingly outweigh the associated drawbacks.
+
+On the one hand, detractors highlight the erosion of spontaneous collaboration and interpersonal camaraderie within distributed workforces. Navigating exclusively asynchronous communication channels can occasionally engender psychological alienation and dilute corporate culture. Moreover, junior employees may encounter impediments when seeking impromptu mentorship, as informal watercooler knowledge transfers are absent in virtual environments.
+
+Notwithstanding these concerns, the benefits conferred by telecommuting are profound. From an environmental and urban planning perspective, the elimination of mandatory daily vehicular commutes yields a precipitous reduction in urban carbon emissions and traffic congestion. Furthermore, remote work empowers professionals to cultivate bespoke working environments, eliminating open-plan distractions and amplifying focused cognitive output. Empirical productivity metrics consistently demonstrate that telecommuting professionals exhibit heightened task completion velocity and superior work-life balance.
+
+In conclusion, despite the minor hurdles of remote team cohesion, the environmental, ergonomic, and productivity dividends of remote working establish it as a decidedly advantageous evolution in modern labor.`
+  }
+];
+
+// High-Band C2 Keywords & Lexical Scanner
+const C2_ACADEMIC_LEXICON = [
+  "supplant", "precipitous", "paradigm", "democratize", "alleviate", "scaffolding", "interpersonal",
+  "detractors", "proponents", "notwithstanding", "contingent", "deliberation", "imperative",
+  "anthropogenic", "disincentive", "amortization", "decarbonization", "proliferation", "asynchronous",
+  "ubiquitous", "empirical", "syntactic", "inversion", "ramifications", "concur", "pedagogical"
+];
+
+const WEAK_REPETITIVE_WORDS: Record<string, string> = {
+  "good": "advantageous / commendable",
+  "bad": "detrimental / adverse",
+  "a lot of": "a substantial volume of",
+  "big": "momentous / profound",
+  "think": "contend / posit",
+  "in my opinion": "from my perspective / it is firmly asserted",
+  "more and more": "an increasing proportion of",
+  "problem": "predicament / impediment",
+  "important": "paramount / indispensable",
+  "get": "acquire / attain"
 };
 
 export default function WritingPracticePage() {
   const [taskType, setTaskType] = useState<'task1' | 'task2'>('task1');
   const [selectedTask1Index, setSelectedTask1Index] = useState<number>(0);
+  const [selectedTask2Index, setSelectedTask2Index] = useState<number>(0);
   const [essayText, setEssayText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [evaluation, setEvaluation] = useState<any>(null);
   const [timerSeconds, setTimerSeconds] = useState(1200); // 20 mins default for Task 1
@@ -105,6 +172,7 @@ export default function WritingPracticePage() {
   const [activeTransformation, setActiveTransformation] = useState<SentenceUpgrade | null>(SAMPLE_TRANSFORMATIONS[0]);
 
   const activeTask1Prompt: Task1PromptData = TASK1_PROMPTS[selectedTask1Index] || TASK1_PROMPTS[0];
+  const activeTask2Prompt: Task2PromptData = TASK2_PROMPT_CATALOG[selectedTask2Index] || TASK2_PROMPT_CATALOG[0];
 
   const activePrompt = taskType === 'task1' 
     ? {
@@ -114,10 +182,36 @@ export default function WritingPracticePage() {
         prompt: activeTask1Prompt.prompt,
         modelAnswer: activeTask1Prompt.modelAnswer
       }
-    : TASK2_PROMPT;
+    : {
+        title: activeTask2Prompt.title,
+        timeLimit: activeTask2Prompt.timeLimit,
+        minWords: activeTask2Prompt.minWords,
+        prompt: activeTask2Prompt.prompt,
+        modelAnswer: activeTask2Prompt.modelAnswer
+      };
 
-  const wordCount = essayText.trim().split(/\s+/).filter(Boolean).length;
+  const wordList = essayText.trim().split(/\s+/).filter(Boolean);
+  const wordCount = wordList.length;
   const isWordCountMet = wordCount >= activePrompt.minWords;
+
+  // Real-time Lexical & Repetitive Analysis
+  const detectedC2Words = Array.from(new Set(wordList.map(w => w.toLowerCase().replace(/[^a-z]/g, '')).filter(w => C2_ACADEMIC_LEXICON.includes(w))));
+  const detectedWeakWords = Object.keys(WEAK_REPETITIVE_WORDS).filter(k => essayText.toLowerCase().includes(k));
+
+  const handleShuffleTopic = () => {
+    setIsGeneratingTopic(true);
+    setTimeout(() => {
+      if (taskType === 'task1') {
+        setSelectedTask1Index((prev) => (prev + 1) % TASK1_PROMPTS.length);
+      } else {
+        setSelectedTask2Index((prev) => (prev + 1) % TASK2_PROMPT_CATALOG.length);
+      }
+      setEssayText('');
+      setEvaluation(null);
+      setIsGeneratingTopic(false);
+      toast.success("AI Loaded New Exam Prompt 🪄", "Fresh scenario generated.");
+    }, 400);
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -428,16 +522,53 @@ export default function WritingPracticePage() {
               />
             ) : (
               <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm">
+                {/* Task 2 Topic Selector */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Scenario:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {TASK2_PROMPT_CATALOG.map((p, idx) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            setSelectedTask2Index(idx);
+                            setEssayText('');
+                            setEvaluation(null);
+                            setTimerSeconds(2400);
+                            setTimerActive(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            selectedTask2Index === idx
+                              ? 'bg-[#027FFF] text-white shadow-md'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                          }`}
+                        >
+                          {p.category.split(' ')[0]}: {p.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleShuffleTopic}
+                    disabled={isGeneratingTopic}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-colors shadow-sm"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingTopic ? 'animate-spin' : ''}`} />
+                    <span>{isGeneratingTopic ? 'Generating...' : 'AI Topic 🪄'}</span>
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between mb-3">
-                  <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-bold uppercase">
-                    {TASK2_PROMPT.title}
+                  <span className="px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold uppercase">
+                    {activeTask2Prompt.category}
                   </span>
-                  <span className="text-xs font-bold text-slate-500">
-                    Target: &gt;={TASK2_PROMPT.minWords} words
+                  <span className="text-xs font-mono font-bold text-slate-400">
+                    Target: &gt;={activeTask2Prompt.minWords} words
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 leading-relaxed whitespace-pre-line">
-                  {TASK2_PROMPT.prompt}
+                  {activeTask2Prompt.prompt}
                 </h3>
               </div>
             )}
@@ -454,57 +585,80 @@ export default function WritingPracticePage() {
               </div>
             )}
 
-            {/* Editor Area */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col flex-1">
-              <div className="flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Candidate Report / Essay</span>
+              {/* Editor Area */}
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col flex-1">
+                <div className="flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Candidate Report / Essay</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* AI Text Improver Trigger Button */}
+                    <button
+                      onClick={() => setShowImprover(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-[#027FFF] hover:opacity-90 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20 flex items-center gap-1.5"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      AI Text Improver ✨
+                    </button>
+
+                    <button
+                      onClick={handleInsertModelOutline}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                      Load Model
+                    </button>
+
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      isWordCountMet 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {wordCount} / {activePrompt.minWords} words
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* AI Text Improver Trigger Button */}
-                  <button
-                    onClick={() => setShowImprover(true)}
-                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-[#027FFF] hover:opacity-90 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20 flex items-center gap-1.5"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    AI Text Improver ✨
-                  </button>
+                <textarea
+                  value={essayText}
+                  onChange={(e) => {
+                    setEssayText(e.target.value);
+                    if (!timerActive) setTimerActive(true);
+                  }}
+                  placeholder={taskType === 'task1' 
+                    ? "Type your Task 1 report here...\n\nParagraph 1: Paraphrased Introduction\nParagraph 2: Overall Summary Trend (Crucial for Band 7+)\nParagraph 3: Key Feature Group 1 with exact data points\nParagraph 4: Key Feature Group 2 with comparisons"
+                    : "Type your essay response here. Use clear paragraph structure (Introduction, Body Paragraph 1, Body Paragraph 2, Conclusion)... Click 'AI Text Improver' above for Band 8.5+ sentence upgrades."
+                  }
+                  rows={14}
+                  className="w-full flex-1 p-4 rounded-2xl bg-slate-50/70 border border-slate-200 focus:border-[#027FFF] focus:bg-white text-slate-800 text-sm leading-relaxed outline-none resize-y transition-all font-serif"
+                />
 
-                  <button
-                    onClick={handleInsertModelOutline}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 text-slate-500" />
-                    Load Model
-                  </button>
+                {/* Real-time Syntax & Lexicon Heatmap Bar */}
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-500">Live Lexicon:</span>
+                    {detectedC2Words.length > 0 ? (
+                      detectedC2Words.slice(0, 4).map(w => (
+                        <span key={w} className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold">
+                          ✨ {w}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 italic">No C2 collocations detected yet</span>
+                    )}
+                  </div>
 
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                    isWordCountMet 
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}>
-                    {wordCount} / {activePrompt.minWords} words
-                  </span>
+                  {detectedWeakWords.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                      <Sparkles className="w-3 h-3 text-amber-600" />
+                      <span>Upgrade: &quot;{detectedWeakWords[0]}&quot; &rarr; <strong>{WEAK_REPETITIVE_WORDS[detectedWeakWords[0]]}</strong></span>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <textarea
-                value={essayText}
-                onChange={(e) => {
-                  setEssayText(e.target.value);
-                  if (!timerActive) setTimerActive(true);
-                }}
-                placeholder={taskType === 'task1' 
-                  ? "Type your Task 1 report here...\n\nParagraph 1: Paraphrased Introduction\nParagraph 2: Overall Summary Trend (Crucial for Band 7+)\nParagraph 3: Key Feature Group 1 with exact data points\nParagraph 4: Key Feature Group 2 with comparisons"
-                  : "Type your essay response here. Use clear paragraph structure (Introduction, Body Paragraph 1, Body Paragraph 2, Conclusion)... Click 'AI Text Improver' above for Band 8.5+ sentence upgrades."
-                }
-                rows={14}
-                className="w-full flex-1 p-4 rounded-2xl bg-slate-50/70 border border-slate-200 focus:border-[#027FFF] focus:bg-white text-slate-800 text-sm leading-relaxed outline-none resize-y transition-all font-serif"
-              />
-
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                 <button
                   onClick={() => { setEssayText(''); setEvaluation(null); }}
                   className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"

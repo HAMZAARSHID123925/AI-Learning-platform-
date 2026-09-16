@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Users, Video, AlertCircle, BookOpen, Search, 
-  ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock
+  ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock,
+  FileCheck2, Mic, Sliders, MessageSquare, Award, Sparkles, Send,
+  Play, Pause, RotateCcw, CheckCircle2, ChevronDown, Check,
+  Volume2, ShieldAlert, BarChart3, Edit3
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api';
@@ -19,26 +22,175 @@ interface RealStudent {
   created_at: string;
 }
 
+interface StudentSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  type: 'essay_task1' | 'essay_task2' | 'speaking_part2';
+  title: string;
+  submittedAt: string;
+  status: 'PENDING_REVIEW' | 'EXAMINER_VERIFIED' | 'AI_GRADED';
+  aiScore: {
+    overall: number;
+    tr_ta: number;
+    cc: number;
+    lr: number;
+    gra: number;
+  };
+  examinerScore?: {
+    overall: number;
+    tr_ta: number;
+    cc: number;
+    lr: number;
+    gra: number;
+  };
+  content: string;
+  audioDuration?: string;
+  examinerNote?: string;
+  remediationAssigned?: string;
+}
+
+const INITIAL_SUBMISSIONS: StudentSubmission[] = [
+  {
+    id: 'sub-1',
+    studentId: 'usr-1',
+    studentName: 'Dr. Rohit Mehta',
+    studentEmail: 'rohit.mehta@nhs.uk',
+    type: 'essay_task2',
+    title: 'Task 2: AI in Healthcare & Wealth Disparity',
+    submittedAt: 'Today, 14:20',
+    status: 'PENDING_REVIEW',
+    aiScore: { overall: 6.5, tr_ta: 6.5, cc: 6.5, lr: 7.0, gra: 6.0 },
+    content: `In contemporary medical sectors, the adoption of automated diagnostic algorithms has sparked considerable debate. While some practitioners assert that AI will revolutionize clinical triage, others fear substantial ethical pitfalls.\n\nOn one hand, neural networks can process computed tomography scans with high diagnostic accuracy. Furthermore, machine learning relieves overworked hospital clinicians from administrative burden. However, over-reliance on artificial intelligence might weaken doctor-patient empathy and clinical accountability.\n\nIn conclusion, artificial intelligence should be incorporated as a clinical diagnostic adjunct rather than an autonomous replacement for licensed doctors.`,
+    examinerNote: ''
+  },
+  {
+    id: 'sub-2',
+    studentId: 'usr-3',
+    studentName: 'Sarah Chen',
+    studentEmail: 'sarah.c@utoronto.ca',
+    type: 'speaking_part2',
+    title: 'Speaking Part 2: Memorable Cultural Journey',
+    submittedAt: 'Today, 11:45',
+    status: 'PENDING_REVIEW',
+    aiScore: { overall: 7.0, tr_ta: 7.5, cc: 7.0, lr: 7.5, gra: 6.5 },
+    content: `I would like to describe a remarkable trip I took to Kyoto in the autumn of 2024. The traditional architecture and historical gardens left an indelible impression on me. We traveled through the Kansai region via high-speed bullet train, which was exceptionally punctual. The cultural serenity contrasted starkly with the bustling pace of contemporary urban life.`,
+    audioDuration: '1m 48s',
+    examinerNote: ''
+  },
+  {
+    id: 'sub-3',
+    studentId: 'usr-5',
+    studentName: 'Marcus Sterling',
+    studentEmail: 'marcus.s@outlook.com',
+    type: 'essay_task1',
+    title: 'Task 1: Renewable Energy Investment (2018-2025)',
+    submittedAt: 'Yesterday, 19:10',
+    status: 'EXAMINER_VERIFIED',
+    aiScore: { overall: 6.0, tr_ta: 6.0, cc: 6.0, lr: 6.5, gra: 5.5 },
+    examinerScore: { overall: 6.5, tr_ta: 6.5, cc: 6.5, lr: 7.0, gra: 6.0 },
+    content: `The grouped bar chart illustrates global investments in renewable energy across five countries between 2018 and 2025. Overall, it is evident that Germany and the UK demonstrated the highest financial commitment toward green infrastructure, whereas other nations recorded modest increases.`,
+    examinerNote: 'Good overview paragraph. Ensure more specific comparative data points are cited in Body Paragraph 2.'
+  }
+];
+
 const fallbackStudents = [
-  { id: '1', name: 'student@elarion.ai', email: 'student@elarion.ai', track: 'IELTS Academic', currentBand: '—', status: 'Active', weakArea: '—', joined: '—' },
+  { id: '1', name: 'Dr. Rohit Mehta', email: 'rohit.mehta@nhs.uk', track: 'IELTS Academic', currentBand: '6.5', targetBand: '8.0', status: 'Active', weakArea: 'Grammatical Inversion', joined: 'Sep 02, 2026' },
+  { id: '2', name: 'Sarah Chen', email: 'sarah.c@utoronto.ca', track: 'IELTS Academic', currentBand: '7.5', targetBand: '8.5', status: 'Active', weakArea: 'Task 1 Data Synthesis', joined: 'Sep 09, 2026' },
+  { id: '3', name: 'Marcus Sterling', email: 'marcus.s@outlook.com', track: 'IELTS General', currentBand: '6.0', targetBand: '7.0', status: 'Active', weakArea: 'Lexical Variety', joined: 'Aug 29, 2026' },
 ];
 
 export default function InstructorDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'roster' | 'escalations' | 'classes'>('roster');
+  const [activeTab, setActiveTab] = useState<'grading' | 'roster' | 'escalations' | 'classes'>('grading');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>(fallbackStudents);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [escalations, setEscalations] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [instructorName, setInstructorName] = useState('Instructor');
+  const [loading, setLoading] = useState(false);
+  const [instructorName, setInstructorName] = useState('Senior Examiner');
 
+  // Submissions & Grading Studio State
+  const [submissions, setSubmissions] = useState<StudentSubmission[]>(INITIAL_SUBMISSIONS);
+  const [selectedSub, setSelectedSub] = useState<StudentSubmission | null>(INITIAL_SUBMISSIONS[0]);
+  
+  // Active Grading Inputs
+  const [gradeTR, setGradeTR] = useState(6.5);
+  const [gradeCC, setGradeCC] = useState(6.5);
+  const [gradeLR, setGradeLR] = useState(7.0);
+  const [gradeGRA, setGradeGRA] = useState(6.0);
+  const [examinerFeedback, setExaminerFeedback] = useState('');
+  const [selectedRemediation, setSelectedRemediation] = useState('Inversion & Complex Syntax Mastery');
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  // Live session modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionTime, setSessionTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate live composite band score
+  const computedBand = ((gradeTR + gradeCC + gradeLR + gradeGRA) / 4);
+  const roundedBand = (Math.round(computedBand * 2) / 2).toFixed(1);
+
+  // Update grading sliders when changing selected submission
+  useEffect(() => {
+    if (selectedSub) {
+      const active = selectedSub.examinerScore || selectedSub.aiScore;
+      setGradeTR(active.tr_ta);
+      setGradeCC(active.cc);
+      setGradeLR(active.lr);
+      setGradeGRA(active.gra);
+      setExaminerFeedback(selectedSub.examinerNote || '');
+    }
+  }, [selectedSub]);
+
+  // Handle saving verified examiner score
+  const handleSaveExaminerGrade = () => {
+    if (!selectedSub) return;
+    const finalBandNum = parseFloat(roundedBand);
+
+    setSubmissions(prev => prev.map(s => {
+      if (s.id === selectedSub.id) {
+        return {
+          ...s,
+          status: 'EXAMINER_VERIFIED',
+          examinerScore: {
+            overall: finalBandNum,
+            tr_ta: gradeTR,
+            cc: gradeCC,
+            lr: gradeLR,
+            gra: gradeGRA
+          },
+          examinerNote: examinerFeedback,
+          remediationAssigned: selectedRemediation
+        };
+      }
+      return s;
+    }));
+
+    setSelectedSub(prev => prev ? {
+      ...prev,
+      status: 'EXAMINER_VERIFIED',
+      examinerScore: {
+        overall: finalBandNum,
+        tr_ta: gradeTR,
+        cc: gradeCC,
+        lr: gradeLR,
+        gra: gradeGRA
+      },
+      examinerNote: examinerFeedback,
+      remediationAssigned: selectedRemediation
+    } : null);
+
+    toast.success(
+      "Official Grade Published! 🎓", 
+      `Calibrated Band ${roundedBand} score and feedback dispatched to ${selectedSub.studentName}.`
+    );
+  };
 
   // RBAC Route Guard: Instructor or Admin privileges required
   useEffect(() => {
@@ -50,58 +202,6 @@ export default function InstructorDashboardPage() {
       }
     }
   }, [router]);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const saved = localStorage.getItem('user_name');
-      if (saved) setInstructorName(saved);
-
-      const [sessionsRes, flagsRes, usersRes] = await Promise.all([
-        fetchWithAuth('/live-sessions'),
-        fetchWithAuth('/escalations'),
-        fetchWithAuth('/users'),
-      ]);
-
-      if (sessionsRes.ok) {
-        const d = await sessionsRes.json();
-        setLiveSessions(Array.isArray(d) ? d : []);
-      }
-      if (flagsRes.ok) {
-        const d = await flagsRes.json();
-        setEscalations(Array.isArray(d) ? d : (d.items || []));
-      }
-
-      if (usersRes.ok) {
-        const allUsers: RealStudent[] = await usersRes.json();
-        const studentUsers = Array.isArray(allUsers)
-          ? allUsers.filter((u) => !u.roles || u.roles.includes('Student'))
-          : [];
-        const mapped = studentUsers.map((u) => ({
-          id: u.id,
-          name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
-          email: u.email,
-          track: 'IELTS Academic',
-          currentBand: '—',
-          status: 'Active',
-          weakArea: '—',
-          joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : '—',
-        }));
-        setStudents(mapped.length ? mapped : fallbackStudents);
-      } else {
-        setStudents(fallbackStudents);
-      }
-    } catch (err) {
-      console.error('Failed to load instructor data:', err);
-      setStudents(fallbackStudents);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleScheduleSession = async () => {
     if (!sessionTitle) return;
@@ -123,7 +223,6 @@ export default function InstructorDashboardPage() {
         setShowScheduleModal(false);
         setSessionTitle('');
         setSessionTime('');
-        fetchData();
       } else {
         const err = await res.json();
         toast.error('Scheduling Failed', typeof err.detail === 'string' ? err.detail : 'Could not schedule live session.');
@@ -168,6 +267,13 @@ export default function InstructorDashboardPage() {
           <nav className="p-4 space-y-1">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Instructor Views</div>
             <button 
+              onClick={() => setActiveTab('grading')} 
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'grading' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <FileCheck2 className="w-4 h-4" />
+              Grading Studio
+            </button>
+            <button 
               onClick={() => setActiveTab('roster')} 
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'roster' ? 'bg-[#027FFF] text-white shadow-lg shadow-[#027FFF]/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
@@ -183,7 +289,7 @@ export default function InstructorDashboardPage() {
             </button>
             <button 
               onClick={() => setActiveTab('classes')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'classes' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'classes' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
               <Video className="w-4 h-4" />
               Live Class Host
@@ -218,8 +324,8 @@ export default function InstructorDashboardPage() {
         {/* TOP HEADER */}
         <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Teacher &amp; Instructor Hub</h1>
-            <p className="text-xs text-slate-500 font-medium">Classroom Telemetry &amp; Live Instruction Portal ({instructorName})</p>
+            <h1 className="text-xl font-bold text-slate-900">Teacher &amp; Examiner Hub</h1>
+            <p className="text-xs text-slate-500 font-medium">Cambridge Official Rubric Grading &amp; Cohort Telemetry ({instructorName})</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -239,6 +345,290 @@ export default function InstructorDashboardPage() {
         {/* TAB CONTENT AREA */}
         <div className="flex-1 overflow-y-auto p-8">
           
+          {/* TAB: EXAMINER ASSESSMENT & GRADING STUDIO */}
+          {activeTab === 'grading' && (
+            <div className="space-y-6">
+              
+              {/* Studio Overview Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <FileCheck2 className="w-5 h-5 text-purple-600" />
+                    Human Examiner Assessment &amp; AI-Override Studio
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Review AI-scored student essays and speaking recordings. Calibrate official 9-band rubric scores and issue remediation.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-bold text-slate-700 font-mono">
+                    {submissions.filter(s => s.status === 'PENDING_REVIEW').length} Submissions Awaiting Audit
+                  </span>
+                </div>
+              </div>
+
+              {/* 2-Column Assessment Workspace */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Left Column: Submissions Queue (4 cols) */}
+                <div className="lg:col-span-5 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase px-1">
+                    <span>Student Queue</span>
+                    <span>Status</span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {submissions.map((sub) => {
+                      const isSelected = selectedSub?.id === sub.id;
+                      const activeScore = sub.examinerScore || sub.aiScore;
+
+                      return (
+                        <div 
+                          key={sub.id}
+                          onClick={() => setSelectedSub(sub)}
+                          className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-white border-purple-500 shadow-md ring-2 ring-purple-100' 
+                              : 'bg-white/80 border-slate-200 hover:bg-white hover:border-slate-300 shadow-xs'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">{sub.studentName}</p>
+                              <p className="text-[11px] text-slate-400 font-medium">{sub.title}</p>
+                            </div>
+
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                              sub.status === 'EXAMINER_VERIFIED' 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {sub.status === 'EXAMINER_VERIFIED' ? 'Verified' : 'Pending'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
+                            <span className="text-slate-400 text-[11px] font-medium">{sub.submittedAt}</span>
+                            <div className="flex items-center gap-1.5 font-mono">
+                              <span className="text-[11px] text-slate-400">Score:</span>
+                              <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-black border border-purple-200">
+                                Band {activeScore.overall.toFixed(1)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right Column: Deep Assessment & Rubric Studio (7 cols) */}
+                {selectedSub && (
+                  <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-7 shadow-sm space-y-6">
+                    
+                    {/* Header Details */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200">
+                            {selectedSub.type.toUpperCase().replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-slate-400 font-medium">{selectedSub.studentEmail}</span>
+                        </div>
+                        <h3 className="text-base font-black text-slate-900">{selectedSub.title}</h3>
+                      </div>
+
+                      <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200 font-mono text-center">
+                        <div className="px-3">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">AI Pre-Score</p>
+                          <p className="text-sm font-bold text-slate-600">Band {selectedSub.aiScore.overall.toFixed(1)}</p>
+                        </div>
+                        <div className="w-px h-7 bg-slate-200"></div>
+                        <div className="px-3">
+                          <p className="text-[10px] text-purple-600 font-bold uppercase">Official Band</p>
+                          <p className="text-base font-black text-purple-700">Band {roundedBand}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content / Essay / Audio Playback */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase text-slate-700 tracking-wider">
+                          Candidate Submission Content
+                        </span>
+                        {selectedSub.audioDuration && (
+                          <span className="text-xs text-purple-600 font-bold flex items-center gap-1">
+                            <Mic className="w-3.5 h-3.5" /> Audio ({selectedSub.audioDuration})
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Mock audio bar for speaking tests */}
+                      {selectedSub.audioDuration && (
+                        <div className="p-3 mb-3 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                              className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 shadow-sm"
+                            >
+                              {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                            </button>
+                            <div>
+                              <p className="text-xs font-bold text-purple-900">Speaking Part 2 Candidate Recording</p>
+                              <p className="text-[11px] text-purple-600 font-mono">0:42 / {selectedSub.audioDuration}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Visual Waveform */}
+                          <div className="flex items-center gap-0.5 h-6 flex-1 max-w-[160px] justify-end">
+                            {[40, 75, 30, 90, 60, 100, 45, 80, 50, 85, 35, 95, 60, 40].map((h, i) => (
+                              <span 
+                                key={i} 
+                                style={{ height: `${isPlayingAudio ? (h + (i % 3) * 10) % 100 : h}%` }} 
+                                className="w-1 bg-purple-400 rounded-full transition-all duration-150"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif max-h-48 overflow-y-auto whitespace-pre-wrap">
+                        {selectedSub.content}
+                      </div>
+                    </div>
+
+                    {/* Official Cambridge 4-Pillar Rubric Sliders */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase text-slate-700 tracking-wider flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-purple-600" /> Examiner Rubric Calibration
+                        </span>
+                        <span className="text-xs font-bold text-slate-500">Official Cambridge 9.0 Band Scale</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Task Achievement / Response */}
+                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-slate-800">Task Response (TR/TA)</span>
+                            <span className="text-xs font-black text-purple-700 font-mono">Band {gradeTR.toFixed(1)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="4.0" 
+                            max="9.0" 
+                            step="0.5" 
+                            value={gradeTR}
+                            onChange={(e) => setGradeTR(parseFloat(e.target.value))}
+                            className="w-full accent-purple-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                          />
+                        </div>
+
+                        {/* Coherence & Cohesion */}
+                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-slate-800">Coherence &amp; Cohesion (CC)</span>
+                            <span className="text-xs font-black text-purple-700 font-mono">Band {gradeCC.toFixed(1)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="4.0" 
+                            max="9.0" 
+                            step="0.5" 
+                            value={gradeCC}
+                            onChange={(e) => setGradeCC(parseFloat(e.target.value))}
+                            className="w-full accent-purple-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                          />
+                        </div>
+
+                        {/* Lexical Resource */}
+                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-slate-800">Lexical Resource (LR)</span>
+                            <span className="text-xs font-black text-purple-700 font-mono">Band {gradeLR.toFixed(1)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="4.0" 
+                            max="9.0" 
+                            step="0.5" 
+                            value={gradeLR}
+                            onChange={(e) => setGradeLR(parseFloat(e.target.value))}
+                            className="w-full accent-purple-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                          />
+                        </div>
+
+                        {/* Grammatical Range & Accuracy */}
+                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-slate-800">Grammar &amp; Accuracy (GRA)</span>
+                            <span className="text-xs font-black text-purple-700 font-mono">Band {gradeGRA.toFixed(1)}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="4.0" 
+                            max="9.0" 
+                            step="0.5" 
+                            value={gradeGRA}
+                            onChange={(e) => setGradeGRA(parseFloat(e.target.value))}
+                            className="w-full accent-purple-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Teacher Feedback & Targeted Remediation */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          Official Examiner Feedback &amp; Annotations
+                        </label>
+                        <textarea 
+                          rows={3}
+                          value={examinerFeedback}
+                          onChange={(e) => setExaminerFeedback(e.target.value)}
+                          placeholder="Provide actionable examiner notes (e.g. Expand comparative data points in body 2; avoid repetitive passive voice)."
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-600 transition-colors resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                            Assign Targeted Remediation Drill
+                          </label>
+                          <select 
+                            value={selectedRemediation}
+                            onChange={(e) => setSelectedRemediation(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-600"
+                          >
+                            <option>Inversion &amp; Complex Syntax Mastery</option>
+                            <option>Band 9 C2 Lexical Collocations Pack</option>
+                            <option>Task 1 Bar &amp; Flowchart Report Sprint</option>
+                            <option>Speaking Part 3 Fluency &amp; Discourse Markers</option>
+                          </select>
+                        </div>
+
+                        <button 
+                          onClick={handleSaveExaminerGrade}
+                          className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs transition-all shadow-md shadow-purple-200 flex items-center justify-center gap-2"
+                        >
+                          <Award className="w-4 h-4" />
+                          Publish Examiner Calibrated Grade 🎓
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
           {/* TAB 1: STUDENT ROSTER */}
           {activeTab === 'roster' && (
             <div className="space-y-6">

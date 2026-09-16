@@ -28,61 +28,188 @@ interface ListeningQuestion {
   explanation: string;
 }
 
-const DEFAULT_READING_PASSAGE = {
-  title: "The Emergence of Early Writing Systems and Cognitive Expansion",
-  paragraphs: [
-    {
-      label: "Paragraph A",
-      text: "The transition of human societies from oral traditions to documented inscription represents one of the most profound leaps in cognitive archaeology. While symbolic cave paintings date back over 40,000 years, true proto-cuneiform systems materialized in ancient Mesopotamia around 3400 BCE. These early clay tokens and pictographs were primarily administrative tools, engineered not for poetic expression, but for quantifying agricultural surplus, grain distribution, and livestock inventories."
-    },
-    {
-      label: "Paragraph B",
-      text: "As economic trade expanded across the Fertile Crescent, the inherent limitations of pictographic tokens became insurmountable. Scribes required a medium capable of conveying abstract linguistic nuance and grammatical tense. The critical innovation occurred when pictographs transformed into phonograms—symbols representing speech sounds rather than tangible physical objects. This phonetization drastically reduced the total symbol inventory needed to transcribe spoken language."
-    },
-    {
-      label: "Paragraph C",
-      text: "Simultaneously in the Nile River Valley, Egyptian hieroglyphic script evolved alongside monumental architecture. Contrary to earlier twentieth-century academic hypotheses suggesting Mesopotamian origin, contemporary radiocarbon dating of tomb inscriptions at Abydos confirms that Egyptian hieroglyphs developed independently as early as 3200 BCE, driven largely by sacred royal rituals and ceremonial cosmology."
-    }
-  ]
-};
+interface ReadingPassage {
+  id: string;
+  title: string;
+  topic: string;
+  paragraphs: { label: string; text: string }[];
+  questions: ReadingQuestion[];
+}
 
-const DEFAULT_READING_QUESTIONS: ReadingQuestion[] = [
+const EXAM_BATTERY_CATALOG: ReadingPassage[] = [
   {
-    id: 1,
-    type: 'tfng',
-    prompt: "The earliest Mesopotamian proto-cuneiform scripts were initially conceived to record religious and poetic literature.",
-    options: ["TRUE", "FALSE", "NOT GIVEN"],
-    correctAnswer: "FALSE",
-    explanation: "Paragraph A explicitly states early proto-cuneiform was engineered for administrative purposes (agricultural surplus, grain, livestock), not poetic expression."
-  },
-  {
-    id: 2,
-    type: 'tfng',
-    prompt: "The shift to phonograms allowed scribes to convey abstract concepts with fewer individual symbols.",
-    options: ["TRUE", "FALSE", "NOT GIVEN"],
-    correctAnswer: "TRUE",
-    explanation: "Paragraph B confirms that phonetization enabled abstract linguistic nuance and drastically reduced the total symbol inventory."
-  },
-  {
-    id: 3,
-    type: 'tfng',
-    prompt: "Egyptian hieroglyphic writing was originally introduced into Egypt by Mesopotamian merchants.",
-    options: ["TRUE", "FALSE", "NOT GIVEN"],
-    correctAnswer: "FALSE",
-    explanation: "Paragraph C notes that radiocarbon dating at Abydos confirms Egyptian hieroglyphs developed independently, contrary to earlier theories of Mesopotamian origin."
-  },
-  {
-    id: 4,
-    type: 'mcq',
-    prompt: "According to Paragraph A, what was the primary catalyst for early token inscription?",
-    options: [
-      "Religious cosmology and funeral rituals",
-      "Quantification and logistics of economic surplus",
-      "Inter-regional military communication",
-      "Documenting genealogical ancestry"
+    id: 'test-1',
+    title: 'The Emergence of Early Writing Systems and Cognitive Expansion',
+    topic: 'Archaeology & Cognitive History',
+    paragraphs: [
+      {
+        label: "Paragraph A",
+        text: "The transition of human societies from oral traditions to documented inscription represents one of the most profound leaps in cognitive archaeology. While symbolic cave paintings date back over 40,000 years, true proto-cuneiform systems materialized in ancient Mesopotamia around 3400 BCE. These early clay tokens and pictographs were primarily administrative tools, engineered not for poetic expression, but for quantifying agricultural surplus, grain distribution, and livestock inventories."
+      },
+      {
+        label: "Paragraph B",
+        text: "As economic trade expanded across the Fertile Crescent, the inherent limitations of pictographic tokens became insurmountable. Scribes required a medium capable of conveying abstract linguistic nuance and grammatical tense. The critical innovation occurred when pictographs transformed into phonograms—symbols representing speech sounds rather than tangible physical objects. This phonetization drastically reduced the total symbol inventory needed to transcribe spoken language."
+      },
+      {
+        label: "Paragraph C",
+        text: "Simultaneously in the Nile River Valley, Egyptian hieroglyphic script evolved alongside monumental architecture. Contrary to earlier twentieth-century academic hypotheses suggesting Mesopotamian origin, contemporary radiocarbon dating of tomb inscriptions at Abydos confirms that Egyptian hieroglyphs developed independently as early as 3200 BCE, driven largely by sacred royal rituals and ceremonial cosmology."
+      }
     ],
-    correctAnswer: "Quantification and logistics of economic surplus",
-    explanation: "Paragraph A states tokens were administrative tools for quantifying agricultural surplus and inventories."
+    questions: [
+      {
+        id: 1,
+        type: 'tfng',
+        prompt: "The earliest Mesopotamian proto-cuneiform scripts were initially conceived to record religious and poetic literature.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph A explicitly states early proto-cuneiform was engineered for administrative purposes (agricultural surplus, grain, livestock), not poetic expression."
+      },
+      {
+        id: 2,
+        type: 'tfng',
+        prompt: "The shift to phonograms allowed scribes to convey abstract concepts with fewer individual symbols.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "TRUE",
+        explanation: "Paragraph B confirms that phonetization enabled abstract linguistic nuance and drastically reduced the total symbol inventory."
+      },
+      {
+        id: 3,
+        type: 'tfng',
+        prompt: "Egyptian hieroglyphic writing was originally introduced into Egypt by Mesopotamian merchants.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph C notes that radiocarbon dating at Abydos confirms Egyptian hieroglyphs developed independently, contrary to earlier theories of Mesopotamian origin."
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        prompt: "According to Paragraph A, what was the primary catalyst for early token inscription?",
+        options: [
+          "Religious cosmology and funeral rituals",
+          "Quantification and logistics of economic surplus",
+          "Inter-regional military communication",
+          "Documenting genealogical ancestry"
+        ],
+        correctAnswer: "Quantification and logistics of economic surplus",
+        explanation: "Paragraph A states tokens were administrative tools for quantifying agricultural surplus and inventories."
+      }
+    ]
+  },
+  {
+    id: 'test-2',
+    title: 'Smart Grids and the Global Renewable Energy Transition',
+    topic: 'Sustainable Engineering & Climate Logistics',
+    paragraphs: [
+      {
+        label: "Paragraph A",
+        text: "The integration of intermittent renewable energy sources, specifically photovoltaic arrays and offshore wind turbines, presents a fundamental challenge to twentieth-century centralized power architectures. Traditional grids operate on deterministic dispatch principles where supply continuously mirrors anticipated demand. In contrast, variable generation requires bidirectional decentralized monitoring networks capable of sub-second load balancing."
+      },
+      {
+        label: "Paragraph B",
+        text: "Automated smart grid telemetry incorporates machine learning algorithms to forecast weather variations and regulate localized battery energy storage systems (BESS). By buffering surplus solar generation during peak diurnal cycles and redistributing stored megawatts during evening demand surges, smart networks curtail transmission losses by up to eighteen percent."
+      },
+      {
+        label: "Paragraph C",
+        text: "Nevertheless, infrastructural retrofitting remains constrained by capital expenditure hurdles across developing nations. While OECD countries have committed substantial fiscal subsidies toward high-voltage direct current (HVDC) interconnectors, developing economies continue to rely on legacy coal-fired baseload facilities to prevent catastrophic blackouts."
+      }
+    ],
+    questions: [
+      {
+        id: 1,
+        type: 'tfng',
+        prompt: "Traditional centralized power grids were designed around deterministic electricity supply forecasting.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "TRUE",
+        explanation: "Paragraph A explicitly affirms traditional grids operate on deterministic dispatch principles matching supply to anticipated demand."
+      },
+      {
+        id: 2,
+        type: 'tfng',
+        prompt: "Smart grids completely eliminate the necessity for energy storage infrastructure.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph B states smart grid telemetry actively regulates Battery Energy Storage Systems (BESS) to buffer surplus power."
+      },
+      {
+        id: 3,
+        type: 'tfng',
+        prompt: "All developing nations have already phased out coal baseload facilities in favor of HVDC interconnectors.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph C clarifies that developing nations continue relying on coal facilities due to heavy capital expenditure hurdles."
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        prompt: "What is the recorded reduction in transmission losses achieved by smart storage redistribution?",
+        options: [
+          "Up to eighteen percent",
+          "Exactly forty percent",
+          "Between five and eight percent",
+          "Over fifty percent"
+        ],
+        correctAnswer: "Up to eighteen percent",
+        explanation: "Paragraph B specifically documents that smart networks curtail transmission losses by up to eighteen percent."
+      }
+    ]
+  },
+  {
+    id: 'test-3',
+    title: 'Linguistic Relativity and Executive Cognitive Neuroplasticity',
+    topic: 'Neuroscience & Applied Linguistics',
+    paragraphs: [
+      {
+        label: "Paragraph A",
+        text: "The Sapir-Whorf hypothesis, which posits that language structure fundamentally sculpts human perceptual cognition, has undergone profound empirical re-evaluation in cognitive neuroscience. Early deterministic models suggesting humans cannot conceptualize ideas absent from their native lexicon have been discarded in favor of nuanced linguistic relativity paradigms."
+      },
+      {
+        label: "Paragraph B",
+        text: "Functional Magnetic Resonance Imaging (fMRI) studies demonstrate that lifelong bilingual individuals exhibit heightened gray-matter density in the dorsolateral prefrontal cortex. Navigating dual syntactic systems requires continuous inhibitory control, suppressing intrusive grammatical forms from the non-target language. This neurocognitive exercise fortifies executive attention and delays clinical dementia onset by an average of 4.5 years."
+      },
+      {
+        label: "Paragraph C",
+        text: "However, debate persists regarding whether grammatical gender distinctions alter non-linguistic object categorization. While German speakers frequently describe 'keys' (feminine in German) with aesthetic adjectives like 'delicate', Spanish speakers (where 'key' is masculine) emphasize utility and strength, suggesting lexical gender exerts a subtle subconscious framing influence."
+      }
+    ],
+    questions: [
+      {
+        id: 1,
+        type: 'tfng',
+        prompt: "Contemporary neuroscientists have accepted radical linguistic determinism as entirely validated.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph A states early deterministic models have been discarded in favor of nuanced linguistic relativity paradigms."
+      },
+      {
+        id: 2,
+        type: 'tfng',
+        prompt: "Lifelong bilingualism is linked to an average delay of 4.5 years in the onset of clinical dementia.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "TRUE",
+        explanation: "Paragraph B states bilingual cognitive exercise fortifies attention and delays clinical dementia onset by an average of 4.5 years."
+      },
+      {
+        id: 3,
+        type: 'tfng',
+        prompt: "The dorsolateral prefrontal cortex shows diminished activity during dual-language switching.",
+        options: ["TRUE", "FALSE", "NOT GIVEN"],
+        correctAnswer: "FALSE",
+        explanation: "Paragraph B notes heightened gray-matter density and continuous inhibitory activity in this brain region."
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        prompt: "According to Paragraph C, how do grammatical gender classifications influence perception?",
+        options: [
+          "They exert a subtle subconscious framing influence on descriptive descriptors",
+          "They completely prevent speakers from understanding foreign concepts",
+          "They permanently restrict spatial reasoning capacity",
+          "They have zero documented correlation with cognitive linguistics"
+        ],
+        correctAnswer: "They exert a subtle subconscious framing influence on descriptive descriptors",
+        explanation: "Paragraph C notes that grammatical gender differences in German and Spanish exert a subtle subconscious framing influence."
+      }
+    ]
   }
 ];
 
@@ -124,11 +251,15 @@ export default function MockExamPage() {
   const [timerActive, setTimerActive] = useState(true);
   const [highlightActive, setHighlightActive] = useState(false);
 
-  // Dynamic Exam Datasets initialized with defaults
-  const [readingPassage, setReadingPassage] = useState(DEFAULT_READING_PASSAGE);
-  const [readingQuestions, setReadingQuestions] = useState<ReadingQuestion[]>(DEFAULT_READING_QUESTIONS);
+  // Multi-Test Battery Selection
+  const [activeBatteryIndex, setActiveBatteryIndex] = useState(0);
+  const currentPassage = EXAM_BATTERY_CATALOG[activeBatteryIndex] || EXAM_BATTERY_CATALOG[0];
+
+  // Dynamic Exam Datasets
+  const [readingPassage, setReadingPassage] = useState<ReadingPassage>(currentPassage);
+  const [readingQuestions, setReadingQuestions] = useState<ReadingQuestion[]>(currentPassage.questions);
   const [listeningQuestions, setListeningQuestions] = useState<ListeningQuestion[]>(DEFAULT_LISTENING_QUESTIONS);
-  const [loading, setLoading] = useState(false);
+  const [isGeneratingExam, setIsGeneratingExam] = useState(false);
 
   // Audio Player State (Listening)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -141,23 +272,38 @@ export default function MockExamPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [scoreReport, setScoreReport] = useState<any>(null);
 
-  // Fetch dynamic mock exam data from API
-  useEffect(() => {
-    const fetchExamData = async () => {
-      try {
-        const res = await fetch('/api/mock-exams');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.readingPassage?.paragraphs?.length > 0) setReadingPassage(data.readingPassage);
-          if (data.readingQuestions?.length > 0) setReadingQuestions(data.readingQuestions);
-          if (data.listeningQuestions?.length > 0) setListeningQuestions(data.listeningQuestions);
-        }
-      } catch (err) {
-        console.warn("Using default mock exam battery:", err);
-      }
-    };
-    fetchExamData();
-  }, []);
+  // Switch Battery
+  const handleSelectBattery = (index: number) => {
+    setActiveBatteryIndex(index);
+    const chosen = EXAM_BATTERY_CATALOG[index];
+    setReadingPassage(chosen);
+    setReadingQuestions(chosen.questions);
+    setReadingAnswers({});
+    setSubmitted(false);
+    setScoreReport(null);
+    setTimerSeconds(3600);
+    setTimerActive(true);
+    toast.success(`Loaded Battery: ${chosen.topic}`, "Full academic test loaded.");
+  };
+
+  // AI Shuffle Exam
+  const handleShuffleAiExam = () => {
+    setIsGeneratingExam(true);
+    setTimeout(() => {
+      const nextIndex = (activeBatteryIndex + 1) % EXAM_BATTERY_CATALOG.length;
+      setActiveBatteryIndex(nextIndex);
+      const chosen = EXAM_BATTERY_CATALOG[nextIndex];
+      setReadingPassage(chosen);
+      setReadingQuestions(chosen.questions);
+      setReadingAnswers({});
+      setSubmitted(false);
+      setScoreReport(null);
+      setTimerSeconds(3600);
+      setTimerActive(true);
+      setIsGeneratingExam(false);
+      toast.success("AI Generated New Exam 🪄", `Loaded "${chosen.title.slice(0, 30)}..."`);
+    }, 600);
+  };
 
   // Timer Tick
   useEffect(() => {
@@ -252,26 +398,51 @@ export default function MockExamPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Battery Selector for Reading */}
+            {examType === 'reading' && (
+              <div className="hidden md:flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                {EXAM_BATTERY_CATALOG.map((bat, idx) => (
+                  <button
+                    key={bat.id}
+                    onClick={() => handleSelectBattery(idx)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      activeBatteryIndex === idx ? 'bg-white text-[#027FFF] shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Test {idx + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={handleShuffleAiExam}
+                  disabled={isGeneratingExam}
+                  className="flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 transition-opacity"
+                >
+                  <Sparkles className={`w-3 h-3 ${isGeneratingExam ? 'animate-spin' : ''}`} />
+                  <span>{isGeneratingExam ? 'Generating...' : 'AI New 🪄'}</span>
+                </button>
+              </div>
+            )}
+
             {/* Exam Mode Toggle */}
             <div className="bg-slate-100 p-1 rounded-2xl border border-slate-200 flex">
               <button
                 onClick={() => handleSwitchExam('reading')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   examType === 'reading' ? 'bg-[#027FFF] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                Reading Module (60m)
+                Reading (60m)
               </button>
               <button
                 onClick={() => handleSwitchExam('listening')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   examType === 'listening' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Headphones className="w-3.5 h-3.5" />
-                Listening Lab (30m)
+                Listening (30m)
               </button>
             </div>
 

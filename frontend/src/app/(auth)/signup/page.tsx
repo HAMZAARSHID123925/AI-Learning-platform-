@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { toast } from '@/components/ToastProvider';
@@ -15,6 +15,21 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isInstructorInvite, setIsInstructorInvite] = useState(false);
+
+  // Detect instructor invitation link
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const invite = params.get('invite');
+      const emailParam = params.get('email');
+      const roleParam = params.get('role');
+      if (invite || roleParam === 'instructor') {
+        setIsInstructorInvite(true);
+        if (emailParam) setEmail(decodeURIComponent(emailParam));
+      }
+    }
+  }, []);
 
   // Real-time password requirement checkers (NIST 800-63B Compliant)
   const hasMinLength = password.length >= 10;
@@ -108,8 +123,26 @@ export default function SignupPage() {
       if (response && response.ok) {
         const fullName = `${cleanFirst} ${cleanLast}`.trim() || 'Candidate';
         let role = 'Student';
-        if (cleanEmail.includes('admin')) role = 'Admin';
-        else if (cleanEmail.includes('instructor') || cleanEmail.includes('teacher')) role = 'Instructor';
+        if (cleanEmail.includes('admin')) {
+          role = 'Admin';
+        } else if (cleanEmail.includes('instructor') || cleanEmail.includes('teacher') || isInstructorInvite) {
+          role = 'Instructor';
+        }
+
+        // Check if there is an active staff invite for this email in storage
+        if (typeof window !== 'undefined') {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const inviteParam = params.get('invite');
+            const savedInvites = JSON.parse(localStorage.getItem('staff_invites') || '[]');
+            const updatedInvites = savedInvites.map((inv: any) => 
+              (inv.token === inviteParam || inv.email?.toLowerCase() === cleanEmail) 
+                ? { ...inv, status: 'ACCEPTED' } 
+                : inv
+            );
+            localStorage.setItem('staff_invites', JSON.stringify(updatedInvites));
+          } catch {}
+        }
 
         saveAuthSession('dev_token_' + Date.now(), role, fullName);
 
@@ -134,7 +167,10 @@ export default function SignupPage() {
           }
         }
 
-        toast.success('Account Created Successfully! 🎉', `Welcome, ${fullName}!`);
+        toast.success(
+          role === 'Instructor' ? 'Instructor Onboarding Complete! 👨‍🏫' : 'Account Created Successfully! 🎉', 
+          `Welcome to Pen & Page Academia, ${fullName}!`
+        );
         if (role === 'Admin') router.push('/admin/courses');
         else if (role === 'Instructor') router.push('/instructor');
         else router.push('/dashboard');
@@ -330,17 +366,28 @@ export default function SignupPage() {
           </Link>
         </div>
         <header className="mb-8 text-left">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold mb-3">
-            <svg className="w-3.5 h-3.5 text-[#027FFF]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-            </svg>
-            Candidate &amp; Institutional Sign-Up
-          </div>
+          {isInstructorInvite ? (
+            <div className="p-4 mb-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2 font-bold text-sm text-indigo-800">
+                <span className="text-base">🎓</span> Certified Instructor Invitation
+              </div>
+              <p className="text-xs text-indigo-700 mt-1">
+                You have been invited to join the teaching faculty. Creating your password will automatically configure your Instructor Dashboard and course privileges.
+              </p>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-semibold mb-3">
+              <svg className="w-3.5 h-3.5 text-[#027FFF]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              Candidate &amp; Institutional Sign-Up
+            </div>
+          )}
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Create your account
+            {isInstructorInvite ? 'Instructor Registration' : 'Create your account'}
           </h2>
           <p className="mt-2 text-sm text-slate-500 leading-normal">
-            Start your journey to language mastery today.
+            {isInstructorInvite ? 'Complete your staff profile to access assigned student cohorts.' : 'Start your journey to language mastery today.'}
           </p>
         </header>
 

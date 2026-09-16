@@ -185,23 +185,23 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
               </Link>
 
               <Link 
-                href="/dashboard/transformations" 
+                href="/dashboard/grammar" 
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  isActive('/dashboard/transformations') 
+                  isActive('/dashboard/grammar') || isActive('/dashboard/transformations')
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
-                <Brain className={`w-4 h-4 ${isActive('/dashboard/transformations') ? 'text-white' : 'text-indigo-400'}`} />
-                C2 Transformations 🧩
+                <Brain className={`w-4 h-4 ${isActive('/dashboard/grammar') || isActive('/dashboard/transformations') ? 'text-white' : 'text-indigo-400'}`} />
+                Grammar &amp; C2 Syntax 🧩
               </Link>
             </>
           ) : (
             <>
               <Link href="/dashboard/mock-exam" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><BookOpen className="w-4 h-4 text-slate-500" />Exam Studio</Link>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Grammar</Link>
+              <Link href="/dashboard/grammar" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><PenTool className="w-4 h-4 text-slate-500" />Grammar</Link>
               <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Conversation</Link>
-              <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Comprehension</Link>
+              <Link href="/dashboard/mock-exam" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Headphones className="w-4 h-4 text-slate-500" />Comprehension</Link>
             </>
           )}
           
@@ -295,19 +295,33 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
                   Instructor Hub
                 </Link>
               )}
-              {/* ONLY Admin or SuperAdmin can see Admin Studio (Teachers & Students cannot see this) */}
+              {/* ONLY Admin or SuperAdmin can see Admin Studio & Platform Analytics */}
               {isAdmin && (
-                <Link 
-                  href="/admin/courses" 
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                    isActive('/admin/courses')
-                      ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-amber-400'
-                  }`}
-                >
-                  <Settings className="w-4 h-4 text-amber-400" />
-                  Admin Studio
-                </Link>
+                <>
+                  <Link 
+                    href="/admin/courses" 
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                      isActive('/admin/courses')
+                        ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-amber-400'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    Course Studio
+                  </Link>
+
+                  <Link 
+                    href="/admin/analytics" 
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                      isActive('/admin/analytics')
+                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-purple-400'
+                    }`}
+                  >
+                    <LineChartIcon className="w-4 h-4 text-purple-400" />
+                    Platform Analytics
+                  </Link>
+                </>
               )}
             </>
           )}
