@@ -251,7 +251,61 @@ export default function WritingPracticePage() {
             : "Well-developed argument structure with coherent paragraph transitions. To elevate your score to Band 8.5+, introduce more varied compound-complex sentence structures and precise academic collocations.",
           vocabulary_suggestions: taskType === 'task1' ? task1Suggestions : task2Suggestions
         });
-        toast.success("AI Rubric Evaluated! 🎯", `Calculated Band: ${calcBand}`);
+
+        // Auto-sync into Assessment Results Studio
+        try {
+          const writingRecord = {
+            id: `writing-session-${Date.now()}`,
+            title: `Writing: ${taskType === 'task1' ? 'Task 1 Visual Report' : 'Task 2 Essay'}`,
+            testType: taskType === 'task1' ? "IELTS Academic Task 1 Report" : "IELTS Academic Task 2 Essay",
+            date: "Just Now",
+            duration: "20m 00s",
+            overallBand: calcBand,
+            cefrLevel: calcBand >= 8.5 ? "C2 Mastery" : calcBand >= 7.5 ? "C1 Proficient User" : "B2 Vantage",
+            skillBreakdown: [
+              { subject: 'Task Response', A: Math.round(taskAchievementScore * 11.1), fullMark: 100 },
+              { subject: 'Cohesion', A: Math.round(coherenceScore * 11.1), fullMark: 100 },
+              { subject: 'Lexical Resource', A: Math.round(lexicalScore * 11.1), fullMark: 100 },
+              { subject: 'Grammar (GRA)', A: Math.round(grammarScore * 11.1), fullMark: 100 },
+              { subject: 'Macro-Overview', A: hasOverview ? 95 : 55, fullMark: 100 },
+            ],
+            fourSkills: {
+              listening: 8.0,
+              reading: 7.5,
+              writing: calcBand,
+              speaking: 7.5
+            },
+            greatestStrength: {
+              title: hasOverview ? "Macro-Overview & Trend Synthesis" : "Lexical Density",
+              desc: `${wordCount} words composed with strong academic register and paragraph structure.`
+            },
+            primaryWeakness: {
+              title: !hasOverview ? "Missing Macro Trend Overview" : "Syntactic Inversion Variety",
+              desc: !hasOverview ? "Include an explicit overview paragraph to unlock Band 7.0+ Task Achievement." : "Incorporate subjunctive conditionals to secure Band 8.5."
+            },
+            feedback: {
+              paragraph1: `Your submission attained Band ${calcBand}. Coherence and cohesion was maintained throughout the response paragraphs.`,
+              highlighted1: `${wordCount} Words Analyzed`,
+              paragraph2: "Targeted refinement of complex sentence structures will eliminate punctuation slips and elevate syntactic range.",
+              highlighted2: "C2 Grammar Inversions"
+            },
+            pieBreakdown: [
+              { name: 'Task Response', value: 30, color: '#027FFF' },
+              { name: 'Coherence', value: 25, color: '#10B981' },
+              { name: 'Lexicon', value: 25, color: '#8B5CF6' },
+              { name: 'Grammar', value: 20, color: '#F59E0B' }
+            ],
+            remediation: [
+              { title: "Task 2 Thesis & Counter-Argument Framing", type: "Model Essay Drill", duration: "15 min" },
+              { title: "C2 Sentence Transformation Mastery", type: "Grammar Inversions", duration: "20 min" }
+            ]
+          };
+          localStorage.setItem('penpage_latest_assessment', JSON.stringify(writingRecord));
+        } catch {
+          // ignore
+        }
+
+        toast.success("AI Rubric Evaluated! 🎯", `Calculated Band: ${calcBand} • Synced to Assessment Results`);
       }
     } catch (err) {
       console.error(err);
@@ -597,12 +651,21 @@ export default function WritingPracticePage() {
                   </div>
                 )}
 
-                <button
-                  onClick={() => setEvaluation(null)}
-                  className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
-                >
-                  Write Another Report
-                </button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <Link
+                    href="/dashboard/results"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/20 text-center flex items-center justify-center gap-2"
+                  >
+                    <Award className="w-4 h-4" /> Full Assessment &amp; Certificate 🏆
+                  </Link>
+
+                  <button
+                    onClick={() => setEvaluation(null)}
+                    className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                  >
+                    Write Another Report
+                  </button>
+                </div>
 
               </div>
             ) : (

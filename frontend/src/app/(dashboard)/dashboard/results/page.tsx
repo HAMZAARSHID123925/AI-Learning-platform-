@@ -169,6 +169,76 @@ export default function ResultsPage() {
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>("speaking-mock-4");
   const [assessments, setAssessments] = useState<AssessmentRecord[]>(DEFAULT_ASSESSMENTS);
 
+  // Micro Drill Interactive State
+  const [activeDrill, setActiveDrill] = useState<{
+    title: string;
+    type: string;
+    question: string;
+    context?: string;
+    options: string[];
+    correctIdx: number;
+    explanation: string;
+    bandImpact: string;
+  } | null>(null);
+  const [selectedDrillOption, setSelectedDrillOption] = useState<number | null>(null);
+  const [drillAnswered, setDrillAnswered] = useState(false);
+
+  const handleOpenDrill = (remediationTitle: string) => {
+    let drill = {
+      title: remediationTitle,
+      type: "AI Targeted Remediation",
+      question: "Which high-register phrase elevates lexical precision in your target test?",
+      context: "Urban overpopulation ________ unprecedented stress on municipal infrastructure.",
+      options: [
+        "makes big trouble for",
+        "exerts a severely detrimental strain upon",
+        "causes super hard difficulties to",
+        "creates high bad impacts against"
+      ],
+      correctIdx: 1,
+      explanation: "'Exerts a severely detrimental strain upon' demonstrates native-level C2 collocation competence, immediately replacing repetitive basic verbs.",
+      bandImpact: "+0.5 Band Score Improvement"
+    };
+
+    if (remediationTitle.toLowerCase().includes("inversion") || remediationTitle.toLowerCase().includes("sentence")) {
+      drill = {
+        title: remediationTitle,
+        type: "Grammar (GRA) Inversion Engine",
+        question: "Select the inverted conditional sentence structure:",
+        context: "________ the government to subsidize renewable energy, adoption rates would triple.",
+        options: [
+          "If the government was",
+          "Were the government",
+          "Should the government had",
+          "If had the government"
+        ],
+        correctIdx: 1,
+        explanation: "Subjunctive conditional inversion with 'Were [subject] to [verb]' is a definitive indicator of Band 8.5+ Grammatical Range.",
+        bandImpact: "+0.5 Syntactic Range (GRA)"
+      };
+    } else if (remediationTitle.toLowerCase().includes("idiom") || remediationTitle.toLowerCase().includes("speaking")) {
+      drill = {
+        title: remediationTitle,
+        type: "Speaking Part 2 Spontaneous Idiom",
+        question: "Which idiomatic expression naturally describes overcoming an initial hesitation?",
+        context: "Although I was initially terrified of public speaking, I ________ and delivered the presentation.",
+        options: [
+          "bit the bullet",
+          "did it very strong",
+          "took the hard work",
+          "got the big courage"
+        ],
+        correctIdx: 0,
+        explanation: "'Bit the bullet' is a natural, unforced idiomatic expression that examiners look for when assessing Band 8.0+ Lexical Resource.",
+        bandImpact: "+0.5 Speaking Fluency & Lexicon"
+      };
+    }
+
+    setActiveDrill(drill);
+    setSelectedDrillOption(null);
+    setDrillAnswered(false);
+  };
+
   useEffect(() => {
     // Load Candidate Name and custom settings from localStorage
     try {
@@ -288,43 +358,118 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Radar Chart (Strengths & Weaknesses) */}
-          <div className="col-span-1 lg:col-span-2 bg-white border border-slate-200/80 rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-8 shadow-sm">
-            <div className="w-full sm:w-1/2 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={activeAssessment.skillBreakdown}>
-                  <PolarGrid stroke="#E2E8F0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Student" dataKey="A" stroke="#027FFF" strokeWidth={2} fill="#027FFF" fillOpacity={0.25} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-full sm:w-1/2 space-y-5">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1.5">
-                  <Target className="w-4 h-4 text-emerald-600" />
-                  Greatest Strength
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                  {activeAssessment.greatestStrength.title}
-                </p>
-                <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                  {activeAssessment.greatestStrength.desc}
-                </p>
+          {/* Radar Chart (Strengths & Weaknesses) + Circular Feature Percentage Rings */}
+          <div className="col-span-1 lg:col-span-2 bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 flex flex-col justify-between shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Radar Chart with safe padding so no label clips */}
+              <div className="w-full sm:w-1/2 h-64 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="58%" data={activeAssessment.skillBreakdown}>
+                    <PolarGrid stroke="#E2E8F0" />
+                    <PolarAngleAxis 
+                      dataKey="subject" 
+                      tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }}
+                    />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Radar name="Candidate" dataKey="A" stroke="#027FFF" strokeWidth={2.5} fill="#027FFF" fillOpacity={0.25} />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
-              <div className="h-px w-full bg-slate-100"></div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1.5">
-                  <AlertCircle className="w-4 h-4 text-rose-500" />
-                  Primary Weakness
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                  {activeAssessment.primaryWeakness.title}
-                </p>
-                <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                  {activeAssessment.primaryWeakness.desc}
-                </p>
+
+              {/* Strengths & Weaknesses Callouts */}
+              <div className="w-full sm:w-1/2 space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1">
+                    <Target className="w-4 h-4 text-emerald-600" />
+                    Greatest Strength
+                  </h3>
+                  <p className="text-xs text-slate-800 font-bold">
+                    {activeAssessment.greatestStrength.title}
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                    {activeAssessment.greatestStrength.desc}
+                  </p>
+                </div>
+
+                <div className="h-px w-full bg-slate-100"></div>
+
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1">
+                    <AlertCircle className="w-4 h-4 text-rose-500" />
+                    Primary Weakness
+                  </h3>
+                  <p className="text-xs text-slate-800 font-bold">
+                    {activeAssessment.primaryWeakness.title}
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                    {activeAssessment.primaryWeakness.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Circular Percentage Rings for Every Rubric Feature */}
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Feature Competence Breakdown
+                </span>
+                <span className="text-[10px] font-bold text-[#027FFF] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                  100% Normalized Scale
+                </span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+                {activeAssessment.skillBreakdown.map((skill, idx) => {
+                  const colors = [
+                    { stroke: '#027FFF', text: 'text-[#027FFF]', bg: 'bg-blue-50/50' },
+                    { stroke: '#8B5CF6', text: 'text-purple-600', bg: 'bg-purple-50/50' },
+                    { stroke: '#10B981', text: 'text-emerald-600', bg: 'bg-emerald-50/50' },
+                    { stroke: '#F59E0B', text: 'text-amber-600', bg: 'bg-amber-50/50' },
+                    { stroke: '#06B6D4', text: 'text-cyan-600', bg: 'bg-cyan-50/50' }
+                  ];
+                  const colorScheme = colors[idx % colors.length];
+                  const radius = 18;
+                  const circ = 2 * Math.PI * radius;
+                  const offset = circ - (skill.A / 100) * circ;
+
+                  return (
+                    <div 
+                      key={skill.subject}
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-2xl border border-slate-200/70 ${colorScheme.bg} shadow-2xs hover:scale-105 transition-transform`}
+                    >
+                      <div className="relative w-12 h-12 flex items-center justify-center">
+                        <svg className="w-12 h-12 transform -rotate-90">
+                          <circle
+                            cx="24"
+                            cy="24"
+                            r={radius}
+                            stroke="#E2E8F0"
+                            strokeWidth="3.5"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="24"
+                            cy="24"
+                            r={radius}
+                            stroke={colorScheme.stroke}
+                            strokeWidth="3.5"
+                            strokeDasharray={circ}
+                            strokeDashoffset={offset}
+                            strokeLinecap="round"
+                            fill="transparent"
+                            className="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <span className={`absolute text-[11px] font-black font-mono ${colorScheme.text}`}>
+                          {skill.A}%
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-700 mt-1.5 text-center truncate max-w-[72px]" title={skill.subject}>
+                        {skill.subject}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -466,13 +611,19 @@ export default function ResultsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {activeAssessment.remediation.map((item, idx) => (
-                <div key={idx} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:border-purple-300 transition-colors cursor-pointer group">
-                  <BookOpen className="w-6 h-6 text-purple-600 mb-3" />
-                  <h4 className="font-bold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">{item.title}</h4>
-                  <p className="text-xs text-slate-500 mb-4">{item.duration} • {item.type}</p>
-                  <Link href="/dashboard/courses" className="text-xs font-bold text-purple-600 flex items-center">
-                    Start Lesson <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                <div 
+                  key={idx} 
+                  onClick={() => handleOpenDrill(item.title)}
+                  className="bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:border-purple-300 transition-colors cursor-pointer group flex flex-col justify-between"
+                >
+                  <div>
+                    <BookOpen className="w-6 h-6 text-purple-600 mb-3" />
+                    <h4 className="font-bold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">{item.title}</h4>
+                    <p className="text-xs text-slate-500 mb-4">{item.duration} • {item.type}</p>
+                  </div>
+                  <div className="text-xs font-bold text-purple-600 flex items-center">
+                    Launch Interactive Micro-Drill <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -480,6 +631,121 @@ export default function ResultsPage() {
         )}
 
       </main>
+
+      {/* INTERACTIVE REMEDIATION MICRO-DRILL MODAL */}
+      {activeDrill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-purple-600">
+                <Brain className="w-4 h-4" /> {activeDrill.type}
+              </div>
+              <button
+                onClick={() => setActiveDrill(null)}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs"
+              >
+                Close
+              </button>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                Target Drill Focus
+              </span>
+              <h3 className="text-lg font-black text-slate-900 leading-snug">{activeDrill.title}</h3>
+            </div>
+
+            {/* Drill Prompt */}
+            <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-2">
+              <p className="text-xs font-bold text-slate-700">{activeDrill.question}</p>
+              {activeDrill.context && (
+                <p className="text-sm font-serif text-slate-900 italic font-semibold pt-1">
+                  &ldquo;{activeDrill.context}&rdquo;
+                </p>
+              )}
+            </div>
+
+            {/* Options */}
+            <div className="space-y-2.5">
+              {activeDrill.options.map((opt, oIdx) => {
+                const isSelected = selectedDrillOption === oIdx;
+                const isCorrect = oIdx === activeDrill.correctIdx;
+
+                let btnStyle = "border-slate-200 bg-white hover:border-purple-300 text-slate-800";
+                if (drillAnswered) {
+                  if (isCorrect) {
+                    btnStyle = "border-emerald-500 bg-emerald-50 text-emerald-900 font-bold";
+                  } else if (isSelected && !isCorrect) {
+                    btnStyle = "border-rose-400 bg-rose-50 text-rose-900 line-through";
+                  }
+                } else if (isSelected) {
+                  btnStyle = "border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-600/20";
+                }
+
+                return (
+                  <button
+                    key={oIdx}
+                    disabled={drillAnswered}
+                    onClick={() => setSelectedDrillOption(oIdx)}
+                    className={`w-full text-left p-3.5 rounded-2xl border text-xs transition-all flex items-center justify-between ${btnStyle}`}
+                  >
+                    <span>{opt}</span>
+                    {drillAnswered && isCorrect && (
+                      <span className="text-xs font-extrabold text-emerald-600 flex items-center gap-1">
+                        ✓ Correct
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Explanation & Action */}
+            {drillAnswered ? (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${selectedDrillOption === activeDrill.correctIdx ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                  <p className="font-bold mb-1">
+                    {selectedDrillOption === activeDrill.correctIdx ? '🎉 Excellent Choice!' : '💡 Diagnostic Review:'}
+                  </p>
+                  <p>{activeDrill.explanation}</p>
+                  <span className="mt-2 inline-block font-extrabold text-[11px] text-purple-700 bg-purple-100/60 px-2 py-0.5 rounded-md">
+                    {activeDrill.bandImpact}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      setSelectedDrillOption(null);
+                      setDrillAnswered(false);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
+                  >
+                    Try Again
+                  </button>
+
+                  <button
+                    onClick={() => setActiveDrill(null)}
+                    className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all shadow-md shadow-purple-600/20"
+                  >
+                    Completed Drill 🎯
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                disabled={selectedDrillOption === null}
+                onClick={() => setDrillAnswered(true)}
+                className="w-full py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-blue-500/20"
+              >
+                Submit Answer for AI Grading
+              </button>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {/* OFFICIAL CERTIFICATE MODAL */}
       {showCertificate && (
