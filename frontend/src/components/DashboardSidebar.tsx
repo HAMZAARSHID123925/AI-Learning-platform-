@@ -155,6 +155,17 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
           
           <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs &amp; Diagnostics</div>
           <Link 
+            href="/diagnostic" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/diagnostic') 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <BrainCircuit className={`w-4 h-4 ${isActive('/diagnostic') ? 'text-white' : 'text-blue-400'}`} />
+            Diagnostic Check
+          </Link>
+          <Link 
             href="/dashboard/simulator" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
               isActive('/dashboard/simulator') 

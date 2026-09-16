@@ -19,6 +19,7 @@ export default function Navbar() {
   const links = [
     { name: 'Home', href: '/' },
     { name: 'Courses', href: '/courses' },
+    { name: 'Diagnostic Check', href: '/diagnostic' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'About Us', href: '/about' },
     { name: 'How It Works', href: '/how-it-works' },
