@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
-  LayoutDashboard, BrainCircuit, BookOpen, Headphones, PenTool, Mic, 
+  LayoutDashboard, BrainCircuit, Brain, BookOpen, Headphones, PenTool, Mic, 
   Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award,
   ShieldCheck, User, Menu, X
 } from 'lucide-react';
@@ -182,6 +182,18 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
               >
                 <Mic className={`w-4 h-4 ${isActive('/dashboard/simulator') ? 'text-white' : 'text-emerald-400'}`} />
                 Speaking Studio
+              </Link>
+
+              <Link 
+                href="/dashboard/transformations" 
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  isActive('/dashboard/transformations') 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Brain className={`w-4 h-4 ${isActive('/dashboard/transformations') ? 'text-white' : 'text-indigo-400'}`} />
+                C2 Transformations 🧩
               </Link>
             </>
           ) : (
