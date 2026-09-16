@@ -26,6 +26,13 @@ export default function SimulatorPage() {
   const [feedback, setFeedback] = useState<any>(null);
   const [activeCue, setActiveCue] = useState(0);
 
+  // Audio Recording State
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingRecordedAudio, setIsPlayingRecordedAudio] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   // Web Speech API Ref
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -101,11 +108,41 @@ export default function SimulatorPage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setPhase('active');
     setIsRecording(true);
     setTranscript("");
     setTimer(120);
+    setAudioUrl(null);
+    audioChunksRef.current = [];
+
+    // Start Audio Stream Capture for Candidate Playback
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          setAudioUrl(url);
+          // Stop media tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+      } catch (micErr) {
+        console.warn("Microphone hardware stream unavailable for recording blob:", micErr);
+      }
+    }
+
     if (recognitionRef.current) {
       try { recognitionRef.current.start(); } catch {}
     }
@@ -116,6 +153,11 @@ export default function SimulatorPage() {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
     }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch {}
+    }
+
     setIsRecording(false);
     setPhase('analyzing');
     
@@ -368,6 +410,28 @@ export default function SimulatorPage() {
                   </p>
                 </div>
 
+                {/* Candidate Recorded Voice Playback */}
+                {audioUrl && (
+                  <div className="p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">Review Your Recorded Response</h4>
+                        <p className="text-[11px] text-indigo-700">Listen back to your pronunciation, intonation, and rhythm.</p>
+                      </div>
+                    </div>
+
+                    <audio 
+                      ref={audioElementRef} 
+                      src={audioUrl} 
+                      controls 
+                      className="h-9 w-full sm:w-64 rounded-xl accent-[#027FFF]"
+                    />
+                  </div>
+                )}
+
                 {/* Weakness Alert */}
                 <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -381,7 +445,7 @@ export default function SimulatorPage() {
 
                 <div className="flex items-center justify-between pt-2">
                   <button
-                    onClick={() => { setPhase('intro'); setTranscript(''); setTimer(120); }}
+                    onClick={() => { setPhase('intro'); setTranscript(''); setTimer(120); setAudioUrl(null); }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> Try Another Prompt

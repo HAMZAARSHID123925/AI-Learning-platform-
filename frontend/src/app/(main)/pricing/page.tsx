@@ -97,7 +97,7 @@ export default function PricingPage() {
 </div>
 </div>
 <div className="pt-space-xl mt-space-lg">
-<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors shadow-sm" href="/signup">
+<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors shadow-sm" href="/checkout?plan=baseline">
 <span className="">Start Free Diagnostic Test</span>
 <span className="material-symbols-outlined text-label-md">arrow_forward</span>
 </Link>
@@ -151,7 +151,7 @@ export default function PricingPage() {
 </div>
 </div>
 <div className="pt-space-xl mt-space-lg">
-<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-secondary hover:bg-secondary-container text-on-secondary font-label-md text-label-md font-semibold transition-colors shadow-md" href="/signup">
+<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-secondary hover:bg-secondary-container text-on-secondary font-label-md text-label-md font-semibold transition-colors shadow-md" href={`/checkout?plan=mastery&interval=${isQuarterly ? 'quarterly' : 'monthly'}`}>
 <span className="">Get Started with Adaptive Mastery</span>
 <span className="material-symbols-outlined text-label-md">arrow_forward</span>
 </Link>
@@ -201,7 +201,7 @@ export default function PricingPage() {
 </div>
 </div>
 <div className="pt-space-xl mt-space-lg">
-<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-colors shadow-sm" href="/signup">
+<Link className="w-full inline-flex items-center justify-center gap-space-xs py-space-sm px-space-md rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-colors shadow-sm" href={`/checkout?plan=institutional&interval=${isQuarterly ? 'quarterly' : 'monthly'}`}>
 <span className="">Enroll with Score Guarantee</span>
 <span className="material-symbols-outlined text-label-md">arrow_forward</span>
 </Link>

@@ -47,7 +47,7 @@ export default function AIStudyBuddy() {
     }
   }, [messages, isOpen]);
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputQuery;
     if (!text.trim() || isTyping) return;
 
@@ -62,33 +62,44 @@ export default function AIStudyBuddy() {
     setInputQuery('');
     setIsTyping(true);
 
-    // Simulate intelligent IELTS pedagogical responses
-    setTimeout(() => {
-      let aiResponseText = '';
-      const lower = text.toLowerCase();
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text.trim(),
+          history: messages.slice(-4).map(m => ({ sender: m.sender, text: m.text }))
+        })
+      });
 
-      if (lower.includes('synonym') || lower.includes('important') || lower.includes('vocab')) {
-        aiResponseText = `Here are 4 high-register Band 8.5+ alternatives to "important":\n\n1. **Paramount** — *"Effective time management is of paramount significance in the Reading module."*\n2. **Pivotal** — *"Technology plays a pivotal role in educational transformation."*\n3. **Imperative** — *"It is imperative that authorities allocate funding to sustainable transit."*\n4. **Indispensable** — *"Critical thinking remains indispensable for academic research."*`;
-      } else if (lower.includes('task 2') || lower.includes('agree') || lower.includes('essay') || lower.includes('structure')) {
-        aiResponseText = `**Band 8+ Task 2 "Agree/Disagree" Architecture:**\n\n• **Introduction (45-50 words)**: Paraphrase the prompt + explicitly state your direct thesis stance.\n• **Body 1 (90 words)**: Primary argument + real-world evidence or causal reasoning + impact.\n• **Body 2 (90 words)**: Secondary supporting argument + counter-perspective resolution.\n• **Conclusion (35-40 words)**: Restate thesis with refreshed lexical terms (no new points).`;
-      } else if (lower.includes('inversion') || lower.includes('grammar') || lower.includes('range')) {
-        aiResponseText = `**Grammatical Inversion for Band 8+ GRA:**\n\nWhen starting with negative adverbs (*Rarely, Seldom, Not only*), invert the auxiliary verb and subject:\n\n• Standard: *"Governments should not only regulate emissions, but they must also subsidize solar power."*\n• **Inverted (Band 8+)**: *"Not only **should governments** regulate emissions, but they must also subsidize solar power."*\n• Example 2: *"Seldom **do we witness** such rapid cognitive adaptation in adult learners."*`;
-      } else if (lower.includes('speaking') || lower.includes('part 2') || lower.includes('cue card')) {
-        aiResponseText = `**1-Minute Speaking Part 2 Note-Taking Blueprint:**\n\nDivide your scratch paper into 4 quadrant bullets:\n1. **WHO/WHAT**: (2 key nouns)\n2. **WHEN/WHERE**: (Past narrative setting)\n3. **WHAT HAPPENED**: (3 sequential action verbs)\n4. **WHY IT MATTERS**: (Feelings + high-level reflection)\n\n*Pro-tip: Focus 60% of your talking time on point 4 (Why it was memorable) to showcase emotional and philosophical fluency!*`;
+      let reply = '';
+      if (response.ok) {
+        const data = await response.json();
+        reply = data.reply;
       } else {
-        aiResponseText = `That's an excellent question! In academic IELTS and CEFR English, precision and coherence are key.\n\nTo optimize this concept:\n• Ensure strong **lexical variety** without forcing archaic words.\n• Use clear **cohesive linkers** (*Consequently, In contrast, To substantiate*).\n• Maintain consistent **subject-verb alignment**.\n\nWould you like me to generate a practice drill on this topic or review a sentence you've written?`;
+        reply = "I'm your AI Study Buddy. How can I assist with your grammar, essays, or speaking practice today?";
       }
 
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: aiResponseText,
+        text: reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setMessages(prev => [...prev, aiMsg]);
+    } catch (err) {
+      console.error("Failed to connect to AI study chat:", err);
+      const fallbackMsg: Message = {
+        id: `ai-${Date.now()}`,
+        sender: 'ai',
+        text: "I'm here to help with your IELTS preparation. Feel free to ask another question!",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, fallbackMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
   };
 
   return (
