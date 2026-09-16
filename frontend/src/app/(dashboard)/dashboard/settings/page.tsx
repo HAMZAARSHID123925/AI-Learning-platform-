@@ -156,23 +156,23 @@ export default function SettingsPage() {
     <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
       <DashboardSidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 bg-[#F0F4F8]">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
           <div>
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Sliders className="w-8 h-8 text-[#027FFF]" /> Candidate Target &amp; System Settings
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <Sliders className="w-7 h-7 text-[#027FFF]" /> Candidate Target &amp; System Settings
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Calibrate your IELTS target band, exam countdown, daily study goals, and hardware diagnostics.</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">Calibrate your IELTS target band, exam countdown, daily study goals, and hardware diagnostics.</p>
           </div>
 
           <button
             onClick={handleSaveSettings}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all"
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all shrink-0"
           >
             {isSaved ? (
               <>
@@ -188,55 +188,57 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('goals')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'goals' 
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80' 
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Target className="w-4 h-4 text-[#027FFF]" />
-            Academic Goals &amp; Exam Countdown
-          </button>
+        {/* Tab Navigation Bar */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-2.5 shadow-sm mb-6 flex items-center gap-2 overflow-x-auto">
+          <div className="flex items-center gap-2 min-w-max">
+            <button
+              onClick={() => setActiveTab('goals')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'goals' 
+                  ? 'bg-[#027FFF] text-white shadow-sm' 
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+              }`}
+            >
+              <Target className={`w-4 h-4 ${activeTab === 'goals' ? 'text-white' : 'text-[#027FFF]'}`} />
+              Academic Goals &amp; Exam Countdown
+            </button>
 
-          <button
-            onClick={() => setActiveTab('hardware')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'hardware' 
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80' 
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Mic className="w-4 h-4 text-purple-600" />
-            Hardware &amp; Simulator Diagnostics
-          </button>
+            <button
+              onClick={() => setActiveTab('hardware')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'hardware' 
+                  ? 'bg-purple-600 text-white shadow-sm' 
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+              }`}
+            >
+              <Mic className={`w-4 h-4 ${activeTab === 'hardware' ? 'text-white' : 'text-purple-600'}`} />
+              Hardware &amp; Simulator Diagnostics
+            </button>
 
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'profile' 
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80' 
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <User className="w-4 h-4 text-emerald-600" />
-            Profile &amp; Avatar
-          </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'profile' 
+                  ? 'bg-emerald-600 text-white shadow-sm' 
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+              }`}
+            >
+              <User className={`w-4 h-4 ${activeTab === 'profile' ? 'text-white' : 'text-emerald-600'}`} />
+              Profile &amp; Avatar
+            </button>
 
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'notifications' 
-                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80' 
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Bell className="w-4 h-4 text-amber-500" />
-            Notifications &amp; Reminders
-          </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'notifications' 
+                  ? 'bg-amber-500 text-white shadow-sm' 
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+              }`}
+            >
+              <Bell className={`w-4 h-4 ${activeTab === 'notifications' ? 'text-white' : 'text-amber-500'}`} />
+              Notifications &amp; Reminders
+            </button>
+          </div>
         </div>
 
         {/* Tab 1: Academic Goals & Exam Countdown */}
