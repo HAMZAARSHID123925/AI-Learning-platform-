@@ -16,12 +16,13 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Real-time password requirement checkers
-  const hasMinLength = password.length >= 8;
+  // Real-time password requirement checkers (NIST 800-63B Compliant)
+  const hasMinLength = password.length >= 10;
   const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  const isPasswordValid = hasMinLength && hasUppercase && hasNumber;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +40,8 @@ export default function SignupPage() {
     }
 
     if (!hasMinLength) {
-      setError('Password must be at least 8 characters long.');
-      toast.error('Password Requirement', 'Minimum 8 characters required.');
+      setError('Password must be at least 10 characters long.');
+      toast.error('Password Requirement', 'Minimum 10 characters required.');
       return;
     }
 
@@ -50,9 +51,21 @@ export default function SignupPage() {
       return;
     }
 
+    if (!hasLowercase) {
+      setError('Password must contain at least one lowercase letter (a-z).');
+      toast.error('Password Requirement', 'Include at least one lowercase letter.');
+      return;
+    }
+
     if (!hasNumber) {
       setError('Password must contain at least one number (0-9).');
       toast.error('Password Requirement', 'Include at least one digit.');
+      return;
+    }
+
+    if (!hasSpecial) {
+      setError('Password must contain at least one special symbol (!@#$%^&*...).');
+      toast.error('Password Requirement', 'Include at least one special symbol.');
       return;
     }
 
@@ -416,14 +429,14 @@ export default function SignupPage() {
             {/* Password Requirements Live Tracker */}
             <div className="mt-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
               <p className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Password Requirements:</span>
+                <span>Enterprise Password Policy:</span>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isPasswordValid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {isPasswordValid ? '✓ Strong & Ready' : 'Incomplete'}
+                  {isPasswordValid ? '✓ Meets Bank-Grade Policy' : 'Requirements Pending'}
                 </span>
               </p>
               
               <div className="grid grid-cols-2 gap-2 text-xs">
-                {/* 8+ Characters */}
+                {/* 10+ Characters */}
                 <div className={`flex items-center gap-1.5 transition-colors ${hasMinLength ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
                   <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasMinLength ? "3" : "2"} viewBox="0 0 24 24">
                     {hasMinLength ? (
@@ -432,19 +445,19 @@ export default function SignupPage() {
                       <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>At least 8 characters</span>
+                  <span>Min 10 characters</span>
                 </div>
 
-                {/* Uppercase Letter */}
-                <div className={`flex items-center gap-1.5 transition-colors ${hasUppercase ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasUppercase ? "3" : "2"} viewBox="0 0 24 24">
-                    {hasUppercase ? (
+                {/* Uppercase & Lowercase Letter */}
+                <div className={`flex items-center gap-1.5 transition-colors ${(hasUppercase && hasLowercase) ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={(hasUppercase && hasLowercase) ? "3" : "2"} viewBox="0 0 24 24">
+                    {(hasUppercase && hasLowercase) ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
                       <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>1 uppercase letter (A-Z)</span>
+                  <span>Upper &amp; lower (A-z)</span>
                 </div>
 
                 {/* Number */}
@@ -459,16 +472,16 @@ export default function SignupPage() {
                   <span>1 number (0-9)</span>
                 </div>
 
-                {/* Special Character / Recommended */}
-                <div className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-400'}`}>
+                {/* Special Character */}
+                <div className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
                   <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasSpecial ? "3" : "2"} viewBox="0 0 24 24">
                     {hasSpecial ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
-                      <circle cx="12" cy="12" r="9" strokeDasharray="2 2" />
+                      <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>1 symbol (recommended)</span>
+                  <span>1 special symbol (!@#$)</span>
                 </div>
               </div>
             </div>

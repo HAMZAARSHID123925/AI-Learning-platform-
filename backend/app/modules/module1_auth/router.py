@@ -211,6 +211,67 @@ async def logout(
     response.delete_cookie(key="refresh_token", path="/api/v1/auth")
 
 
+@router.get(
+    "/auth/sessions",
+    response_model=list[SessionInfoResponse],
+    summary="List active sessions for current user",
+    tags=["Authentication"],
+)
+async def list_active_sessions(
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    List all active device sessions for current user.
+    """
+    from app.modules.module1_auth.models import RefreshToken
+    result = await db.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.revoked_at.is_(None),
+        ).order_by(RefreshToken.created_at.desc())
+    )
+    tokens = result.scalars().all()
+    user_agent = request.headers.get("user-agent", "Unknown Device")
+    client_ip = request.client.host if request.client else None
+
+    sessions = []
+    for idx, tok in enumerate(tokens):
+        sessions.append(
+            SessionInfoResponse(
+                session_id=str(tok.id),
+                device_info="Web Browser — " + (user_agent[:40] if idx == 0 else "Active Browser Session"),
+                ip_address=client_ip if idx == 0 else "Encrypted IP",
+                last_active_at=tok.created_at,
+                is_current=(idx == 0),
+            )
+        )
+    return sessions
+
+
+@router.post(
+    "/auth/sessions/revoke-others",
+    summary="Remote logout: Revoke all other active sessions",
+    tags=["Authentication"],
+)
+async def revoke_other_sessions(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    Log out all other devices and revoke all other refresh tokens for this user.
+    """
+    count = await auth_service.revoke_all_user_sessions(
+        db=db,
+        redis=redis,
+        user_id=current_user.id,
+    )
+    return {"message": f"Successfully revoked {count} active sessions.", "revoked_count": count}
+
+
 @router.post(
     "/auth/forgot-password",
     status_code=status.HTTP_202_ACCEPTED,

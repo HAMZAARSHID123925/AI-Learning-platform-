@@ -358,8 +358,10 @@ async def refresh_token(
     """
     Rotate refresh token and issue new access token.
 
-    Refresh token rotation: each refresh invalidates the old token and issues a new one.
-    If an old refresh token is replayed, the user is logged out (security protection).
+    Refresh token rotation (RTR):
+    - Each refresh invalidates the old token and issues a new one.
+    - If a revoked/already-used refresh token is presented (token reuse / theft),
+      the backend immediately revokes ALL tokens for that user session and destroys the Redis session.
 
     Returns: (new_access_token, new_raw_refresh_token)
     """
@@ -368,30 +370,56 @@ async def refresh_token(
     # Find the refresh token in DB
     result = await db.execute(
         select(RefreshToken)
-        .where(
-            RefreshToken.token_hash == token_hash,
-            RefreshToken.revoked_at.is_(None),
-        )
+        .where(RefreshToken.token_hash == token_hash)
         .options(selectinload(RefreshToken.user))
     )
     stored_token = result.scalar_one_or_none()
 
-    if stored_token is None or not stored_token.is_valid:
+    if stored_token is None:
         raise ResourceNotFoundError("RefreshToken", None)
 
     user = await _get_user_with_roles_by_id(db, stored_token.user_id)
     if user is None or user.status == UserStatus.suspended:
         raise AccountSuspendedError()
 
-    # Check Redis session still exists (protects against forced logout)
+    # DETECT TOKEN REUSE (Attempted attack with an already-used/revoked token)
+    if stored_token.revoked_at is not None or not stored_token.is_valid:
+        # Compromised Token Family Detected: Invalidate all tokens for user!
+        logger.warning(
+            "refresh_token_reuse_detected",
+            user_id=str(user.id),
+            token_id=str(stored_token.id)
+        )
+        # Revoke all refresh tokens for this user
+        all_user_tokens = await db.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user.id,
+                RefreshToken.revoked_at.is_(None)
+            )
+        )
+        for tok in all_user_tokens.scalars().all():
+            tok.revoked_at = datetime.now(timezone.utc)
+
+        # Destroy active Redis sessions
+        session_key = f"{settings.REDIS_KEY_PREFIX}:session:{user.id}"
+        await redis.delete(session_key)
+
+        await _write_audit_log(
+            db,
+            action="security.token_reuse_detected",
+            actor_id=user.id,
+            metadata={"compromised_token_id": str(stored_token.id)}
+        )
+        raise InvalidCredentialsError()
+
+    # Check Redis session still exists
     session_key = f"{settings.REDIS_KEY_PREFIX}:session:{user.id}"
     session_exists = await redis.exists(session_key)
     if not session_exists:
-        # Session was force-revoked (e.g., admin suspended account)
         stored_token.revoked_at = datetime.now(timezone.utc)
         raise InvalidCredentialsError()
 
-    # Rotate: revoke old token
+    # Rotate: Revoke current token
     stored_token.revoked_at = datetime.now(timezone.utc)
 
     # Issue new access token
@@ -461,6 +489,34 @@ async def logout_user(
 
     await _write_audit_log(db, action="user.logout", actor_id=user_id)
     logger.info("user_logout", user_id=str(user_id))
+
+
+async def revoke_all_user_sessions(
+    db: AsyncSession,
+    redis: Redis,
+    user_id: uuid.UUID,
+) -> int:
+    """
+    Remote Logout: Revoke all active refresh tokens and clear Redis session for a user.
+    """
+    result = await db.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    )
+    tokens = result.scalars().all()
+    now = datetime.now(timezone.utc)
+    for tok in tokens:
+        tok.revoked_at = now
+
+    # Destroy Redis session
+    session_key = f"{settings.REDIS_KEY_PREFIX}:session:{user_id}"
+    await redis.delete(session_key)
+
+    await _write_audit_log(db, action="user.revoke_all_sessions", actor_id=user_id)
+    logger.info("user_revoked_all_sessions", user_id=str(user_id), count=len(tokens))
+    return len(tokens)
 
 
 async def forgot_password(
