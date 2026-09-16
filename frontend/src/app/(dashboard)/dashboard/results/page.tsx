@@ -1,11 +1,10 @@
 "use client";
 import { fetchWithAuth } from "@/lib/api";
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Award, Target, BookOpen, AlertCircle, 
-  ChevronRight, Brain, Zap, Clock
+  ChevronRight, Brain, Zap, Clock, RefreshCw, CheckCircle2, FileText, Mic, Sparkles
 } from 'lucide-react';
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie, Legend, Tooltip, ResponsiveContainer,
@@ -14,12 +13,148 @@ import {
 
 import DashboardSidebar from '@/components/DashboardSidebar';
 
-const skillData = [
-  { subject: 'Grammar', A: 85, fullMark: 100 },
-  { subject: 'Vocabulary', A: 65, fullMark: 100 },
-  { subject: 'Fluency', A: 90, fullMark: 100 },
-  { subject: 'Pronunciation', A: 75, fullMark: 100 },
-  { subject: 'Coherence', A: 70, fullMark: 100 },
+interface AssessmentRecord {
+  id: string;
+  title: string;
+  testType: string;
+  date: string;
+  duration: string;
+  overallBand: number;
+  cefrLevel: string;
+  skillBreakdown: { subject: string; A: number; fullMark: number }[];
+  fourSkills: { listening: number; reading: number; writing: number; speaking: number };
+  greatestStrength: { title: string; desc: string };
+  primaryWeakness: { title: string; desc: string };
+  feedback: { paragraph1: string; highlighted1: string; paragraph2: string; highlighted2: string };
+  pieBreakdown: { name: string; value: number; color: string }[];
+  remediation: { title: string; type: string; duration: string }[];
+}
+
+const DEFAULT_ASSESSMENTS: AssessmentRecord[] = [
+  {
+    id: "speaking-mock-4",
+    title: "IELTS Speaking Mock Test #4",
+    testType: "Speaking Simulator (Part 2 Cue Card)",
+    date: "Completed Today",
+    duration: "14m 22s",
+    overallBand: 7.5,
+    cefrLevel: "C1 Proficient User",
+    skillBreakdown: [
+      { subject: 'Grammar', A: 85, fullMark: 100 },
+      { subject: 'Vocabulary', A: 65, fullMark: 100 },
+      { subject: 'Fluency', A: 90, fullMark: 100 },
+      { subject: 'Pronunciation', A: 75, fullMark: 100 },
+      { subject: 'Coherence', A: 70, fullMark: 100 },
+    ],
+    fourSkills: { listening: 8.0, reading: 7.5, writing: 7.0, speaking: 7.5 },
+    greatestStrength: {
+      title: "Fluency & Spontaneity",
+      desc: "Your speech rhythm is natural and sustained without noticeable unnatural pauses or cognitive strain."
+    },
+    primaryWeakness: {
+      title: "Lexical Resource (Repetition)",
+      desc: "Occasional reliance on lower-tier conversational descriptors. Upgrading common adjectives to C1 academic synonyms will secure Band 8.5."
+    },
+    feedback: {
+      paragraph1: "The candidate spoke at length without noticeable effort or loss of coherence. Natural linking words and topic-specific idioms were deployed effectively.",
+      highlighted1: "Complex syntactic structures",
+      paragraph2: "To cross the Band 8.0 threshold, replace high-frequency words with precise academic alternatives (e.g., replace 'big problem' with 'severe impediment' or 'critical bottleneck').",
+      highlighted2: "C2 Academic Collocations"
+    },
+    pieBreakdown: [
+      { name: 'Listening', value: 25, color: '#027FFF' },
+      { name: 'Grammar', value: 34, color: '#06B6D4' },
+      { name: 'Reading', value: 25, color: '#F59E0B' },
+      { name: 'Conversation', value: 8, color: '#EF4444' },
+      { name: 'Vocabulary', value: 8, color: '#8B5CF6' }
+    ],
+    remediation: [
+      { title: "Advanced Academic Adjectives Lexicon", type: "PDF Guide & Vocabulary Drill", duration: "12 min" },
+      { title: "Part 2 Idiomatic Expressions Masterclass", type: "Interactive Audio Drills", duration: "18 min" }
+    ]
+  },
+  {
+    id: "writing-task1-2",
+    title: "IELTS Writing Studio Full Battery",
+    testType: "Task 1 Visual Report + Task 2 Academic Essay",
+    date: "Completed Yesterday",
+    duration: "58m 10s",
+    overallBand: 8.0,
+    cefrLevel: "C1 Advanced Mastery",
+    skillBreakdown: [
+      { subject: 'Task Response', A: 85, fullMark: 100 },
+      { subject: 'Cohesion', A: 80, fullMark: 100 },
+      { subject: 'Lexical Resource', A: 85, fullMark: 100 },
+      { subject: 'Grammar (GRA)', A: 80, fullMark: 100 },
+      { subject: 'Macro-Overview', A: 90, fullMark: 100 },
+    ],
+    fourSkills: { listening: 8.5, reading: 8.0, writing: 8.0, speaking: 7.5 },
+    greatestStrength: {
+      title: "Macro-Overview & Data Synthesis",
+      desc: "Clear high-level trends identified immediately in Task 1 with accurate grouped percentage comparisons."
+    },
+    primaryWeakness: {
+      title: "Grammatical Subjunctive Inversions",
+      desc: "Minor punctuation slip with comma splices in compound conditional clauses in Task 2 body paragraph 2."
+    },
+    feedback: {
+      paragraph1: "Exceptional visual analysis with concise grouping of the dominant income brackets. The progression of arguments in Task 2 is logical and well-supported.",
+      highlighted1: "Band 8.5 Macro Trend Overview",
+      paragraph2: "Refine conditional inversions ('Were governments to intervene...') to eliminate run-on clauses.",
+      highlighted2: "Syntactic Variety & Inversion"
+    },
+    pieBreakdown: [
+      { name: 'Task Response', value: 30, color: '#027FFF' },
+      { name: 'Coherence', value: 25, color: '#10B981' },
+      { name: 'Lexicon', value: 25, color: '#8B5CF6' },
+      { name: 'Grammar', value: 20, color: '#F59E0B' }
+    ],
+    remediation: [
+      { title: "Task 2 Thesis & Counter-Argument Framing", type: "Model Essay Analysis", duration: "15 min" },
+      { title: "Data Trend Comparison Vocabulary Set", type: "Task 1 Visual Drill", duration: "10 min" }
+    ]
+  },
+  {
+    id: "diagnostic-check",
+    title: "Precision AI Diagnostic Placement",
+    testType: "Adaptive Baseline Evaluation",
+    date: "Initial Baseline",
+    duration: "10m 05s",
+    overallBand: 7.0,
+    cefrLevel: "C1 Independent User",
+    skillBreakdown: [
+      { subject: 'Grammar', A: 70, fullMark: 100 },
+      { subject: 'Vocabulary', A: 75, fullMark: 100 },
+      { subject: 'Fluency', A: 65, fullMark: 100 },
+      { subject: 'Pronunciation', A: 70, fullMark: 100 },
+      { subject: 'Coherence', A: 70, fullMark: 100 },
+    ],
+    fourSkills: { listening: 7.5, reading: 7.0, writing: 6.5, speaking: 7.0 },
+    greatestStrength: {
+      title: "Academic Vocabulary Range",
+      desc: "Solid grasp of academic collocations and formal register in reading comprehension contexts."
+    },
+    primaryWeakness: {
+      title: "Complex Syntactic Inversions",
+      desc: "Needs practice with inverted conditionals and passive causative structures under time constraints."
+    },
+    feedback: {
+      paragraph1: "The baseline test demonstrates robust foundation at CEFR C1. The candidate shows strong reading deduction capabilities in True/False/Not Given questions.",
+      highlighted1: "Accurate Inferential Deduction",
+      paragraph2: "Targeted daily practice on grammatical transformations and timed speaking drills will accelerate trajectory toward Band 8.5.",
+      highlighted2: "Daily Target Cadence"
+    },
+    pieBreakdown: [
+      { name: 'Reading', value: 30, color: '#027FFF' },
+      { name: 'Grammar', value: 25, color: '#06B6D4' },
+      { name: 'Vocabulary', value: 25, color: '#8B5CF6' },
+      { name: 'Listening', value: 20, color: '#F59E0B' }
+    ],
+    remediation: [
+      { title: "C2 Sentence Transformation Mastery", type: "Grammar Engine", duration: "20 min" },
+      { title: "Speaking Simulator 2-Minute Drill", type: "Audio Telemetry Drill", duration: "15 min" }
+    ]
+  }
 ];
 
 export default function ResultsPage() {
@@ -28,8 +163,38 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'remediation'>('overview');
   const [showCertificate, setShowCertificate] = useState(false);
+  
+  // Dynamic Candidate & Assessment state
+  const [candidateName, setCandidateName] = useState("Hamza Arshid");
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>("speaking-mock-4");
+  const [assessments, setAssessments] = useState<AssessmentRecord[]>(DEFAULT_ASSESSMENTS);
 
   useEffect(() => {
+    // Load Candidate Name and custom settings from localStorage
+    try {
+      const savedSettings = localStorage.getItem('penpage_user_settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.fullName) setCandidateName(parsed.fullName);
+      }
+      
+      const customLatest = localStorage.getItem('penpage_latest_assessment');
+      if (customLatest) {
+        const parsedRecord = JSON.parse(customLatest);
+        if (parsedRecord && parsedRecord.id) {
+          setAssessments(prev => {
+            const exists = prev.find(a => a.id === parsedRecord.id);
+            if (exists) return prev;
+            return [parsedRecord, ...prev];
+          });
+          setSelectedAssessmentId(parsedRecord.id);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Fetch live weakness flags from API
     fetchWithAuth('/students/me/weakness-flags')
       .then(res => res.json())
       .then(data => {
@@ -41,13 +206,7 @@ export default function ResultsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const pieData = [
-    { name: 'Listening', value: 25, color: '#027FFF' },
-    { name: 'Grammar', value: 34, color: '#06B6D4' },
-    { name: 'Reading', value: 25, color: '#F59E0B' },
-    { name: 'Conversation', value: 8, color: '#EF4444' },
-    { name: 'Vocabulary', value: 8, color: '#8B5CF6' }
-  ];
+  const activeAssessment = assessments.find(a => a.id === selectedAssessmentId) || assessments[0];
 
   return (
     <div className="flex h-screen bg-[#F0F4F8] text-slate-800 overflow-hidden font-sans">
@@ -55,32 +214,56 @@ export default function ResultsPage() {
       <DashboardSidebar />
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8] pb-32">
         
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        {/* Header with Assessment Selector */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-8">
           <div>
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" />
               Back to Overview
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assessment Results</h1>
-            <p className="text-sm text-slate-500 mt-1">IELTS Speaking Mock Test #4 • Completed Today</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assessment Results</h1>
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Live Synced
+              </span>
+            </div>
+            <p className="text-sm text-slate-500 mt-1">
+              Candidate: <span className="font-bold text-slate-800">{candidateName}</span> • {activeAssessment.title} ({activeAssessment.date})
+            </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Dynamic Test Switcher dropdown */}
+            <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-2xl px-3 py-2 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">Attempt:</span>
+              <select
+                aria-label="Select Assessment Record"
+                value={activeAssessment.id}
+                onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                className="bg-transparent font-bold text-xs text-slate-800 border-none outline-none cursor-pointer focus:ring-0"
+              >
+                {assessments.map(test => (
+                  <option key={test.id} value={test.id}>
+                    {test.title} (Band {test.overallBand})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <Link
               href="/dashboard/analytics"
               className="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-600/20 flex items-center gap-2 transition-all"
             >
-              <Award className="w-4 h-4" /> View Full Trajectory &amp; Certificate 🎓
+              <Award className="w-4 h-4" /> Trajectory &amp; Records 🎓
             </Link>
 
             <div className="hidden sm:flex items-center gap-3 bg-white border border-slate-200/80 px-4 py-2.5 rounded-2xl shadow-sm">
               <Clock className="w-4 h-4 text-[#027FFF]" />
               <div>
                 <p className="text-[10px] text-slate-400 font-semibold uppercase">Duration</p>
-                <p className="text-xs text-slate-900 font-bold">14m 22s</p>
+                <p className="text-xs text-slate-900 font-bold">{activeAssessment.duration}</p>
               </div>
             </div>
           </div>
@@ -90,13 +273,18 @@ export default function ResultsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           
           {/* Main Score Card */}
-          <div className="col-span-1 lg:col-span-1 bg-white border border-slate-200/80 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="col-span-1 lg:col-span-1 bg-white border border-slate-200/80 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden">
+            <div className="absolute top-3 right-3">
+              <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-blue-50 text-[#027FFF] border border-blue-200">
+                {activeAssessment.cefrLevel.split(' ')[0]}
+              </span>
+            </div>
             <Award className="w-12 h-12 text-[#027FFF] mb-3" />
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Overall Band Score</h2>
-            <div className="text-6xl font-black text-slate-900 tracking-tight mb-2">7.5</div>
+            <div className="text-6xl font-black text-slate-900 tracking-tight mb-2 font-mono">{activeAssessment.overallBand.toFixed(1)}</div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
               <Zap className="w-3 h-3" />
-              +0.5 from last test
+              {activeAssessment.cefrLevel}
             </div>
           </div>
 
@@ -104,11 +292,11 @@ export default function ResultsPage() {
           <div className="col-span-1 lg:col-span-2 bg-white border border-slate-200/80 rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-8 shadow-sm">
             <div className="w-full sm:w-1/2 h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillData}>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={activeAssessment.skillBreakdown}>
                   <PolarGrid stroke="#E2E8F0" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar name="Student" dataKey="A" stroke="#027FFF" strokeWidth={2} fill="#027FFF" fillOpacity={0.2} />
+                  <Radar name="Student" dataKey="A" stroke="#027FFF" strokeWidth={2} fill="#027FFF" fillOpacity={0.25} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -118,8 +306,11 @@ export default function ResultsPage() {
                   <Target className="w-4 h-4 text-emerald-600" />
                   Greatest Strength
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Your <strong className="text-slate-900">Fluency</strong> is excellent. You speak naturally without long unnatural pauses.
+                <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                  {activeAssessment.greatestStrength.title}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                  {activeAssessment.greatestStrength.desc}
                 </p>
               </div>
               <div className="h-px w-full bg-slate-100"></div>
@@ -128,8 +319,11 @@ export default function ResultsPage() {
                   <AlertCircle className="w-4 h-4 text-rose-500" />
                   Primary Weakness
                 </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Your <strong className="text-slate-900">Vocabulary</strong> (Lexical Resource) needs work. You repeat basic words like &quot;good&quot; and &quot;bad&quot;.
+                <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                  {activeAssessment.primaryWeakness.title}
+                </p>
+                <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                  {activeAssessment.primaryWeakness.desc}
                 </p>
               </div>
             </div>
@@ -142,7 +336,7 @@ export default function ResultsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={weaknesses.length > 0 ? weaknesses : pieData}
+                    data={weaknesses.length > 0 ? weaknesses : activeAssessment.pieBreakdown}
                     cx="50%"
                     cy="50%"
                     innerRadius={45}
@@ -152,7 +346,7 @@ export default function ResultsPage() {
                     stroke="none"
                     labelLine={false}
                   >
-                    {(weaknesses.length > 0 ? weaknesses : pieData).map((entry, index) => (
+                    {(weaknesses.length > 0 ? weaknesses : activeAssessment.pieBreakdown).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color || ['#027FFF', '#06B6D4', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5]} />
                     ))}
                   </Pie>
@@ -163,6 +357,49 @@ export default function ResultsPage() {
                   <Legend verticalAlign="bottom" height={20} iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* 4-SKILLS MINI CARD ROW */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Listening</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">{activeAssessment.fourSkills.listening.toFixed(1)}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#027FFF] flex items-center justify-center font-bold text-xs">
+              🎧
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Reading</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">{activeAssessment.fourSkills.reading.toFixed(1)}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+              📖
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Writing</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">{activeAssessment.fourSkills.writing.toFixed(1)}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
+              ✍️
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Speaking</p>
+              <p className="text-2xl font-black text-slate-900 font-mono">{activeAssessment.fourSkills.speaking.toFixed(1)}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">
+              🎙️
             </div>
           </div>
         </div>
@@ -180,7 +417,7 @@ export default function ResultsPage() {
               onClick={() => setActiveTab('remediation')}
               className={`pb-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'remediation' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
             >
-              AI Study Plan
+              AI Study Plan ({activeAssessment.remediation.length} Modules)
             </button>
           </div>
 
@@ -196,14 +433,22 @@ export default function ResultsPage() {
         {/* TAB CONTENT */}
         {activeTab === 'overview' ? (
           <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Examiner Feedback</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              Examiner Feedback &amp; Diagnostic Notes
+            </h3>
             <div className="space-y-4 text-slate-600 text-sm leading-relaxed">
               <p>
-                The candidate spoke at length without noticeable effort or loss of coherence. However, there were some hesitations as the candidate searched for language. 
-                <span className="text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded mx-1">Complex sentences</span> were used well.
+                {activeAssessment.feedback.paragraph1}{" "}
+                <span className="text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded mx-1">
+                  {activeAssessment.feedback.highlighted1}
+                </span>
               </p>
               <p>
-                The primary issue preventing a Band 8.0 is the reliance on simple <span className="text-rose-700 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded mx-1">vocabulary</span>. For example, instead of saying &quot;very big problem&quot;, the candidate could have used &quot;significant issue&quot; or &quot;major challenge&quot;.
+                {activeAssessment.feedback.paragraph2}{" "}
+                <span className="text-rose-700 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded mx-1">
+                  {activeAssessment.feedback.highlighted2}
+                </span>
               </p>
             </div>
           </div>
@@ -215,28 +460,21 @@ export default function ResultsPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Your Custom Remediation Path</h3>
-                <p className="text-xs text-slate-500 font-medium">AI-Generated based on diagnosed lexical gaps</p>
+                <p className="text-xs text-slate-500 font-medium">AI-Generated based on diagnosed lexical and syntactic gaps</p>
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:border-purple-300 transition-colors cursor-pointer group">
-                <BookOpen className="w-6 h-6 text-purple-600 mb-3" />
-                <h4 className="font-bold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">Advanced Adjectives List</h4>
-                <p className="text-xs text-slate-500 mb-4">12 min read • PDF Guide</p>
-                <div className="text-xs font-bold text-purple-600 flex items-center">
-                  Start Lesson <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              {activeAssessment.remediation.map((item, idx) => (
+                <div key={idx} className="bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:border-purple-300 transition-colors cursor-pointer group">
+                  <BookOpen className="w-6 h-6 text-purple-600 mb-3" />
+                  <h4 className="font-bold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">{item.title}</h4>
+                  <p className="text-xs text-slate-500 mb-4">{item.duration} • {item.type}</p>
+                  <Link href="/dashboard/courses" className="text-xs font-bold text-purple-600 flex items-center">
+                    Start Lesson <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </div>
-              </div>
-              
-              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl hover:border-purple-300 transition-colors cursor-pointer group">
-                <Target className="w-6 h-6 text-purple-600 mb-3" />
-                <h4 className="font-bold text-slate-900 mb-1 group-hover:text-purple-600 transition-colors">Idioms for Speaking Part 2</h4>
-                <p className="text-xs text-slate-500 mb-4">18 min • Interactive Video</p>
-                <div className="text-xs font-bold text-purple-600 flex items-center">
-                  Start Lesson <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -283,42 +521,42 @@ export default function ResultsPage() {
 
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-widest text-slate-400 font-extrabold">This is to certify that</p>
-                <h3 className="text-2xl font-black text-slate-900 font-serif">Hamza Arshid</h3>
+                <h3 className="text-2xl font-black text-slate-900 font-serif">{candidateName}</h3>
                 <p className="text-xs text-slate-500 font-medium">has successfully demonstrated official competence in</p>
-                <p className="text-sm font-bold text-[#027FFF]">IELTS Academic Full-Skill Evaluation Battery</p>
+                <p className="text-sm font-bold text-[#027FFF]">{activeAssessment.title}</p>
               </div>
 
               {/* Band Score Display */}
               <div className="inline-flex flex-col items-center justify-center px-6 py-4 rounded-2xl bg-amber-50 border-2 border-amber-300">
                 <span className="text-[10px] font-extrabold uppercase text-amber-800 tracking-wider">Overall Band Score</span>
-                <span className="text-4xl font-black text-amber-600 font-mono">7.5</span>
-                <span className="text-[11px] font-bold text-amber-700 mt-0.5">CEFR Level: C1 Proficient User</span>
+                <span className="text-4xl font-black text-amber-600 font-mono">{activeAssessment.overallBand.toFixed(1)}</span>
+                <span className="text-[11px] font-bold text-amber-700 mt-0.5">CEFR Level: {activeAssessment.cefrLevel}</span>
               </div>
 
               {/* 4 Skill Criteria Grid */}
               <div className="grid grid-cols-4 gap-2 pt-2 text-center">
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block font-semibold">Listening</span>
-                  <span className="text-base font-black text-slate-900">8.0</span>
+                  <span className="text-base font-black text-slate-900 font-mono">{activeAssessment.fourSkills.listening.toFixed(1)}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block font-semibold">Reading</span>
-                  <span className="text-base font-black text-slate-900">7.5</span>
+                  <span className="text-base font-black text-slate-900 font-mono">{activeAssessment.fourSkills.reading.toFixed(1)}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block font-semibold">Writing</span>
-                  <span className="text-base font-black text-slate-900">7.0</span>
+                  <span className="text-base font-black text-slate-900 font-mono">{activeAssessment.fourSkills.writing.toFixed(1)}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[10px] text-slate-500 block font-semibold">Speaking</span>
-                  <span className="text-base font-black text-slate-900">7.5</span>
+                  <span className="text-base font-black text-slate-900 font-mono">{activeAssessment.fourSkills.speaking.toFixed(1)}</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-6 border-t border-slate-200 text-left text-[10px] text-slate-400 font-medium">
                 <div>
                   <p className="font-bold text-slate-700">Verification ID: PPA-2026-8941</p>
-                  <p>Issued: September 16, 2026</p>
+                  <p>Evaluation: {activeAssessment.date}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-slate-700">Dr. Victoria Sterling</p>
@@ -333,3 +571,4 @@ export default function ResultsPage() {
     </div>
   );
 }
+
