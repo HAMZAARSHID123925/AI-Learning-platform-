@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   BookOpen, Sparkles, Volume2, RotateCcw, CheckCircle2, XCircle,
   ArrowLeft, ArrowRight, Flame, Layers, BrainCircuit,
-  Check, HelpCircle, Award, Shuffle, RefreshCw, Trophy
+  Check, HelpCircle, Award, Shuffle, RefreshCw, Trophy,
+  Sliders, Globe, Play
 } from 'lucide-react';
 import { toast } from '@/components/ToastProvider';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -13,6 +14,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 interface Flashcard {
   id: number;
   word: string;
+  syllables: string;
   phonetic: string;
   partOfSpeech: string;
   bandLevel: string;
@@ -41,6 +43,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 1,
     word: "Ubiquitous",
+    syllables: "u · BIQ · ui · tous",
     phonetic: "/juːˈbɪk.wɪ.təs/",
     partOfSpeech: "adjective",
     bandLevel: "Band 8.5",
@@ -52,6 +55,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 2,
     word: "Exacerbate",
+    syllables: "ex · AC · er · bate",
     phonetic: "/ɪɡˈzæs.ə.beɪt/",
     partOfSpeech: "verb",
     bandLevel: "Band 8.0",
@@ -63,6 +67,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 3,
     word: "Preponderance",
+    syllables: "pre · PON · der · ance",
     phonetic: "/prɪˈpɒn.dər.əns/",
     partOfSpeech: "noun",
     bandLevel: "Band 9.0",
@@ -74,6 +79,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 4,
     word: "Mitigate",
+    syllables: "MIT · i · gate",
     phonetic: "/ˈmɪt.ɪ.ɡeɪt/",
     partOfSpeech: "verb",
     bandLevel: "Band 7.5",
@@ -85,7 +91,8 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 5,
     word: "Proponents",
-    phonetic: "/prəˈpəʊ.nənt/",
+    syllables: "pro · PO · nents",
+    phonetic: "/prəˈpəʊ.nənts/",
     partOfSpeech: "noun",
     bandLevel: "Band 8.0",
     definition: "A person who advocates a theory, proposal, or project.",
@@ -96,6 +103,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 6,
     word: "Detrimental",
+    syllables: "det · ri · MEN · tal",
     phonetic: "/ˌdet.rɪˈmen.təl/",
     partOfSpeech: "adjective",
     bandLevel: "Band 8.0",
@@ -107,6 +115,7 @@ const DEFAULT_FLASHCARDS: Flashcard[] = [
   {
     id: 7,
     word: "Disseminate",
+    syllables: "dis · SEM · i · nate",
     phonetic: "/dɪˈsem.ɪ.neɪt/",
     partOfSpeech: "verb",
     bandLevel: "Band 8.5",
@@ -171,10 +180,14 @@ export default function VocabularyStudioPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
 
+  // TTS Voice Engine State
+  const [accent, setAccent] = useState<'en-GB' | 'en-US'>('en-GB');
+  const [speechRate, setSpeechRate] = useState<number>(0.9);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
   // Dynamic Data States initialized with robust defaults
   const [flashcards, setFlashcards] = useState<Flashcard[]>(DEFAULT_FLASHCARDS);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(DEFAULT_QUIZ_QUESTIONS);
-  const [loading, setLoading] = useState(false);
 
   // Dynamic Quiz State
   const [quizIndex, setQuizIndex] = useState(0);
@@ -182,6 +195,7 @@ export default function VocabularyStudioPage() {
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [quizHistory, setQuizHistory] = useState<{ questionId: number; selected: string; isCorrect: boolean }[]>([]);
 
   // Fetch dynamic vocabulary and quiz questions from API
@@ -226,14 +240,25 @@ export default function VocabularyStudioPage() {
     handleNext();
   };
 
-  // Pronounce audio helper
-  const handlePronounce = (word: string) => {
+  // Enhanced Real Voice Text-to-Speech (TTS) Engine
+  const handlePronounce = (textToSpeak: string, isFullSentence = false) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(word);
-      utter.lang = 'en-GB';
-      utter.rate = 0.9;
+      window.speechSynthesis.cancel(); // Stop any pending speech
+      
+      const utter = new SpeechSynthesisUtterance(textToSpeak);
+      utter.lang = accent;
+      utter.rate = speechRate;
+      
+      setIsPlayingAudio(true);
+      utter.onend = () => setIsPlayingAudio(false);
+      utter.onerror = () => setIsPlayingAudio(false);
+
       window.speechSynthesis.speak(utter);
-      toast.info("Audio Pronunciation 🔊", `Playing native British English audio for "${word}".`);
+      
+      const accentLabel = accent === 'en-GB' ? 'British (RP)' : 'American (GenAm)';
+      toast.info(`Audio Pronunciation 🔊 (${accentLabel})`, isFullSentence ? `Reading example sentence...` : `Pronouncing "${textToSpeak}"`);
+    } else {
+      toast.warning("Audio Notice", "Speech synthesis is not supported on this browser.");
     }
   };
 
@@ -284,23 +309,25 @@ export default function VocabularyStudioPage() {
     <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
       <DashboardSidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 lg:p-10 bg-[#F0F4F8]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-32 bg-[#F0F4F8]">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
           <div>
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-amber-500" /> Academic Lexicon &amp; Flashcards
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+              <BookOpen className="w-7 h-7 text-[#027FFF]" /> Academic Lexicon &amp; Pronunciation Studio
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Master Band 8.0+ collocations and idioms with SM-2 Spaced Repetition calibration.</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Spaced Repetition (SM-2) flashcards with British &amp; American TTS audio and phonetic stress breakdown.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* Mode Switcher */}
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-1 flex shadow-sm">
+            <div className="bg-slate-100 p-1 rounded-2xl flex shadow-inner">
               <button
                 onClick={() => setActiveTab('flashcards')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -315,7 +342,7 @@ export default function VocabularyStudioPage() {
                   activeTab === 'quiz' ? 'bg-[#027FFF] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Retention Quiz ({quizQuestions.length} Drills)
+                Retention Quiz ({quizQuestions.length})
               </button>
             </div>
 
@@ -326,30 +353,81 @@ export default function VocabularyStudioPage() {
           </div>
         </div>
 
-        {/* TOPIC FILTER BAR - ELEVATED WRAPPING PILL CONTAINER (NO CUTOFF) */}
+        {/* TOPIC FILTER & AUDIO CONTROLS BAR */}
         {activeTab === 'flashcards' && (
-          <div className="bg-white/90 backdrop-blur-sm border border-slate-200/90 rounded-2xl p-2.5 flex flex-wrap items-center gap-2 shadow-sm mb-6">
-            <div className="flex items-center gap-1.5 px-2 text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Topic Filter:</span>
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm mb-6">
+            
+            {/* Topic Filter */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Topic:
+              </span>
+              {topics.map(topic => (
+                <button
+                  key={topic}
+                  onClick={() => {
+                    setSelectedTopic(topic);
+                    setCurrentIndex(0);
+                    setIsFlipped(false);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    selectedTopic === topic
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  {topic}
+                </button>
+              ))}
             </div>
-            {topics.map(topic => (
-              <button
-                key={topic}
-                onClick={() => {
-                  setSelectedTopic(topic);
-                  setCurrentIndex(0);
-                  setIsFlipped(false);
-                }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedTopic === topic
-                    ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 hover:text-slate-900'
-                }`}
-              >
-                {topic}
-              </button>
-            ))}
+
+            {/* TTS Audio Controls (Accent & Speed) */}
+            <div className="flex items-center gap-2 self-end md:self-auto border-t md:border-t-0 pt-2 md:pt-0 w-full md:w-auto justify-between md:justify-end">
+              {/* Accent Selector */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <button
+                  onClick={() => setAccent('en-GB')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    accent === 'en-GB' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  }`}
+                  title="British Received Pronunciation"
+                >
+                  🇬🇧 UK
+                </button>
+                <button
+                  onClick={() => setAccent('en-US')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${
+                    accent === 'en-US' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  }`}
+                  title="General American Accent"
+                >
+                  🇺🇸 US
+                </button>
+              </div>
+
+              {/* Speed Selector */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <button
+                  onClick={() => setSpeechRate(0.75)}
+                  className={`px-2 py-1 rounded-lg transition-all ${
+                    speechRate === 0.75 ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-500'
+                  }`}
+                  title="Slow 0.75x speed for syllable clarity"
+                >
+                  0.75x Slow
+                </button>
+                <button
+                  onClick={() => setSpeechRate(0.9)}
+                  className={`px-2 py-1 rounded-lg transition-all ${
+                    speechRate === 0.9 ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  }`}
+                  title="Normal 1.0x native cadence"
+                >
+                  1.0x Normal
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -357,37 +435,71 @@ export default function VocabularyStudioPage() {
         {activeTab === 'flashcards' ? (
           <div className="flex flex-col items-center justify-center max-w-2xl mx-auto w-full">
             
-            {/* Card Counter */}
+            {/* Card Counter & Prev/Next */}
             <div className="flex items-center justify-between w-full mb-3 text-xs font-bold text-slate-500 px-2">
-              <span>Card {currentIndex + 1} of {filteredCards.length}</span>
-              <span className="text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200 font-bold">{currentCard.bandLevel}</span>
+              <button 
+                onClick={handlePrev}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 hover:bg-slate-50 text-slate-700 transition-colors"
+              >
+                &larr; Prev Card
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <span>Card {currentIndex + 1} of {validCards.length}</span>
+                <span className="text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200 font-bold">{currentCard.bandLevel}</span>
+              </div>
+
+              <button 
+                onClick={handleNext}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 hover:bg-slate-50 text-slate-700 transition-colors"
+              >
+                Next Card &rarr;
+              </button>
             </div>
 
             {/* 3D Flip Card */}
             <div 
               onClick={() => setIsFlipped(p => !p)}
-              className="w-full min-h-[380px] bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-xl transition-all cursor-pointer relative flex flex-col justify-between group select-none"
+              className="w-full min-h-[400px] bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-xl transition-all cursor-pointer relative flex flex-col justify-between group select-none"
             >
               {/* Card Front */}
               {!isFlipped ? (
-                <div className="flex-1 flex flex-col justify-between items-center text-center py-6">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{currentCard.topic} • {currentCard.partOfSpeech}</span>
+                <div className="flex-1 flex flex-col justify-between items-center text-center py-4">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    {currentCard.topic} • {currentCard.partOfSpeech}
+                  </span>
                   
-                  <div>
-                    <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-3">
+                  <div className="my-auto space-y-4">
+                    <h2 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
                       {currentCard.word}
                     </h2>
-                    <div className="flex items-center justify-center gap-2 text-sm text-[#027FFF] font-mono font-bold">
-                      <span>{currentCard.phonetic}</span>
+
+                    {/* Syllable Stress Display */}
+                    {currentCard.syllables && (
+                      <div className="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-mono text-xs font-semibold">
+                        Syllable Stress: <strong className="text-purple-700">{currentCard.syllables}</strong>
+                      </div>
+                    )}
+
+                    {/* Phonetic & Audio Trigger Capsule */}
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-base text-[#027FFF] font-mono font-bold">
+                        {currentCard.phonetic}
+                      </span>
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePronounce(currentCard.word);
                         }}
-                        className="p-1.5 rounded-full hover:bg-blue-50 transition-colors"
-                        title="Play audio"
+                        className={`p-2.5 rounded-2xl transition-all flex items-center gap-1.5 ${
+                          isPlayingAudio 
+                            ? 'bg-blue-600 text-white animate-pulse' 
+                            : 'bg-blue-50 text-[#027FFF] hover:bg-blue-100 border border-blue-200'
+                        }`}
+                        title="Listen to native pronunciation"
                       >
                         <Volume2 className="w-4 h-4" />
+                        <span className="text-xs font-bold">Play Audio</span>
                       </button>
                     </div>
                   </div>
@@ -401,8 +513,23 @@ export default function VocabularyStudioPage() {
                 <div className="flex-1 flex flex-col justify-between py-2 animate-in fade-in zoom-in-95 duration-200 text-left">
                   <div>
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                      <span className="text-lg font-black text-slate-900">{currentCard.word}</span>
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">{currentCard.bandLevel}</span>
+                      <div>
+                        <span className="text-xl font-black text-slate-900">{currentCard.word}</span>
+                        <span className="text-xs text-slate-400 font-mono ml-2">{currentCard.phonetic}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePronounce(currentCard.word);
+                          }}
+                          className="p-1.5 rounded-lg bg-blue-50 text-[#027FFF] hover:bg-blue-100 transition-colors"
+                          title="Replay pronunciation"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">{currentCard.bandLevel}</span>
+                      </div>
                     </div>
 
                     <p className="text-base text-slate-800 font-bold mb-4 leading-snug">
@@ -411,7 +538,7 @@ export default function VocabularyStudioPage() {
 
                     <div className="space-y-3">
                       <div>
-                        <span className="text-xs font-bold text-purple-600 uppercase tracking-wider block mb-1">Key Collocations:</span>
+                        <span className="text-xs font-bold text-purple-600 uppercase tracking-wider block mb-1">Key Academic Collocations:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {currentCard.collocations.map((c, i) => (
                             <span key={i} className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 text-xs font-semibold border border-purple-200">
@@ -422,7 +549,18 @@ export default function VocabularyStudioPage() {
                       </div>
 
                       <div className="pt-2">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Example in IELTS Context:</span>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Example in IELTS Context:</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePronounce(currentCard.exampleSentence, true);
+                            }}
+                            className="text-[11px] font-bold text-[#027FFF] hover:underline flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3 fill-[#027FFF]" /> Listen to Sentence
+                          </button>
+                        </div>
                         <p className="text-xs text-slate-600 font-serif italic bg-slate-50 p-3 rounded-xl border border-slate-200/60 leading-relaxed">
                           &ldquo;{currentCard.exampleSentence}&rdquo;
                         </p>
@@ -449,10 +587,10 @@ export default function VocabularyStudioPage() {
                   </button>
                   <button 
                     onClick={() => handleRating("Hard (3d)")} 
-                    className="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold text-xs transition-colors text-center"
+                    className="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold text-xs transition-colors text-center"
                   >
                     <span className="block">Hard</span>
-                    <span className="text-[10px] text-amber-500 font-normal">3 Days</span>
+                    <span className="text-[10px] text-amber-600 font-normal">3 Days</span>
                   </button>
                   <button 
                     onClick={() => handleRating("Good (7d)")} 
@@ -463,189 +601,158 @@ export default function VocabularyStudioPage() {
                   </button>
                   <button 
                     onClick={() => handleRating("Easy (14d)")} 
-                    className="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-xs transition-colors text-center"
+                    className="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs transition-colors text-center"
                   >
                     <span className="block">Easy</span>
-                    <span className="text-[10px] text-emerald-500 font-normal">14 Days</span>
+                    <span className="text-[10px] text-emerald-600 font-normal">14 Days</span>
                   </button>
                 </div>
               </div>
             ) : (
-              /* Navigation Arrows */
-              <div className="flex items-center justify-between w-full mt-6 px-4">
-                <button
+              <div className="flex items-center gap-4 mt-6">
+                <button 
                   onClick={handlePrev}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors shadow-sm"
+                  className="px-6 py-3 rounded-2xl bg-white border border-slate-200/80 hover:bg-slate-50 font-bold text-xs text-slate-700 shadow-sm transition-colors"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Previous
+                  Previous
                 </button>
-
-                <button
+                <button 
                   onClick={handleNext}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#027FFF] text-white font-bold text-xs hover:bg-blue-600 transition-colors shadow-md"
+                  className="px-8 py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md transition-colors"
                 >
-                  Next Word <ArrowRight className="w-3.5 h-3.5" />
+                  Next Flashcard
                 </button>
               </div>
             )}
 
           </div>
         ) : (
-          /* TAB 2: DYNAMIC RETENTION QUIZ ENGINE */
+          /* TAB 2: RETENTION QUIZ ENGINE */
           <div className="max-w-2xl mx-auto w-full">
             {!quizCompleted ? (
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-sm space-y-6">
-                
-                {/* Progress Bar & Counter */}
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-sm space-y-6 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-black uppercase">
+                      Question {quizIndex + 1} of {quizQuestions.length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">• {currentQuiz.topic}</span>
+                  </div>
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    {currentQuiz.bandLevel}
+                  </span>
+                </div>
+
+                {/* Question Prompt */}
                 <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                    <div>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{currentQuiz.topic} • {currentQuiz.bandLevel}</span>
-                      <h3 className="text-xl font-black text-slate-900">Vocabulary Context Drill</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-full bg-blue-50 text-[#027FFF] text-xs font-bold border border-blue-200">
-                        Question {quizIndex + 1} of {quizQuestions.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Visual Progress Bar */}
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-[#027FFF] h-full transition-all duration-300"
-                      style={{ width: `${((quizIndex + 1) / quizQuestions.length) * 100}%` }}
-                    />
-                  </div>
+                  <h3 className="text-base font-bold text-slate-900 leading-relaxed font-serif">
+                    &ldquo;{currentQuiz.sentence}&rdquo;
+                  </h3>
                 </div>
 
-                {/* Sentence with blank */}
-                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base leading-relaxed font-serif shadow-inner">
-                  &ldquo;{currentQuiz.sentence}&rdquo;
-                </div>
-
-                {/* Options List */}
+                {/* Multiple Choice Options */}
                 <div className="space-y-3">
-                  {currentQuiz.options.map((opt) => {
+                  {currentQuiz.options.map((opt, i) => {
                     const isSelected = selectedOption === opt.word;
                     const isCorrect = opt.word === currentQuiz.correctWord;
+                    let style = "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100";
 
-                    let style = "bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50";
                     if (quizAnswered) {
-                      if (isCorrect) style = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-1 ring-emerald-500";
-                      else if (isSelected && !isCorrect) style = "bg-red-50 border-red-500 text-red-900 line-through opacity-80";
-                      else style = "bg-white border-slate-200 text-slate-400 opacity-60";
+                      if (isCorrect) style = "bg-emerald-50 border-emerald-300 text-emerald-900 font-bold";
+                      else if (isSelected && !isCorrect) style = "bg-rose-50 border-rose-300 text-rose-900";
                     } else if (isSelected) {
-                      style = "bg-blue-50 border-[#027FFF] text-[#027FFF] font-bold shadow-sm ring-1 ring-[#027FFF]";
+                      style = "bg-blue-50 border-[#027FFF] text-[#027FFF] font-bold shadow-sm";
                     }
 
                     return (
                       <button
-                        key={opt.word}
-                        onClick={() => {
-                          if (quizAnswered) return;
-                          setSelectedOption(opt.word);
-                        }}
-                        className={`w-full p-4 rounded-2xl border text-sm font-semibold text-left transition-all flex items-center justify-between ${style}`}
+                        key={i}
+                        disabled={quizAnswered}
+                        onClick={() => setSelectedOption(opt.word)}
+                        className={`w-full p-4 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 ${style}`}
                       >
                         <div>
-                          <span className="font-mono text-base font-bold mr-2">{opt.word}</span>
-                          <span className="text-xs text-slate-500 font-normal">({opt.definition})</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black capitalize">{opt.word}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePronounce(opt.word);
+                              }}
+                              className="p-1 text-slate-400 hover:text-[#027FFF]"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <span className="text-xs text-slate-500 font-normal mt-0.5 block">{opt.definition}</span>
                         </div>
-                        {quizAnswered && isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
-                        {quizAnswered && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />}
+                        {quizAnswered && isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-1" />}
+                        {quizAnswered && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-1" />}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Detailed Explanation Card (appears after answering) */}
+                {/* Explanation Card upon submit */}
                 {quizAnswered && (
-                  <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 space-y-2 animate-in fade-in duration-300">
-                    <div className="flex items-center gap-2 font-bold text-xs text-indigo-700 uppercase tracking-wider">
-                      <BrainCircuit className="w-4 h-4" /> Linguistic Rationale &amp; IELTS Tip
-                    </div>
-                    <p className="text-xs leading-relaxed text-indigo-900 font-medium">
-                      {currentQuiz.explanation}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2 animate-in fade-in duration-200">
+                    <p className="text-slate-800 leading-relaxed font-medium">
+                      💡 <strong>Examiner Explanation:</strong> {currentQuiz.explanation}
                     </p>
-                    <div className="pt-2 border-t border-indigo-200/60 text-xs text-indigo-800 italic">
-                      💡 <strong>Band 8.5 Tip:</strong> {currentQuiz.ieltsTip}
-                    </div>
+                    {currentQuiz.ieltsTip && (
+                      <p className="text-purple-700 leading-relaxed font-semibold">
+                        ✦ <strong>IELTS Pro Tip:</strong> {currentQuiz.ieltsTip}
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {/* Bottom Action Button */}
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                {/* Quiz Action Buttons */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-xs font-bold text-slate-400">Score: {quizScore} / {quizQuestions.length}</span>
                   {!quizAnswered ? (
                     <button
                       onClick={handleConfirmAnswer}
                       disabled={!selectedOption}
-                      className="w-full py-3.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-sm shadow-md transition-all"
+                      className="px-6 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all"
                     >
-                      Confirm Answer
+                      Confirm Choice
                     </button>
                   ) : (
                     <button
                       onClick={handleNextQuestion}
-                      className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
                     >
-                      {quizIndex < quizQuestions.length - 1 ? (
-                        <>Next Context Question ({quizIndex + 2} / {quizQuestions.length}) <ArrowRight className="w-4 h-4" /></>
-                      ) : (
-                        <>View Final Score &amp; Lexical Assessment 🏆</>
-                      )}
+                      Next Question <ArrowRight className="w-4 h-4" />
                     </button>
                   )}
                 </div>
               </div>
             ) : (
-              /* QUIZ COMPLETION SUMMARY CARD */
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-lg text-center space-y-6 animate-in zoom-in-95 duration-300">
-                <div className="inline-flex p-4 bg-amber-50 rounded-3xl border border-amber-200 text-amber-500 shadow-sm">
-                  <Trophy className="w-12 h-12" />
+              /* Quiz Completion Summary */
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-sm text-center space-y-6 animate-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto shadow-sm">
+                  <Trophy className="w-8 h-8" />
                 </div>
-
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900">Drill Completed!</h2>
-                  <p className="text-sm text-slate-500 mt-1">Here is your real-time lexical calibration summary.</p>
+                  <h3 className="text-2xl font-black text-slate-900">Vocabulary Quiz Complete!</h3>
+                  <p className="text-xs text-slate-500 mt-1">Spaced Repetition retention score calculated</p>
                 </div>
 
-                {/* Score & Band Estimation Badge */}
-                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Raw Score</span>
-                    <span className="text-3xl font-black text-slate-900">{quizScore} / {quizQuestions.length}</span>
-                    <span className="text-[10px] text-slate-500 font-semibold block mt-1">({Math.round((quizScore / quizQuestions.length) * 100)}% Accuracy)</span>
-                  </div>
-
-                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200">
-                    <span className="text-xs font-bold text-blue-500 uppercase tracking-wider block">Estimated Band</span>
-                    <span className="text-3xl font-black text-[#027FFF]">
-                      {quizScore >= 4 ? "Band 8.5" : quizScore >= 3 ? "Band 7.5" : "Band 6.5"}
-                    </span>
-                    <span className="text-[10px] text-blue-600 font-semibold block mt-1">Lexical Resource</span>
-                  </div>
+                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 max-w-sm mx-auto">
+                  <span className="text-4xl font-black text-[#027FFF]">{quizScore} / {quizQuestions.length}</span>
+                  <p className="text-xs font-bold text-slate-600 mt-1">
+                    {quizScore === quizQuestions.length ? '🌟 Flawless Mastery (Band 9.0)' : '👍 Strong Performance (Band 8.0)'}
+                  </p>
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-                  <button
-                    onClick={handleRestartQuiz}
-                    className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Retake Drill
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveTab('flashcards');
-                      setQuizCompleted(false);
-                    }}
-                    className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all"
-                  >
-                    <Layers className="w-4 h-4" /> Review Flashcards
-                  </button>
-                </div>
+                <button
+                  onClick={handleRestartQuiz}
+                  className="px-8 py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md transition-all"
+                >
+                  Restart Quiz Battery
+                </button>
               </div>
             )}
           </div>
@@ -655,4 +762,3 @@ export default function VocabularyStudioPage() {
     </div>
   );
 }
-
