@@ -7,7 +7,7 @@ import {
   ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock,
   FileCheck2, Mic, Sliders, MessageSquare, Award, Sparkles, Send,
   Play, Pause, RotateCcw, CheckCircle2, ChevronDown, Check,
-  Volume2, ShieldAlert, BarChart3, Edit3
+  Volume2, ShieldAlert, BarChart3, Edit3, X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api';
@@ -103,7 +103,7 @@ const fallbackStudents = [
 
 export default function InstructorDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'grading' | 'roster' | 'escalations' | 'classes'>('grading');
+  const [activeTab, setActiveTab] = useState<'grading' | 'courses' | 'roster' | 'escalations' | 'classes'>('grading');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [students, setStudents] = useState<any[]>(fallbackStudents);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,6 +112,44 @@ export default function InstructorDashboardPage() {
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [instructorName, setInstructorName] = useState('Senior Examiner');
+
+  // Teacher Course Creation State
+  const [teacherCourses, setTeacherCourses] = useState<Array<{
+    id: string;
+    title: string;
+    slug: string;
+    description: string;
+    modulesCount: number;
+    studentsCount: number;
+    status: 'published' | 'draft';
+    createdDate: string;
+  }>>([
+    {
+      id: 'c-1',
+      title: 'IELTS Academic Writing Task 1 & 2 Masterclass',
+      slug: 'ielts-academic-writing-masterclass',
+      description: 'Master Band 8.5+ syntactic inversion, cohesive linkers, and data overview reporting.',
+      modulesCount: 4,
+      studentsCount: 38,
+      status: 'published',
+      createdDate: 'Aug 15, 2026'
+    },
+    {
+      id: 'c-2',
+      title: 'Speaking Part 2 & 3 Fluency & Intonation Lab',
+      slug: 'speaking-part-2-3-fluency-lab',
+      description: 'Acoustic pacing drills, speech cadence training, and idiomatic C2 expressions.',
+      modulesCount: 3,
+      studentsCount: 24,
+      status: 'published',
+      createdDate: 'Sep 01, 2026'
+    }
+  ]);
+
+  const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+  const [newCourseTitle, setNewCourseTitle] = useState('');
+  const [newCourseDesc, setNewCourseDesc] = useState('');
+  const [newCourseCategory, setNewCourseCategory] = useState('IELTS Academic Writing & Speaking');
 
   // Submissions & Grading Studio State
   const [submissions, setSubmissions] = useState<StudentSubmission[]>(INITIAL_SUBMISSIONS);
@@ -131,6 +169,35 @@ export default function InstructorDashboardPage() {
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionTime, setSessionTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle Teacher Course Creation
+  const handleCreateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCourseTitle.trim()) return;
+
+    try {
+      const slug = newCourseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const createdCourse = {
+        id: `c-teach-${Date.now()}`,
+        title: newCourseTitle,
+        slug,
+        description: newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
+        modulesCount: 1,
+        studentsCount: 0,
+        status: 'published' as const,
+        createdDate: 'Just Now'
+      };
+
+      setTeacherCourses(prev => [createdCourse, ...prev]);
+      setShowCreateCourseModal(false);
+      setNewCourseTitle('');
+      setNewCourseDesc('');
+
+      toast.success("Course Published! 📚", `"${createdCourse.title}" is now active in your Instructor Hub.`);
+    } catch (err) {
+      toast.error("Creation Failed", "Could not create course.");
+    }
+  };
 
   // Calculate live composite band score
   const computedBand = ((gradeTR + gradeCC + gradeLR + gradeGRA) / 4);
@@ -274,6 +341,13 @@ export default function InstructorDashboardPage() {
               Grading Studio
             </button>
             <button 
+              onClick={() => setActiveTab('courses')} 
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'courses' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Course Studio &amp; Curriculum
+            </button>
+            <button 
               onClick={() => setActiveTab('roster')} 
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'roster' ? 'bg-[#027FFF] text-white shadow-lg shadow-[#027FFF]/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
@@ -325,16 +399,23 @@ export default function InstructorDashboardPage() {
         <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white shadow-sm">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Teacher &amp; Examiner Hub</h1>
-            <p className="text-xs text-slate-500 font-medium">Cambridge Official Rubric Grading &amp; Cohort Telemetry ({instructorName})</p>
+            <p className="text-xs text-slate-500 font-medium">Course Authoring, Cambridge Rubric Grading &amp; Cohort Telemetry ({instructorName})</p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowCreateCourseModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-sm"
+            >
+              <BookOpen className="w-4 h-4" />
+              + Create Course
+            </button>
             <button 
               onClick={() => setShowScheduleModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm transition-all shadow-sm"
             >
               <Video className="w-4 h-4" />
-              Schedule Live Class
+              Schedule Class
             </button>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-sm">
               {instructorName.charAt(0).toUpperCase()}
@@ -629,6 +710,79 @@ export default function InstructorDashboardPage() {
             </div>
           )}
 
+          {/* TAB: TEACHER COURSE STUDIO & CURRICULUM AUTHORING */}
+          {activeTab === 'courses' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-emerald-600" />
+                    Teacher Course Authoring &amp; Curriculum Studio
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Create and publish course modules, upload PDF guidelines, and attach video lectures.
+                  </p>
+                </div>
+
+                <button 
+                  onClick={() => setShowCreateCourseModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-all shadow-sm"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  + Create New Course
+                </button>
+              </div>
+
+              {/* Course Catalog Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teacherCourses.map((course) => (
+                  <div key={course.id} className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold uppercase border border-emerald-200">
+                          {course.status}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">{course.createdDate}</span>
+                      </div>
+
+                      <h3 className="font-bold text-slate-900 text-base mb-2">{course.title}</h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed font-medium">
+                        {course.description}
+                      </p>
+
+                      <div className="flex items-center gap-4 py-3 border-y border-slate-100 text-xs font-medium text-slate-600">
+                        <span className="flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                          {course.modulesCount} Modules
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-[#027FFF]" />
+                          {course.studentsCount} Active Students
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex items-center justify-between gap-2">
+                      <Link 
+                        href="/admin/courses"
+                        className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors text-center"
+                      >
+                        Edit Curriculum
+                      </Link>
+                      <button 
+                        onClick={() => toast.success("AI Curriculum Synchronized", `Reindexed vector embeddings for ${course.title}.`)}
+                        className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                        title="Reindex AI Vector Embeddings"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: STUDENT ROSTER */}
           {activeTab === 'roster' && (
             <div className="space-y-6">
@@ -822,7 +976,7 @@ export default function InstructorDashboardPage() {
                 <Video className="w-5 h-5 text-purple-600" /> Schedule Live Classroom
               </h2>
               <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -859,6 +1013,80 @@ export default function InstructorDashboardPage() {
                 {isSubmitting ? 'Creating...' : 'Schedule Class'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEACHER CREATE COURSE MODAL */}
+      {showCreateCourseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-600" /> Create New Course
+              </h2>
+              <button onClick={() => setShowCreateCourseModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCourse}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Course Title</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newCourseTitle}
+                    onChange={(e) => setNewCourseTitle(e.target.value)}
+                    placeholder="e.g. Band 9.0 Lexical Resource &amp; Academic Collocations"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Department / Track</label>
+                  <select
+                    value={newCourseCategory}
+                    onChange={(e) => setNewCourseCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium"
+                  >
+                    <option value="IELTS Academic Writing & Speaking">IELTS Academic Writing &amp; Speaking</option>
+                    <option value="IELTS General Training">IELTS General Training</option>
+                    <option value="C2 English Grammar & Transformations">C2 English Grammar &amp; Transformations</option>
+                    <option value="Executive English & Fluency">Executive English &amp; Fluency</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Course Summary &amp; Syllabus Description</label>
+                  <textarea 
+                    rows={3}
+                    value={newCourseDesc}
+                    onChange={(e) => setNewCourseDesc(e.target.value)}
+                    placeholder="Describe the modules, targeted band score gains, and diagnostic drills..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateCourseModal(false)} 
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={!newCourseTitle.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
+                >
+                  Publish Course 🚀
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
