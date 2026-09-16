@@ -170,7 +170,7 @@ export default function DiagnosticPlacementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] text-slate-800 font-sans py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F0F4F8] text-slate-800 font-sans pt-28 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         
         {/* Navigation & Header */}
@@ -295,16 +295,16 @@ export default function DiagnosticPlacementPage() {
               })}
             </div>
 
-            {/* Action Button */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">
-                Targeted Metric: {currentQ.bandImpact}
+            {/* Action Button Bar */}
+            <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-xs font-semibold text-slate-500">
+                🎯 Target Metric: <strong className="text-slate-800">{currentQ.bandImpact}</strong>
               </span>
 
               <button
                 onClick={handleNext}
                 disabled={!userSelected || isSubmitting}
-                className="px-8 py-3.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-sm shadow-lg shadow-[#027FFF]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
