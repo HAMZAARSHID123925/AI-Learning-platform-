@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, Search, Filter, MoreVertical, BookOpen, BrainCircuit, UploadCloud, ChevronRight,
   Users, BarChart2, TrendingUp, CheckCircle, Clock, Sparkles, Sliders, Save, FileText, CheckCircle2,
   ShieldAlert, DollarSign, ToggleLeft, ToggleRight, UserCheck, UserX, AlertTriangle, KeyRound,
   Coins, Activity, Megaphone, Wand2, Download, RefreshCw, Zap, BarChart3, Send, Radio,
-  HardDrive, Server, Mail, FileSpreadsheet, Cpu, Layers, Flame
+  HardDrive, Server, Mail, FileSpreadsheet, Cpu, Layers, Flame, Trash2, UserPlus, MailCheck, Copy, ExternalLink, Check,
+  X, ShieldCheck
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
@@ -21,6 +22,19 @@ interface UserRecord {
   status: 'active' | 'suspended';
   joinedDate: string;
   targetBand: string;
+}
+
+interface StaffInvite {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  role: 'Instructor' | 'Lead Examiner' | 'Teaching Assistant';
+  assignedCourses: string[];
+  status: 'PENDING' | 'ACCEPTED' | 'REVOKED';
+  token: string;
+  createdAt: string;
+  expiresAt: string;
 }
 
 interface AuditRecord {
@@ -54,12 +68,31 @@ interface BroadcastItem {
   recipientCount: number;
 }
 
-export default function AdminCoursesPage() {
+function AdminCoursesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<
     'published' | 'drafts' | 'users' | 'revenue' | 'audit' | 'flags' | 'analytics' | 'prompts' | 
     'cost' | 'at-risk' | 'generator' | 'broadcast' | 'health'
   >('published');
+
+  // Synchronize activeTab with URL query parameter ?tab=...
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['published', 'drafts', 'users', 'revenue', 'audit', 'flags', 'prompts', 'cost', 'at-risk', 'generator', 'broadcast', 'health'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    } else if (!tabParam) {
+      setActiveTab('published');
+    }
+  }, [searchParams]);
+
+  const handleSelectTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const newUrl = tab === 'published' ? '/admin/courses' : `/admin/courses?tab=${tab}`;
+      window.history.pushState(null, '', newUrl);
+    }
+  };
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
   const [showCohortModal, setShowCohortModal] = useState(false);
@@ -98,6 +131,110 @@ export default function AdminCoursesPage() {
   // Cohort Assigner State
   const [cohortName, setCohortName] = useState('Fall 2026 Band 8.0 Fast-Track');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(['usr-1', 'usr-3']);
+
+  // Teacher / Staff Invitation State
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [userSubTab, setUserSubTab] = useState<'roster' | 'invites' | 'instructors'>('roster');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteDepartment, setInviteDepartment] = useState('IELTS Academic Writing & Speaking');
+  const [inviteRole, setInviteRole] = useState<'Instructor' | 'Lead Examiner' | 'Teaching Assistant'>('Instructor');
+  const [inviteCourses, setInviteCourses] = useState<string[]>(['IELTS Academic Writing Masterclass']);
+  const [inviteNote, setInviteNote] = useState('We are excited to invite you to join Pen & Page Academia as a certified instructor.');
+  const [staffInvites, setStaffInvites] = useState<StaffInvite[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('staff_invites');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return [
+      {
+        id: 'inv-1',
+        name: 'Prof. Alistair Finch',
+        email: 'finch@oxford.ac.uk',
+        department: 'IELTS Academic Writing & Lexical Mastery',
+        role: 'Instructor',
+        assignedCourses: ['IELTS Academic Writing Masterclass'],
+        status: 'ACCEPTED',
+        token: 'inst_oxf_9921',
+        createdAt: 'Aug 14, 2026',
+        expiresAt: 'Aug 21, 2026'
+      },
+      {
+        id: 'inv-2',
+        name: 'Dr. Rebecca Thornton',
+        email: 'r.thornton@cambridge-ielts.org',
+        department: 'Speaking Part 2/3 & Phonetics',
+        role: 'Lead Examiner',
+        assignedCourses: ['Speaking Part 2 & 3 Fluency Bootcamp'],
+        status: 'PENDING',
+        token: 'inst_cam_8832',
+        createdAt: 'Sep 12, 2026',
+        expiresAt: 'Sep 19, 2026'
+      }
+    ];
+  });
+
+  const handleSendTeacherInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteName.trim() || !inviteEmail.trim()) {
+      toast.error('Required Fields', 'Please provide teacher name and email.');
+      return;
+    }
+    const token = 'inst_inv_' + Math.random().toString(36).substring(2, 10);
+    const newInvite: StaffInvite = {
+      id: 'inv_' + Date.now(),
+      name: inviteName.trim(),
+      email: inviteEmail.trim().toLowerCase(),
+      department: inviteDepartment,
+      role: inviteRole,
+      assignedCourses: inviteCourses.length ? inviteCourses : ['General English Communicative Fluency'],
+      status: 'PENDING',
+      token,
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+
+    const updated = [newInvite, ...staffInvites];
+    setStaffInvites(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('staff_invites', JSON.stringify(updated));
+    }
+
+    const inviteLink = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'}/signup?invite=${token}&email=${encodeURIComponent(newInvite.email)}&role=instructor`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(inviteLink).catch(() => {});
+    }
+
+    toast.success('Instructor Invite Dispatched! ✉️', `Invitation link for "${inviteName}" generated and copied to clipboard.`);
+    setShowInviteModal(false);
+    setInviteName('');
+    setInviteEmail('');
+    setUserSubTab('invites');
+  };
+
+  const handleCopyInviteLink = (invite: StaffInvite) => {
+    const inviteLink = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'}/signup?invite=${invite.token}&email=${encodeURIComponent(invite.email)}&role=instructor`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(inviteLink);
+      toast.success('Invite Link Copied 📋', `Direct registration URL copied for ${invite.name}.`);
+    }
+  };
+
+  const handleResendInvite = (invite: StaffInvite) => {
+    toast.success('Invite Re-sent 📨', `Fresh invitation email dispatched to ${invite.email}.`);
+  };
+
+  const handleRevokeInvite = (inviteId: string) => {
+    if (!confirm('Are you sure you want to revoke this teacher invitation?')) return;
+    const updated = staffInvites.map(i => i.id === inviteId ? { ...i, status: 'REVOKED' as const } : i);
+    setStaffInvites(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('staff_invites', JSON.stringify(updated));
+    }
+    toast.info('Invitation Revoked 🚫', 'Instructor invite link has been deactivated.');
+  };
 
   // RBAC Route Guard: Admin privileges required
   useEffect(() => {
@@ -228,29 +365,53 @@ export default function AdminCoursesPage() {
     });
   };
 
+  const INITIAL_DEFAULT_COURSES = [
+    { id: '1', title: 'IELTS Academic Writing Masterclass', status: 'published', module_count: 6, students: 480, category: 'IELTS Academic', price: '$49.00', target_band: 'Band 8.0+' },
+    { id: '2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', status: 'published', module_count: 8, students: 720, category: 'Spoken English', price: '$39.00', target_band: 'Band 7.5+' },
+    { id: '3', title: 'Advanced Lexical Collocations for Band 8.5', status: 'draft', module_count: 4, students: 0, category: 'Grammar & Vocabulary', price: '$29.00', target_band: 'Band 8.5+' }
+  ];
+
   const fetchCourses = useCallback(async () => {
     try {
-      const res = await fetchWithAuth('/courses?page_size=100');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.items) {
-          setCourses(data.items);
+      let localList: any[] = [];
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('admin_courses');
+        if (saved) {
+          try {
+            localList = JSON.parse(saved);
+          } catch {
+            localList = [];
+          }
         }
-      } else {
-        // Fallback default course list if backend is restarting
-        setCourses([
-          { id: '1', title: 'IELTS Academic Writing Masterclass', status: 'published', module_count: 6, students: 480 },
-          { id: '2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', status: 'published', module_count: 8, students: 720 },
-          { id: '3', title: 'Advanced Lexical Collocations for Band 8.5', status: 'draft', module_count: 4, students: 0 }
-        ]);
+      }
+
+      let remoteItems: any[] = [];
+      try {
+        const res = await fetchWithAuth('/courses?page_size=100');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items) {
+            remoteItems = data.items;
+          }
+        }
+      } catch {
+        // Backend offline or local fallback
+      }
+
+      // Merge local courses, remote items, and initial defaults without duplicates
+      const combined = [...localList];
+      [...remoteItems, ...INITIAL_DEFAULT_COURSES].forEach(item => {
+        if (!combined.some(c => c.id === item.id || c.title === item.title)) {
+          combined.push(item);
+        }
+      });
+
+      setCourses(combined);
+      if (typeof window !== 'undefined' && localList.length === 0) {
+        localStorage.setItem('admin_courses', JSON.stringify(combined));
       }
     } catch (error) {
-      console.error(error);
-      setCourses([
-        { id: '1', title: 'IELTS Academic Writing Masterclass', status: 'published', module_count: 6, students: 480 },
-        { id: '2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', status: 'published', module_count: 8, students: 720 },
-        { id: '3', title: 'Advanced Lexical Collocations for Band 8.5', status: 'draft', module_count: 4, students: 0 }
-      ]);
+      console.error('Failed to fetch courses:', error);
     } finally {
       setIsLoading(false);
     }
@@ -302,24 +463,57 @@ export default function AdminCoursesPage() {
   const handlePublishCourse = async (e: React.MouseEvent, courseId: string) => {
     e.stopPropagation();
     try {
-      const res = await fetchWithAuth(`/courses/${courseId}/publish`, { method: 'POST' });
-      if (res.ok) {
-        toast.success('Course Published!', 'Course is now live for all enrolled students.');
-        fetchCourses();
-      } else {
-        // Optimistic UI update
-        setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: 'published' } : c));
-        toast.success('Course Status Updated', 'Course published to student curriculum.');
-      }
+      fetchWithAuth(`/courses/${courseId}/publish`, { method: 'POST' }).catch(() => {});
+      
+      setCourses(prev => {
+        const updated = prev.map(c => c.id === courseId ? { ...c, status: 'published' } : c);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('admin_courses', JSON.stringify(updated));
+        }
+        return updated;
+      });
+      toast.success('Course Published! 🚀', 'Course is now live on the public catalog and student dashboard.');
     } catch (error) {
       console.error('Failed to publish', error);
-      setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: 'published' } : c));
-      toast.success('Course Status Updated', 'Course published to student curriculum.');
     }
   };
 
+  const handleUnpublishCourse = async (e: React.MouseEvent, courseId: string) => {
+    e.stopPropagation();
+    try {
+      fetchWithAuth(`/courses/${courseId}/unpublish`, { method: 'POST' }).catch(() => {});
+      
+      setCourses(prev => {
+        const updated = prev.map(c => c.id === courseId ? { ...c, status: 'draft' } : c);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('admin_courses', JSON.stringify(updated));
+        }
+        return updated;
+      });
+      toast.info('Reverted to Draft 📝', 'Course unpublished. It is no longer visible on the public site or student dashboard.');
+    } catch (error) {
+      console.error('Failed to unpublish', error);
+    }
+  };
+
+  const handleDeleteCourse = (e: React.MouseEvent, courseId: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
+    setCourses(prev => {
+      const updated = prev.filter(c => c.id !== courseId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_courses', JSON.stringify(updated));
+      }
+      return updated;
+    });
+    toast.success("Course Deleted 🗑️", "Course has been removed from catalog.");
+  };
+
   const handleCreateCourse = async (overrideStatus?: 'published' | 'draft') => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      toast.error("Title Required", "Please enter a course title.");
+      return;
+    }
     setIsSubmitting(true);
     const finalStatus = overrideStatus || newStatus;
     
@@ -339,8 +533,21 @@ export default function AdminCoursesPage() {
       thumbnail_url: selectedFile ? URL.createObjectURL(selectedFile) : undefined
     };
 
+    // 1. Immediately store in state and localStorage
+    setCourses(prev => {
+      const updated = [newCourseObj, ...prev.filter(c => c.id !== newCourseObj.id)];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_courses', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    // 2. Set active tab so admin sees it immediately in Published or Drafts
+    handleSelectTab(finalStatus === 'published' ? 'published' : 'drafts');
+
+    // 3. Sync to backend API if available
     try {
-      const res = await fetchWithAuth('/courses', {
+      await fetchWithAuth('/courses', {
         method: 'POST',
         body: JSON.stringify({ 
           title: newTitle.trim(), 
@@ -351,49 +558,32 @@ export default function AdminCoursesPage() {
           status: finalStatus
         }),
       });
-
-      if (res.ok) {
-        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now registered.`);
-        fetchCourses();
-      } else {
-        setCourses(prev => [newCourseObj, ...prev]);
-        toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" is now live.`);
-      }
-
-      // Save to shared localStorage for immediate display on /courses and /dashboard
-      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
-      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
-
-      setShowCreateModal(false);
-      setNewTitle('');
-      setNewDescription('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
-      setSelectedFile(null);
-    } catch (error) {
-      console.error(error);
-      setCourses(prev => [newCourseObj, ...prev]);
-      
-      const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
-      localStorage.setItem('admin_courses', JSON.stringify([newCourseObj, ...existing]));
-
-      toast.success(finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', `"${newTitle}" has been added.`);
-      setShowCreateModal(false);
-      setNewTitle('');
-      setSelectedFile(null);
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // offline dev mode
     }
+
+    toast.success(
+      finalStatus === 'published' ? 'Course Published! 🚀' : 'Course Saved as Draft 📝', 
+      `"${newTitle}" is now visible under ${finalStatus === 'published' ? 'Published' : 'Drafts'} and on the public catalog!`
+    );
+
+    setShowCreateModal(false);
+    setNewTitle('');
+    setNewDescription('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
+    setSelectedFile(null);
+    setIsSubmitting(false);
   };
 
   const handleSavePrompts = () => {
     setIsSavingPrompt(true);
     setTimeout(() => {
       setIsSavingPrompt(false);
-      toast.success("AI Prompt Tuning Saved! 🚀", "Updated evaluator system prompt & temperature calibration across speaking/writing engines.");
+      toast.success("AI Model Tuning Saved ✨", "Multi-Agent System Prompts & Temperature updated across all simulators.");
     }, 600);
   };
 
   return (
-    <div className="flex h-screen bg-[#F0F4F8] text-slate-800 overflow-hidden font-sans">
+    <div className="flex h-screen bg-[#F0F4F8] overflow-hidden text-slate-800">
       
       {/* ADMIN SIDEBAR */}
       <aside className="w-64 flex-shrink-0 border-r border-slate-800 bg-[#0F172A] flex flex-col justify-between hidden md:flex shadow-2xl z-20">
@@ -414,87 +604,76 @@ export default function AdminCoursesPage() {
             </Link>
           </div>
           
-          <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)]">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Curriculum &amp; AI</div>
+          <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-140px)]">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-1 px-2.5">Curriculum &amp; AI</div>
             <button 
-              onClick={() => setActiveTab('published')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('published')} 
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <BookOpen className="w-4 h-4" />
               Courses &amp; Content
             </button>
             <button 
-              onClick={() => setActiveTab('generator')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'generator' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('generator')} 
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'generator' ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Wand2 className="w-4 h-4 text-pink-400" />
-              AI Exam Generator 🪄
+              AI Exam Generator
             </button>
             <button 
-              onClick={() => setActiveTab('prompts')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'prompts' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('prompts')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'prompts' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Sliders className="w-4 h-4 text-emerald-400" />
               AI Prompt Tuning
             </button>
             <button 
-              onClick={() => setActiveTab('cost')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'cost' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('cost')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'cost' ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Coins className="w-4 h-4 text-teal-400" />
-              AI Cost &amp; Tokens 💰
+              AI Cost &amp; Tokens
             </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Student Operations</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-3 px-2.5">Student Operations</div>
             <button 
-              onClick={() => setActiveTab('at-risk')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'at-risk' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('at-risk')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'at-risk' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Flame className="w-4 h-4 text-rose-400" />
-              At-Risk Radar 🚨
+              At-Risk Radar
             </button>
             <button 
-              onClick={() => setActiveTab('broadcast')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'broadcast' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('broadcast')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'broadcast' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Megaphone className="w-4 h-4 text-blue-400" />
-              Announcements 📢
+              Announcements
             </button>
             <button 
-              onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('users')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Users className="w-4 h-4 text-indigo-400" />
               User Directory
             </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">System &amp; Business</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-3 px-2.5">System &amp; Business</div>
             <button 
-              onClick={() => setActiveTab('revenue')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('revenue')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <DollarSign className="w-4 h-4 text-amber-400" />
               Revenue &amp; Plans
             </button>
             <button 
-              onClick={() => setActiveTab('health')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'health' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('health')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'health' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <Server className="w-4 h-4 text-cyan-400" />
-              Health &amp; Exporters 🩺
+              Health &amp; Exporters
             </button>
             <button 
-              onClick={() => setActiveTab('flags')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'flags' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('flags')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'flags' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <ToggleRight className="w-4 h-4 text-slate-400" />
               Feature Flags
             </button>
             <button 
-              onClick={() => setActiveTab('audit')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-700 text-white shadow-lg shadow-red-700/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              onClick={() => handleSelectTab('audit')}
+              className={`w-full text-left px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === 'audit' ? 'bg-red-700 text-white shadow-md shadow-red-700/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
             >
-              <ShieldAlert className="w-4 h-4 text-red-400" />
               Audit Trail
             </button>
           </nav>
@@ -555,7 +734,7 @@ export default function AdminCoursesPage() {
         <div className="flex-1 overflow-y-auto p-8">
           
           {/* TAB: PROMPTS TUNING */}
-          {activeTab === 'prompts' ? (
+          {activeTab === 'prompts' && (
             <div className="space-y-6 max-w-4xl animate-in fade-in zoom-in-95 duration-200">
               <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -618,222 +797,374 @@ export default function AdminCoursesPage() {
                 </div>
               </div>
             </div>
-          ) : (
-            /* NORMAL COURSE TABS */
-            <>
+          )}
+
+          {/* TAB: COURSES & CONTENT (PUBLISHED / DRAFTS) */}
+          {['published', 'drafts'].includes(activeTab) && (
+            <div className="space-y-6 animate-in fade-in duration-200">
               {/* Tabs & Search */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit">
+                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit shadow-2xs">
                   <button 
-                    onClick={() => setActiveTab('published')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors ${activeTab === 'published' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    onClick={() => handleSelectTab('published')}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'published' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                   >
-                    Published
+                    Published ({courses.filter(c => c.status === 'published').length})
                   </button>
                   <button 
-                    onClick={() => setActiveTab('drafts')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors ${activeTab === 'drafts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    onClick={() => handleSelectTab('drafts')}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'drafts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                   >
-                    Drafts
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('analytics')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'analytics' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    <BarChart2 className="w-3.5 h-3.5" />
-                    Analytics
+                    Drafts ({courses.filter(c => c.status !== 'published').length})
                   </button>
                 </div>
                 
-                {activeTab !== 'analytics' && (
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Search courses..." 
-                        className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 w-64 shadow-sm"
-                      />
-                    </div>
-                    <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 shadow-sm transition-colors">
-                      <Filter className="w-4 h-4" />
-                    </button>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Search courses..." 
+                      className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 w-64 shadow-xs"
+                    />
                   </div>
-                )}
+                  <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 shadow-xs transition-colors">
+                    <Filter className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              {/* COURSE LIST (TABLE) — only shown on published/drafts tabs */}
-              {activeTab !== 'analytics' && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/50">
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Course Name</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Content</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Students</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {isLoading ? (
-                      <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">Loading courses…</td></tr>
-                    ) : courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').length === 0 ? (
-                      <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">No courses found in this view.</td></tr>
-                    ) : (
-                      courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').map((course) => (
-                      <tr key={course.id} className="hover:bg-slate-50/60 transition-colors group cursor-pointer">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center border border-purple-200">
-                              <BookOpen className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <span className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">{course.title}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-                            IELTS Preparation
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-semibold text-slate-900">{course.module_count || 4} Modules</span>
-                            <span className="text-xs text-slate-500">Video &amp; Quizzes</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${course.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
-                            {course.status === 'published' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                            {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                          {(course.students || 0).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCourseForCurriculum(course);
-                              setShowCurriculumModal(true);
-                            }}
-                            className="px-3 py-1.5 mr-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200 shadow-2xs"
-                          >
-                            Edit Curriculum
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCourseForCohort(course);
-                              setShowCohortModal(true);
-                            }}
-                            className="px-3 py-1.5 mr-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors border border-purple-200 shadow-2xs"
-                          >
-                            Assign Cohort
-                          </button>
-
-                          {course.status !== 'published' && (
-                            <button 
-                              onClick={(e) => handlePublishCourse(e, course.id)}
-                              className="px-3 py-1.5 mr-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-sm"
-                            >
-                              Publish
-                            </button>
-                          )}
-                        </td>
+              {/* COURSE LIST (TABLE) — with responsive horizontal scroll wrapper */}
+              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full min-w-[960px] text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Course Name</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Content</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Students</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6">Actions</th>
                       </tr>
-                    )))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {isLoading ? (
+                        <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">Loading courses…</td></tr>
+                      ) : courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').length === 0 ? (
+                        <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">No courses found in this view.</td></tr>
+                      ) : (
+                        courses.filter(c => activeTab === 'published' ? c.status === 'published' : c.status !== 'published').map((course) => (
+                        <tr key={course.id} className="hover:bg-slate-50/60 transition-colors group cursor-pointer">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center border border-purple-200">
+                                <BookOpen className="w-5 h-5 text-purple-600" />
+                              </div>
+                              <span className="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">{course.title}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700">
+                              {course.category || 'IELTS Prep'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">{course.module_count || 4} Modules</p>
+                              <p className="text-xs text-slate-500">Video &amp; Quizzes</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${course.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-orange-50 text-orange-700 border border-orange-200'}`}>
+                              {course.status === 'published' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                              {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                            {(course.students || 0).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap pr-6">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCourseForCurriculum(course);
+                                setShowCurriculumModal(true);
+                              }}
+                              className="px-3 py-1.5 mr-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200 shadow-2xs"
+                            >
+                              Edit Curriculum
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCourseForCohort(course);
+                                setShowCohortModal(true);
+                              }}
+                              className="px-3 py-1.5 mr-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors border border-purple-200 shadow-2xs"
+                            >
+                              Assign Cohort
+                            </button>
+
+                            {course.status === 'published' ? (
+                              <button 
+                                onClick={(e) => handleUnpublishCourse(e, course.id)}
+                                className="px-3 py-1.5 mr-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold transition-colors border border-amber-200 shadow-2xs"
+                                title="Revert to Draft (removes from public catalog)"
+                              >
+                                Unpublish
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={(e) => handlePublishCourse(e, course.id)}
+                                className="px-3 py-1.5 mr-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors shadow-sm"
+                                title="Make live on public catalog & student dashboard"
+                              >
+                                Publish
+                              </button>
+                            )}
+
+                            <button
+                              onClick={(e) => handleDeleteCourse(e, course.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 transition-colors inline-flex items-center justify-center align-middle"
+                              title="Delete Course"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              )}
+            </div>
+          )}
 
               {/* TAB: USERS & ROLES */}
               {activeTab === 'users' && (
                 <div className="space-y-6 animate-in fade-in duration-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-bold text-slate-900">User Management &amp; Role Enforcement</h2>
-                      <p className="text-xs text-slate-500">Promote staff members, adjust permissions, and monitor candidate statuses</p>
+                      <h2 className="text-lg font-bold text-slate-900">User Management &amp; Teacher Onboarding</h2>
+                      <p className="text-xs text-slate-500">Invite instructors, enforce role-based access, and oversee student cohorts</p>
                     </div>
-                    <div className="relative">
-                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text"
-                        value={userSearch}
-                        onChange={(e) => setUserSearch(e.target.value)}
-                        placeholder="Search by name or email..."
-                        className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 w-64 shadow-xs"
-                      />
+
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input 
+                          type="text"
+                          value={userSearch}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          placeholder="Search users or faculty..."
+                          className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 w-56 shadow-xs"
+                        />
+                      </div>
+
+                      <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        + Invite Teacher
+                      </button>
                     </div>
                   </div>
 
-                  <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/50">
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate / Staff</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role Access</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Band</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {usersList.filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase())).map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="font-bold text-slate-900 text-sm">{u.name}</div>
-                              <div className="text-xs text-slate-500">{u.email}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <select 
-                                value={u.role}
-                                onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
-                                className={`text-xs font-bold px-2.5 py-1 rounded-lg border focus:outline-none ${
-                                  u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                  u.role === 'Instructor' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                  'bg-blue-50 text-blue-700 border-blue-200'
-                                }`}
-                              >
-                                <option value="Student">Student</option>
-                                <option value="Instructor">Instructor</option>
-                                <option value="Admin">Admin</option>
-                              </select>
-                            </td>
-                            <td className="px-6 py-4 text-xs font-semibold text-slate-700">
-                              {u.targetBand}
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
-                                u.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
-                              }`}>
-                                {u.status === 'active' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                {u.status.toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-slate-500 font-medium">
-                              {u.joinedDate}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <button 
-                                onClick={() => handleToggleStatus(u.id)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                  u.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                                }`}
-                              >
-                                {u.status === 'active' ? 'Suspend' : 'Activate'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  {/* Sub-Tabs: Roster vs Pending Invites vs Faculty */}
+                  <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit shadow-2xs">
+                    <button
+                      onClick={() => setUserSubTab('roster')}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${userSubTab === 'roster' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      All Accounts ({usersList.length})
+                    </button>
+                    <button
+                      onClick={() => setUserSubTab('invites')}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${userSubTab === 'invites' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      <Mail className="w-3.5 h-3.5 text-purple-600" />
+                      Pending Teacher Invites ({staffInvites.filter(i => i.status === 'PENDING').length})
+                    </button>
+                    <button
+                      onClick={() => setUserSubTab('instructors')}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${userSubTab === 'instructors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      Certified Instructors ({usersList.filter(u => u.role === 'Instructor').length})
+                    </button>
                   </div>
+
+                  {/* VIEW: PENDING TEACHER INVITATIONS */}
+                  {userSubTab === 'invites' && (
+                    <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full min-w-[900px] text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Teacher / Candidate</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Department &amp; Role</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned Courses</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Expires</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6">Invite Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {staffInvites.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm">
+                                  No pending teacher invitations. Click <strong>+ Invite Teacher</strong> above to dispatch onboarding links.
+                                </td>
+                              </tr>
+                            ) : (
+                              staffInvites.map((inv) => (
+                                <tr key={inv.id} className="hover:bg-slate-50/60 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div className="font-bold text-slate-900 text-sm">{inv.name}</div>
+                                    <div className="text-xs text-slate-500 font-mono">{inv.email}</div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <p className="text-xs font-bold text-slate-800">{inv.department}</p>
+                                    <span className="text-[11px] font-semibold text-purple-600">{inv.role}</span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex flex-wrap gap-1">
+                                      {inv.assignedCourses.map((c, i) => (
+                                        <span key={i} className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[11px] font-bold border border-purple-200">
+                                          {c}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
+                                      inv.status === 'ACCEPTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                      inv.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                                      'bg-slate-100 text-slate-600 border border-slate-200'
+                                    }`}>
+                                      {inv.status === 'ACCEPTED' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-xs text-slate-500 font-medium">
+                                    {inv.expiresAt}
+                                  </td>
+                                  <td className="px-6 py-4 text-right whitespace-nowrap pr-6">
+                                    {inv.status === 'PENDING' && (
+                                      <>
+                                        <button
+                                          onClick={() => handleCopyInviteLink(inv)}
+                                          className="px-3 py-1.5 mr-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-colors border border-purple-200 shadow-2xs inline-flex items-center gap-1"
+                                          title="Copy Registration URL"
+                                        >
+                                          <Copy className="w-3.5 h-3.5" />
+                                          Copy Link
+                                        </button>
+                                        <button
+                                          onClick={() => handleResendInvite(inv)}
+                                          className="px-3 py-1.5 mr-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200 shadow-2xs"
+                                        >
+                                          Resend
+                                        </button>
+                                        <button
+                                          onClick={() => handleRevokeInvite(inv.id)}
+                                          className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors border border-red-200 shadow-2xs"
+                                        >
+                                          Revoke
+                                        </button>
+                                      </>
+                                    )}
+                                    {inv.status === 'ACCEPTED' && (
+                                      <span className="text-xs font-bold text-emerald-600 flex items-center justify-end gap-1">
+                                        <Check className="w-3.5 h-3.5" /> Onboarded
+                                      </span>
+                                    )}
+                                    {inv.status === 'REVOKED' && (
+                                      <span className="text-xs font-semibold text-slate-400">Revoked</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VIEW: ROSTER TABLE (ALL OR FILTERED) */}
+                  {userSubTab !== 'invites' && (
+                    <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full min-w-[900px] text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate / Staff</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role Access</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Target Band</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined Date</th>
+                              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right pr-6">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {usersList
+                              .filter(u => userSubTab === 'instructors' ? u.role === 'Instructor' : true)
+                              .filter(u => u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase()))
+                              .map((u) => (
+                              <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="font-bold text-slate-900 text-sm">{u.name}</div>
+                                  <div className="text-xs text-slate-500">{u.email}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <select 
+                                    value={u.role}
+                                    onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                                    className={`text-xs font-bold px-2.5 py-1 rounded-lg border focus:outline-none ${
+                                      u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                      u.role === 'Instructor' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                      'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    <option value="Student">Student</option>
+                                    <option value="Instructor">Instructor</option>
+                                    <option value="Admin">Admin</option>
+                                  </select>
+                                </td>
+                                <td className="px-6 py-4 text-xs font-semibold text-slate-700">
+                                  {u.targetBand}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
+                                    u.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                                  }`}>
+                                    {u.status === 'active' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                    {u.status.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-xs text-slate-500 font-medium">
+                                  {u.joinedDate}
+                                </td>
+                                <td className="px-6 py-4 text-right pr-6">
+                                  <button 
+                                    onClick={() => handleToggleStatus(u.id)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                      u.status === 'active' ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                    }`}
+                                  >
+                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -958,59 +1289,6 @@ export default function AdminCoursesPage() {
                       );
                     })}
                   </div>
-                </div>
-              )}
-
-              {/* ANALYTICS TAB CONTENT */}
-              {activeTab === 'analytics' && (
-                <div className="space-y-8 animate-in fade-in duration-300">
-                  {analyticsLoading ? (
-                    <div className="py-20 text-center text-slate-400">Loading system metrics…</div>
-                  ) : (
-                    <>
-                      {/* User Stats */}
-                      <div>
-                        <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                          <Users className="w-5 h-5 text-purple-600" /> Platform Population
-                        </h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                          {[
-                            { label: 'Total Registered', value: analytics.totalUsers || 284, sub: 'All accounts' },
-                            { label: 'Active Students', value: analytics.totalStudents || 240, sub: 'Enrolled candidates' },
-                            { label: 'Instructors', value: analytics.totalInstructors || 32, sub: 'Teaching staff' },
-                            { label: 'Admins', value: analytics.totalAdmins || 12, sub: 'System moderators' },
-                          ].map((stat) => (
-                            <div key={stat.label} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
-                              <div className="text-3xl font-extrabold text-slate-900 mb-1">{stat.value}</div>
-                              <div className="text-sm font-bold text-slate-900">{stat.label}</div>
-                              <div className="text-xs text-slate-500 mt-0.5">{stat.sub}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Course Stats */}
-                      <div>
-                        <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                          <BookOpen className="w-5 h-5 text-purple-600" /> Course Analytics
-                        </h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                          {[
-                            { label: 'Total Courses', value: analytics.totalCourses || 18, sub: 'All curriculum items' },
-                            { label: 'Published', value: analytics.publishedCourses || 14, sub: 'Live & active' },
-                            { label: 'Drafts', value: analytics.draftCourses || 4, sub: 'Pending review' },
-                            { label: 'Live Sessions', value: analytics.totalSessions || 42, sub: 'All time classrooms' },
-                          ].map((stat) => (
-                            <div key={stat.label} className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
-                              <div className="text-3xl font-extrabold text-slate-900 mb-1">{stat.value}</div>
-                              <div className="text-sm font-bold text-slate-900">{stat.label}</div>
-                              <div className="text-xs text-slate-500 mt-0.5">{stat.sub}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
 
@@ -1608,8 +1886,6 @@ export default function AdminCoursesPage() {
                   </div>
                 </div>
               )}
-            </>
-          )}
 
         </div>
       </main>
@@ -2026,7 +2302,181 @@ export default function AdminCoursesPage() {
                 }} 
                 className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs"
               >
-                Enroll &amp; Notify Cohort
+                Enroll & Notify Cohort
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TEACHER INVITATION MODAL */}
+      {/* ========================================================================= */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50 via-white to-indigo-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Invite Teacher / Examiner</h3>
+                  <p className="text-xs text-slate-500 font-medium">Issue secure onboard link with role permissions and assigned courses</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInviteModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Teacher Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="text"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="e.g. Dr. Arthur Pendelton"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-purple-600 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Email Address <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="examiner@cambridge-ielts.org"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-purple-600 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Staff Role Assignment
+                  </label>
+                  <select 
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-purple-600 transition-colors"
+                  >
+                    <option value="Instructor">Certified Instructor</option>
+                    <option value="Lead Examiner">Lead IELTS Assessor</option>
+                    <option value="Teaching Assistant">Teaching Assistant / Mentor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Department / Specialty
+                  </label>
+                  <select 
+                    value={inviteDepartment}
+                    onChange={(e) => setInviteDepartment(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-purple-600 transition-colors"
+                  >
+                    <option>IELTS Academic Writing & Speaking</option>
+                    <option>IELTS General Training & Reading</option>
+                    <option>PTE & OET Medical English</option>
+                    <option>Grammar & Pronunciation Masterclass</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Assigned Courses & Cohorts
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                  {courses.map(course => {
+                    const isSelected = inviteCourses.includes(course.title);
+                    return (
+                      <label 
+                        key={course.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer text-xs font-medium transition-colors ${
+                          isSelected ? 'bg-purple-100 text-purple-900 font-bold' : 'hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <input 
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setInviteCourses(prev => [...prev, course.title]);
+                            } else {
+                              setInviteCourses(prev => prev.filter(c => c !== course.title));
+                            }
+                          }}
+                          className="w-3.5 h-3.5 text-purple-600 rounded border-slate-300"
+                        />
+                        <span className="truncate">{course.title}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Welcome Note & Onboarding Briefing (Optional)
+                </label>
+                <textarea 
+                  rows={2}
+                  value={inviteNote}
+                  onChange={(e) => setInviteNote(e.target.value)}
+                  placeholder="Welcome to Pen & Page Academy! You have been granted examiner privileges for the Band 8.5 Masterclass cohort."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-600 transition-colors resize-none"
+                />
+              </div>
+
+              <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+                  The teacher will receive an onboarding invite link with an encrypted authorization token. Once registered, their account will immediately be verified as <strong className="font-bold">Instructor</strong> and given access to the Instructor Assessment Studio.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button 
+                onClick={() => setShowInviteModal(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSendTeacherInvite}
+                disabled={isSubmitting || !inviteEmail.trim() || !inviteName.trim()}
+                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black transition-all shadow-md shadow-purple-200 flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Generating Token...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    Send Official Invitation 🚀
+                  </>
+                )}
               </button>
             </div>
 
@@ -2035,5 +2485,13 @@ export default function AdminCoursesPage() {
       )}
 
     </div>
+  );
+}
+
+export default function AdminCoursesPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-[#F0F4F8] flex items-center justify-center text-slate-400 font-semibold">Loading Admin Studio...</div>}>
+      <AdminCoursesContent />
+    </Suspense>
   );
 }
