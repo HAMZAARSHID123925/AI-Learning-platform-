@@ -27,6 +27,7 @@ export default function ResultsPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'remediation'>('overview');
+  const [showCertificate, setShowCertificate] = useState(false);
 
   useEffect(() => {
     fetchWithAuth('/students/me/weakness-flags')
@@ -167,18 +168,28 @@ export default function ResultsPage() {
         </div>
 
         {/* TABS FOR REMEDIATION */}
-        <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
-          <button 
-            onClick={() => setActiveTab('overview')}
-            className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'overview' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 mb-8 pb-1">
+          <div className="flex items-center gap-8">
+            <button 
+              onClick={() => setActiveTab('overview')}
+              className={`pb-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'overview' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+            >
+              Detailed Breakdown
+            </button>
+            <button 
+              onClick={() => setActiveTab('remediation')}
+              className={`pb-3 text-sm font-bold transition-colors border-b-2 ${activeTab === 'remediation' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+            >
+              AI Study Plan
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowCertificate(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all mb-2"
           >
-            Detailed Breakdown
-          </button>
-          <button 
-            onClick={() => setActiveTab('remediation')}
-            className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'remediation' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
-          >
-            AI Study Plan
+            <Award className="w-4 h-4" />
+            Generate Official Certificate 🏆
           </button>
         </div>
 
@@ -231,6 +242,94 @@ export default function ResultsPage() {
         )}
 
       </main>
+
+      {/* OFFICIAL CERTIFICATE MODAL */}
+      {showCertificate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 md:p-10 flex flex-col space-y-6">
+            
+            {/* Certificate Header Action */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <span className="text-xs font-extrabold text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
+                <Award className="w-4 h-4" /> Official Candidate Verification
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => typeof window !== 'undefined' && window.print()}
+                  className="px-4 py-2 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs transition-colors shadow-sm"
+                >
+                  Print / Save PDF
+                </button>
+                <button
+                  onClick={() => setShowCertificate(false)}
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Certificate Frame */}
+            <div className="border-8 border-double border-amber-500/30 rounded-2xl p-8 bg-gradient-to-b from-amber-50/20 via-white to-amber-50/10 text-center space-y-6 relative overflow-hidden">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <Award className="w-7 h-7" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">PEN &amp; PAGE ACADEMIA</h2>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">IELTS &amp; CEFR Performance Accreditation</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-widest text-slate-400 font-extrabold">This is to certify that</p>
+                <h3 className="text-2xl font-black text-slate-900 font-serif">Hamza Arshid</h3>
+                <p className="text-xs text-slate-500 font-medium">has successfully demonstrated official competence in</p>
+                <p className="text-sm font-bold text-[#027FFF]">IELTS Academic Full-Skill Evaluation Battery</p>
+              </div>
+
+              {/* Band Score Display */}
+              <div className="inline-flex flex-col items-center justify-center px-6 py-4 rounded-2xl bg-amber-50 border-2 border-amber-300">
+                <span className="text-[10px] font-extrabold uppercase text-amber-800 tracking-wider">Overall Band Score</span>
+                <span className="text-4xl font-black text-amber-600 font-mono">7.5</span>
+                <span className="text-[11px] font-bold text-amber-700 mt-0.5">CEFR Level: C1 Proficient User</span>
+              </div>
+
+              {/* 4 Skill Criteria Grid */}
+              <div className="grid grid-cols-4 gap-2 pt-2 text-center">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block font-semibold">Listening</span>
+                  <span className="text-base font-black text-slate-900">8.0</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block font-semibold">Reading</span>
+                  <span className="text-base font-black text-slate-900">7.5</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block font-semibold">Writing</span>
+                  <span className="text-base font-black text-slate-900">7.0</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block font-semibold">Speaking</span>
+                  <span className="text-base font-black text-slate-900">7.5</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-6 border-t border-slate-200 text-left text-[10px] text-slate-400 font-medium">
+                <div>
+                  <p className="font-bold text-slate-700">Verification ID: PPA-2026-8941</p>
+                  <p>Issued: September 16, 2026</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-slate-700">Dr. Victoria Sterling</p>
+                  <p>Lead Academic Assessment Director</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

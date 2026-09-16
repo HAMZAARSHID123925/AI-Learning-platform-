@@ -524,12 +524,22 @@ export default function SimulatorPage() {
                       </div>
                     </div>
 
-                    <audio 
-                      ref={audioElementRef} 
-                      src={audioUrl} 
-                      controls 
-                      className="h-9 w-full sm:w-64 rounded-xl accent-[#027FFF]"
-                    />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <audio 
+                        ref={audioElementRef} 
+                        src={audioUrl} 
+                        controls 
+                        className="h-9 w-full sm:w-64 rounded-xl accent-[#027FFF]"
+                      />
+                      <a 
+                        href={audioUrl} 
+                        download="ielts-speaking-response.webm"
+                        className="p-2.5 rounded-xl bg-white hover:bg-slate-100 border border-indigo-200 text-indigo-700 hover:text-indigo-900 transition-colors flex items-center gap-1 text-xs font-bold shrink-0"
+                        title="Download Recording File"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 )}
 
