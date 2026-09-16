@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Mic, Square, ArrowLeft, Clock, BrainCircuit, 
   CheckCircle2, ChevronRight, Activity, Sparkles,
-  Volume2, RotateCcw, Target, AlertTriangle
+  Volume2, RotateCcw, Target, AlertTriangle, Video, VideoOff, Camera
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
@@ -25,6 +25,11 @@ export default function SimulatorPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [feedback, setFeedback] = useState<any>(null);
   const [activeCue, setActiveCue] = useState(0);
+
+  // Video & Webcam State
+  const [enableCamera, setEnableCamera] = useState(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   // Audio Recording State
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -116,10 +121,20 @@ export default function SimulatorPage() {
     setAudioUrl(null);
     audioChunksRef.current = [];
 
-    // Start Audio Stream Capture for Candidate Playback
+    // Start Audio & Optional Video Stream Capture
     if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: true, 
+          video: enableCamera ? { width: 640, height: 480 } : false 
+        });
+        mediaStreamRef.current = stream;
+
+        // Connect video element if camera enabled
+        if (enableCamera && videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
 
@@ -138,8 +153,8 @@ export default function SimulatorPage() {
         };
 
         mediaRecorder.start();
-      } catch (micErr) {
-        console.warn("Microphone hardware stream unavailable for recording blob:", micErr);
+      } catch (mediaErr) {
+        console.warn("Hardware media stream unavailable for recording blob:", mediaErr);
       }
     }
 
@@ -156,6 +171,10 @@ export default function SimulatorPage() {
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try { mediaRecorderRef.current.stop(); } catch {}
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => t.stop());
     }
 
     setIsRecording(false);
@@ -273,18 +292,37 @@ export default function SimulatorPage() {
             {phase === 'active' && (
               <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
                 
-                {/* Dynamic Voice Visualizer Waves */}
-                <div className="flex items-center justify-center gap-1.5 h-24 mb-8">
-                  {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 65, 85, 40, 90, 60, 75, 45, 90].map((h, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1.5 bg-gradient-to-t from-[#027FFF] to-cyan-400 rounded-full animate-pulse"
-                      style={{ 
-                        height: `${h}%`,
-                        animationDuration: `${0.35 + (i % 6) * 0.12}s`,
-                      }}
-                    ></div>
-                  ))}
+                {/* Camera Viewfinder & Voice Visualizer */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 w-full max-w-2xl justify-center">
+                  {enableCamera && (
+                    <div className="relative w-48 h-36 rounded-2xl overflow-hidden bg-slate-900 border-2 border-[#027FFF] shadow-md shrink-0">
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted 
+                        className="w-full h-full object-cover transform -scale-x-100"
+                      />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md text-[10px] font-bold text-white">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        Webcam Active
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Voice Visualizer Waves */}
+                  <div className="flex items-center justify-center gap-1.5 h-24 px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                    {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 65, 85, 40, 90, 60, 75, 45, 90].map((h, i) => (
+                      <div 
+                        key={i} 
+                        className="w-1.5 bg-gradient-to-t from-[#027FFF] to-cyan-400 rounded-full animate-pulse"
+                        style={{ 
+                          height: `${h}%`,
+                          animationDuration: `${0.35 + (i % 6) * 0.12}s`,
+                        }}
+                      ></div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Prompt & Real-time Speech-to-Text */}

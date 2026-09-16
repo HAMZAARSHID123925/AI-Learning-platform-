@@ -232,12 +232,13 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             Lesson Player
           </Link>
 
-          {/* RBAC MANAGEMENT HUBS (ONLY VISIBLE TO INSTRUCTOR / ADMIN) */}
-          {(isInstructor || isAdmin) && (
+          {/* RBAC MANAGEMENT HUBS (STRICT ROLE ISOLATION: STUDENTS SEE NOTHING, TEACHERS ONLY SEE INSTRUCTOR HUB, ADMINS SEE ADMIN STUDIO) */}
+          {userRole !== 'student' && (isInstructor || isAdmin) && (
             <>
               <div className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-widest mb-3 mt-6 px-3 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> Staff Management
               </div>
+              {/* Only Instructor or Teacher or Admin can see Instructor Hub */}
               {isInstructor && (
                 <Link 
                   href="/instructor" 
@@ -251,6 +252,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
                   Instructor Hub
                 </Link>
               )}
+              {/* ONLY Admin or SuperAdmin can see Admin Studio (Teachers & Students cannot see this) */}
               {isAdmin && (
                 <Link 
                   href="/admin/courses" 
