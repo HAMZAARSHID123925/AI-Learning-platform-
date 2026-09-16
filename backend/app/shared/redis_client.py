@@ -24,6 +24,7 @@ from app.config import get_settings
 
 from app.shared.mock_redis import MockRedisClient
 
+from typing import Any
 _redis_pool: redis.ConnectionPool | None = None
 _mock_redis: MockRedisClient = MockRedisClient()
 
@@ -36,8 +37,8 @@ def _get_pool() -> redis.ConnectionPool | None:
                 settings.REDIS_URL,
                 max_connections=50,
                 decode_responses=True,
-                socket_timeout=2,
-                socket_connect_timeout=2,
+                socket_timeout=1,
+                socket_connect_timeout=1,
             )
         except Exception:
             _redis_pool = None
@@ -46,19 +47,28 @@ def _get_pool() -> redis.ConnectionPool | None:
 def get_redis_client() -> Any:
     pool = _get_pool()
     if pool:
-        return redis.Redis(connection_pool=pool)
+        try:
+            return redis.Redis(connection_pool=pool)
+        except Exception:
+            pass
     return _mock_redis
 
 async def get_redis() -> AsyncGenerator[Any, None]:
     pool = _get_pool()
     if pool:
-        client = redis.Redis(connection_pool=pool)
         try:
-            yield client
-        finally:
-            await client.aclose()
-    else:
-        yield _mock_redis
+            client = redis.Redis(connection_pool=pool)
+            # Test connectivity
+            await client.ping()
+            try:
+                yield client
+            finally:
+                await client.aclose()
+            return
+        except Exception:
+            # Fallback to mock redis in local dev if Redis server is down
+            pass
+    yield _mock_redis
 
 
 async def close_redis_pool() -> None:

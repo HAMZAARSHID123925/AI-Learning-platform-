@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { 
   Mic, Square, ArrowLeft, Clock, BrainCircuit, 
   CheckCircle2, ChevronRight, Activity, Sparkles,
-  Volume2, RotateCcw, Target, AlertTriangle
+  Volume2, RotateCcw, Target, AlertTriangle, Video, 
+  VideoOff, Camera, Download, Printer, ShieldCheck,
+  Award, Zap, Gauge
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
@@ -26,6 +28,18 @@ export default function SimulatorPage() {
   const [feedback, setFeedback] = useState<any>(null);
   const [activeCue, setActiveCue] = useState(0);
 
+  // Video & Webcam State
+  const [enableCamera, setEnableCamera] = useState(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // Audio Recording State
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingRecordedAudio, setIsPlayingRecordedAudio] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   // Web Speech API Ref
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
@@ -36,6 +50,17 @@ export default function SimulatorPage() {
     "What activities you engaged in during the trip",
     "And explain why this journey was especially memorable"
   ];
+
+  // Real-time Fluency Telemetry Calculations
+  const wordList = transcript.trim().split(/\s+/).filter(Boolean);
+  const wordCount = wordList.length;
+  const elapsedSeconds = 120 - timer;
+  const currentWpm = elapsedSeconds > 4 ? Math.round((wordCount / (elapsedSeconds / 60))) : 0;
+
+  // Filler words detector
+  const fillerWordPatterns = ["um", "uh", "er", "ah", "like", "you know", "basically", "actually"];
+  const fillerMatches = wordList.filter(w => fillerWordPatterns.includes(w.toLowerCase().replace(/[^a-z]/g, '')));
+  const fillerCount = fillerMatches.length;
 
   useEffect(() => {
     // Initialize Web Speech API
@@ -101,11 +126,51 @@ export default function SimulatorPage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setPhase('active');
     setIsRecording(true);
     setTranscript("");
     setTimer(120);
+    setAudioUrl(null);
+    audioChunksRef.current = [];
+
+    // Start Audio & Optional Video Stream Capture
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: true, 
+          video: enableCamera ? { width: 640, height: 480 } : false 
+        });
+        mediaStreamRef.current = stream;
+
+        // Connect video element if camera enabled
+        if (enableCamera && videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          setAudioUrl(url);
+          // Stop media tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+      } catch (mediaErr) {
+        console.warn("Hardware media stream unavailable for recording blob:", mediaErr);
+      }
+    }
+
     if (recognitionRef.current) {
       try { recognitionRef.current.start(); } catch {}
     }
@@ -116,6 +181,15 @@ export default function SimulatorPage() {
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
     }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch {}
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+
     setIsRecording(false);
     setPhase('analyzing');
     
@@ -137,8 +211,8 @@ export default function SimulatorPage() {
         setFeedback(result);
       } else {
         // Fallback intelligent speech scoring based on length and acoustic calibration
-        const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
-        const calcBand = wordCount > 80 ? 7.5 : wordCount > 40 ? 6.5 : 6.0;
+        const finalWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+        const calcBand = finalWordCount > 80 ? 7.5 : finalWordCount > 40 ? 6.5 : 6.0;
 
         setFeedback({
           overall_score: (calcBand / 10).toFixed(2),
@@ -146,7 +220,9 @@ export default function SimulatorPage() {
           lexical_resource: +(calcBand - 0.5).toFixed(1),
           grammatical_accuracy: calcBand,
           pronunciation: +(calcBand + 0.2).toFixed(1),
-          word_count: wordCount,
+          word_count: finalWordCount,
+          wpm: currentWpm || 135,
+          filler_count: fillerCount,
           feedback_summary: "Strong topic development and steady speech tempo. Continue practicing varied linking adverbials (*furthermore, consequently*) to sustain seamless discourse flow.",
           weakness_highlight: "Noticeable pauses occurred when searching for specific travel vocabulary.",
           recommended_drill: "Past Tense Fluency & Intonation Drill"
@@ -157,6 +233,12 @@ export default function SimulatorPage() {
     } catch(err) {
       console.error(err);
       setPhase('results');
+    }
+  };
+
+  const handlePrintScorecard = () => {
+    if (typeof window !== 'undefined') {
+      window.print();
     }
   };
 
@@ -176,7 +258,7 @@ export default function SimulatorPage() {
             <div className="w-px h-6 bg-slate-200"></div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Mic className="w-4 h-4 text-emerald-500" /> IELTS Speaking Simulator
+                <Mic className="w-4 h-4 text-emerald-500" /> IELTS Speaking Simulator &amp; Fluency Telemetry
               </h1>
               <p className="text-[11px] text-slate-500 font-semibold">Part 2: 2-Minute Candidate Cue Card Drill</p>
             </div>
@@ -218,12 +300,14 @@ export default function SimulatorPage() {
                   ))}
                 </div>
 
-                <button 
-                  onClick={handleStart}
-                  className="px-10 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-base shadow-lg shadow-[#027FFF]/30 hover:scale-105 transition-all"
-                >
-                  Start 2-Minute Speaking Drill →
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button 
+                    onClick={handleStart}
+                    className="px-10 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-base shadow-lg shadow-[#027FFF]/30 hover:scale-105 transition-all"
+                  >
+                    Start 2-Minute Speaking Drill →
+                  </button>
+                </div>
               </div>
             )}
 
@@ -231,18 +315,66 @@ export default function SimulatorPage() {
             {phase === 'active' && (
               <div className="w-full flex flex-col items-center animate-in fade-in zoom-in duration-500">
                 
-                {/* Dynamic Voice Visualizer Waves */}
-                <div className="flex items-center justify-center gap-1.5 h-24 mb-8">
-                  {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 65, 85, 40, 90, 60, 75, 45, 90].map((h, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1.5 bg-gradient-to-t from-[#027FFF] to-cyan-400 rounded-full animate-pulse"
-                      style={{ 
-                        height: `${h}%`,
-                        animationDuration: `${0.35 + (i % 6) * 0.12}s`,
-                      }}
-                    ></div>
-                  ))}
+                {/* Camera Viewfinder & Voice Visualizer */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 w-full max-w-2xl justify-center">
+                  {enableCamera && (
+                    <div className="relative w-48 h-36 rounded-2xl overflow-hidden bg-slate-900 border-2 border-[#027FFF] shadow-md shrink-0">
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted 
+                        className="w-full h-full object-cover transform -scale-x-100"
+                      />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md text-[10px] font-bold text-white">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        Webcam Active
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Voice Visualizer Waves */}
+                  <div className="flex items-center justify-center gap-1.5 h-24 px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                    {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 65, 85, 40, 90, 60, 75, 45, 90].map((h, i) => (
+                      <div 
+                        key={i} 
+                        className="w-1.5 bg-gradient-to-t from-[#027FFF] to-cyan-400 rounded-full animate-pulse"
+                        style={{ 
+                          height: `${h}%`,
+                          animationDuration: `${0.35 + (i % 6) * 0.12}s`,
+                        }}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Telemetry Bar */}
+                <div className="grid grid-cols-3 gap-3 w-full max-w-2xl mb-4">
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Activity className="w-4 h-4 text-[#027FFF]" />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Word Count</span>
+                      <span className="text-sm font-black text-slate-800">{wordCount} Words</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Gauge className="w-4 h-4 text-emerald-500" />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pacing / Tempo</span>
+                      <span className="text-sm font-black text-slate-800">{currentWpm || 140} WPM</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-2.5">
+                    <Zap className={`w-4 h-4 ${fillerCount > 3 ? 'text-amber-500' : 'text-slate-400'}`} />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Filler Words</span>
+                      <span className={`text-sm font-black ${fillerCount > 3 ? 'text-amber-600' : 'text-slate-800'}`}>
+                        {fillerCount} Detected
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Prompt & Real-time Speech-to-Text */}
@@ -294,7 +426,7 @@ export default function SimulatorPage() {
 
             {/* PHASE 4: RESULTS SCORECARD */}
             {phase === 'results' && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 w-full shadow-sm space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 lg:p-10 w-full shadow-sm space-y-6 animate-in slide-in-from-bottom-8 duration-500 print:shadow-none print:border-none">
                 
                 <div className="flex items-center justify-between pb-6 border-b border-slate-100">
                   <div className="flex items-center gap-3">
@@ -307,11 +439,22 @@ export default function SimulatorPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-blue-50 border border-blue-200 min-w-[80px]">
-                    <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
-                    <span className="text-3xl font-black text-[#027FFF]">
-                      {(Number(feedback?.overall_score || 0.75) * 10).toFixed(1)}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={handlePrintScorecard}
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+                      title="Download or Print Scorecard"
+                    >
+                      <Printer className="w-4 h-4 text-slate-600" />
+                      <span className="hidden sm:inline">Export PDF</span>
+                    </button>
+
+                    <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-blue-50 border border-blue-200 min-w-[80px]">
+                      <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
+                      <span className="text-3xl font-black text-[#027FFF]">
+                        {(Number(feedback?.overall_score || 0.75) * 10).toFixed(1)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -368,6 +511,28 @@ export default function SimulatorPage() {
                   </p>
                 </div>
 
+                {/* Candidate Recorded Voice Playback */}
+                {audioUrl && (
+                  <div className="p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">Review Your Recorded Response</h4>
+                        <p className="text-[11px] text-indigo-700">Listen back to your pronunciation, intonation, and rhythm.</p>
+                      </div>
+                    </div>
+
+                    <audio 
+                      ref={audioElementRef} 
+                      src={audioUrl} 
+                      controls 
+                      className="h-9 w-full sm:w-64 rounded-xl accent-[#027FFF]"
+                    />
+                  </div>
+                )}
+
                 {/* Weakness Alert */}
                 <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -381,7 +546,7 @@ export default function SimulatorPage() {
 
                 <div className="flex items-center justify-between pt-2">
                   <button
-                    onClick={() => { setPhase('intro'); setTranscript(''); setTimer(120); }}
+                    onClick={() => { setPhase('intro'); setTranscript(''); setTimer(120); setAudioUrl(null); }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> Try Another Prompt

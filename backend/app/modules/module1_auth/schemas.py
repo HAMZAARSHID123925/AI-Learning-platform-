@@ -36,7 +36,7 @@ class RegisterRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=10, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
 
@@ -44,13 +44,23 @@ class RegisterRequest(BaseModel):
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """
-        Enforce basic password policy.
-        Production enhancement: use zxcvbn for strength estimation.
+        Enforce strict NIST 800-63B password policy:
+        - Minimum 10 characters
+        - At least one uppercase letter (A-Z)
+        - At least one lowercase letter (a-z)
+        - At least one numeric digit (0-9)
+        - At least one special symbol
         """
+        if len(v) < 10:
+            raise ValueError("Password must be at least 10 characters long.")
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter.")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter.")
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit.")
+        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>/?`~" for c in v):
+            raise ValueError("Password must contain at least one special symbol (!@#$%^&*...).")
         return v
 
     @field_validator("email")
@@ -88,15 +98,21 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     """POST /api/v1/auth/reset-password"""
     token: str = Field(min_length=1)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
 
     @field_validator("new_password")
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 10:
+            raise ValueError("Password must be at least 10 characters long.")
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter.")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter.")
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit.")
+        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>/?`~" for c in v):
+            raise ValueError("Password must contain at least one special symbol (!@#$%^&*...).")
         return v
 
 
@@ -212,3 +228,15 @@ class AuditLogResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+# =============================================================================
+# Active Session Schemas
+# =============================================================================
+
+class SessionInfoResponse(BaseModel):
+    session_id: str
+    device_info: str
+    ip_address: str | None
+    last_active_at: datetime
+    is_current: bool

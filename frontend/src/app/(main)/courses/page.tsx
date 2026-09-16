@@ -54,7 +54,7 @@ export default function CoursesPage() {
         // 2. Query backend API
         let remoteItems: any[] = [];
         try {
-          const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
+          const res = await fetchWithAuth('/courses?page_size=50');
           if (res.ok) {
             const data = await res.json();
             remoteItems = (data.items || []).filter((c: any) => c.status === 'published');

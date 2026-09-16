@@ -25,6 +25,30 @@ export default function ResetPasswordPage() {
       toast.error('Validation Error', 'Passwords do not match');
       return;
     }
+
+    if (password.length < 10) {
+      setError('Password must be at least 10 characters long.');
+      toast.error('Password Requirement', 'Minimum 10 characters required.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) {
+      setError('Password must contain both uppercase and lowercase letters.');
+      toast.error('Password Requirement', 'Include uppercase and lowercase letters.');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('Password must contain at least one numeric digit.');
+      toast.error('Password Requirement', 'Include at least one digit.');
+      return;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError('Password must contain at least one special symbol (!@#$%^&*...).');
+      toast.error('Password Requirement', 'Include at least one special symbol.');
+      return;
+    }
     
     if (!token) {
       setError('Invalid or missing reset token');

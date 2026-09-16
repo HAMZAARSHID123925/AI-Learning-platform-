@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, BrainCircuit, BookOpen, Headphones, PenTool, Mic, 
   Video, LineChart as LineChartIcon, Users, Settings, LogOut, Sparkles, Award,
-  ShieldCheck, User
+  ShieldCheck, User, Menu, X
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -20,6 +20,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
 
   const [userRole, setUserRole] = useState<string>('student');
   const [userName, setUserName] = useState<string>('Student');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -29,6 +30,11 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
       setUserName(name);
     }
   }, []);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
 
   const isInstructor = userRole === 'instructor' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'teacher';
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
@@ -46,11 +52,11 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
     return pathname.startsWith(path);
   };
 
-  return (
-    <aside className="w-64 flex-shrink-0 bg-[#0F172A] text-slate-300 flex flex-col justify-between hidden md:flex h-screen overflow-y-auto shadow-2xl z-20 border-r border-slate-800">
+  const navContent = (
+    <div className="flex flex-col justify-between h-full">
       <div>
         {/* Logo Header */}
-        <div className="h-20 flex items-center px-6 border-b border-slate-800 sticky top-0 bg-[#0F172A] z-10">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800 sticky top-0 bg-[#0F172A] z-10">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-white/20 shadow-md">
               <img 
@@ -64,6 +70,14 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
               <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">AI Platform</span>
             </div>
           </Link>
+
+          {/* Close button for mobile drawer */}
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="md:hidden p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         
         {/* Navigation */}
@@ -83,14 +97,14 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
           </Link>
 
           <Link 
-            href="/courses" 
+            href="/dashboard/courses" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              isActive('/courses') 
+              isActive('/dashboard/courses') 
                 ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <BookOpen className={`w-4 h-4 ${isActive('/courses') ? 'text-white' : 'text-cyan-400'}`} />
+            <BookOpen className={`w-4 h-4 ${isActive('/dashboard/courses') ? 'text-white' : 'text-cyan-400'}`} />
             Course Catalog
           </Link>
           
@@ -110,39 +124,65 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             href="/dashboard/vocabulary" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
               isActive('/dashboard/vocabulary') 
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' 
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <Sparkles className={`w-4 h-4 ${isActive('/dashboard/vocabulary') ? 'text-white' : 'text-amber-400'}`} />
-            Vocabulary Bank
+            <Sparkles className={`w-4 h-4 ${isActive('/dashboard/vocabulary') ? 'text-white' : 'text-purple-400'}`} />
+            Vocabulary (SM-2)
           </Link>
 
+          <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Skill Studios</div>
+          
           {isIELTS ? (
             <>
               <Link 
                 href="/dashboard/mock-exam" 
-                className={`flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   isActive('/dashboard/mock-exam') 
-                    ? 'bg-[#027FFF] text-white font-bold shadow-lg shadow-[#027FFF]/30' 
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
-                <BookOpen className={`w-4 h-4 ${isActive('/dashboard/mock-exam') ? 'text-white' : 'text-slate-500'}`} />
-                Mock Exam Studio
+                <BookOpen className={`w-4 h-4 ${isActive('/dashboard/mock-exam') ? 'text-white' : 'text-blue-400'}`} />
+                Mock Exam
               </Link>
+
+              <Link 
+                href="/dashboard/lesson" 
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  isActive('/dashboard/lesson') 
+                    ? 'bg-[#027FFF] text-white shadow-lg shadow-[#027FFF]/30' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Video className={`w-4 h-4 ${isActive('/dashboard/lesson') ? 'text-white' : 'text-cyan-400'}`} />
+                Lesson Player
+              </Link>
+
               <Link 
                 href="/dashboard/writing" 
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
                   isActive('/dashboard/writing') 
                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 <PenTool className={`w-4 h-4 ${isActive('/dashboard/writing') ? 'text-white' : 'text-purple-400'}`} />
                 Writing Studio
               </Link>
-              <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm"><Mic className="w-4 h-4 text-slate-500" />Speaking Studio</Link>
+
+              <Link 
+                href="/dashboard/simulator" 
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  isActive('/dashboard/simulator') 
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' 
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Mic className={`w-4 h-4 ${isActive('/dashboard/simulator') ? 'text-white' : 'text-emerald-400'}`} />
+                Speaking Studio
+              </Link>
             </>
           ) : (
             <>
@@ -154,6 +194,17 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
           )}
           
           <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs &amp; Diagnostics</div>
+          <Link 
+            href="/dashboard/diagnostic" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/diagnostic') 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <BrainCircuit className={`w-4 h-4 ${isActive('/dashboard/diagnostic') ? 'text-white' : 'text-blue-400'}`} />
+            Diagnostic Check
+          </Link>
           <Link 
             href="/dashboard/simulator" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
@@ -169,64 +220,44 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
             href="/dashboard/analytics" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
               isActive('/dashboard/analytics') 
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <Award className={`w-4 h-4 ${isActive('/dashboard/analytics') ? 'text-white' : 'text-purple-400'}`} />
-            Certificates &amp; Analytics
-          </Link>
-          <Link 
-            href="/dashboard/results" 
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              isActive('/dashboard/results') 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <LineChartIcon className={`w-4 h-4 ${isActive('/dashboard/results') ? 'text-white' : 'text-blue-400'}`} />
-            Past Results
-          </Link>
-          <Link 
-            href="/dashboard/community" 
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              isActive('/dashboard/community') 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Users className={`w-4 h-4 ${isActive('/dashboard/community') ? 'text-white' : 'text-blue-400'}`} />
-            Community Hub
+            <LineChartIcon className={`w-4 h-4 ${isActive('/dashboard/analytics') ? 'text-white' : 'text-indigo-400'}`} />
+            Performance
           </Link>
           <Link 
             href="/dashboard/live" 
             className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
               isActive('/dashboard/live') 
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Video className={`w-4 h-4 ${isActive('/dashboard/live') ? 'text-white' : 'text-purple-400'}`} />
-            Live Classes
-          </Link>
-          <Link 
-            href="/dashboard/lesson" 
-            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
-              isActive('/dashboard/lesson') 
                 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <BookOpen className={`w-4 h-4 ${isActive('/dashboard/lesson') ? 'text-white' : 'text-rose-400'}`} />
-            Lesson Player
+            <Video className={`w-4 h-4 ${isActive('/dashboard/live') ? 'text-white' : 'text-rose-400'}`} />
+            Live Classes
+          </Link>
+          <Link 
+            href="/dashboard/community" 
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              isActive('/dashboard/community') 
+                ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Users className={`w-4 h-4 ${isActive('/dashboard/community') ? 'text-white' : 'text-teal-400'}`} />
+            Community Hub
           </Link>
 
-          {/* RBAC MANAGEMENT HUBS (ONLY VISIBLE TO INSTRUCTOR / ADMIN) */}
+          {/* 🔒 STRICT RBAC ISOLATION */}
           {(isInstructor || isAdmin) && (
             <>
-              <div className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-widest mb-3 mt-6 px-3 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> Staff Management
+              <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-3 mt-6 px-3 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> Staff Management
               </div>
+              
+              {/* Visible to Teachers & Admins */}
               {isInstructor && (
                 <Link 
                   href="/instructor" 
@@ -240,6 +271,7 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
                   Instructor Hub
                 </Link>
               )}
+              {/* ONLY Admin or SuperAdmin can see Admin Studio (Teachers & Students cannot see this) */}
               {isAdmin && (
                 <Link 
                   href="/admin/courses" 
@@ -280,7 +312,40 @@ export default function DashboardSidebar({ courseTrack = 'ielts' }: DashboardSid
           Sign Out
         </button>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* DESKTOP PERSISTENT SIDEBAR */}
+      <aside className="w-64 flex-shrink-0 bg-[#0F172A] text-slate-300 hidden md:flex flex-col justify-between h-screen overflow-y-auto shadow-2xl z-20 border-r border-slate-800">
+        {navContent}
+      </aside>
+
+      {/* MOBILE FLOATING MENU TRIGGER BUTTON */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 p-2.5 rounded-2xl bg-[#0F172A] text-white shadow-xl border border-slate-700 flex items-center justify-center hover:bg-slate-800 active:scale-95 transition-all"
+        aria-label="Open Navigation Menu"
+      >
+        <Menu className="w-5 h-5 text-[#5BC0EB]" />
+      </button>
+
+      {/* MOBILE SLIDE-OUT DRAWER OVERLAY */}
+      {isMobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setIsMobileOpen(false)}
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
+          />
+
+          {/* Drawer Body */}
+          <div className="relative w-72 max-w-[85vw] bg-[#0F172A] text-slate-300 h-full shadow-2xl z-10 flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
+            {navContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
-

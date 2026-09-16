@@ -16,12 +16,13 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Real-time password requirement checkers
-  const hasMinLength = password.length >= 8;
+  // Real-time password requirement checkers (NIST 800-63B Compliant)
+  const hasMinLength = password.length >= 10;
   const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  const isPasswordValid = hasMinLength && hasUppercase && hasNumber;
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +40,8 @@ export default function SignupPage() {
     }
 
     if (!hasMinLength) {
-      setError('Password must be at least 8 characters long.');
-      toast.error('Password Requirement', 'Minimum 8 characters required.');
+      setError('Password must be at least 10 characters long.');
+      toast.error('Password Requirement', 'Minimum 10 characters required.');
       return;
     }
 
@@ -50,16 +51,29 @@ export default function SignupPage() {
       return;
     }
 
+    if (!hasLowercase) {
+      setError('Password must contain at least one lowercase letter (a-z).');
+      toast.error('Password Requirement', 'Include at least one lowercase letter.');
+      return;
+    }
+
     if (!hasNumber) {
       setError('Password must contain at least one number (0-9).');
       toast.error('Password Requirement', 'Include at least one digit.');
       return;
     }
 
+    if (!hasSpecial) {
+      setError('Password must contain at least one special symbol (!@#$%^&*...).');
+      toast.error('Password Requirement', 'Include at least one special symbol.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
+      // First attempt relative Next.js API route (immune to CORS cross-origin blocks)
+      let response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,28 +84,28 @@ export default function SignupPage() {
           first_name: cleanFirst,
           last_name: cleanLast,
         }),
-      });
+      }).catch(() => null);
 
-      const data = await response.json().catch(() => ({}));
+      if (!response || !response.ok) {
+        const fastapiRes = await fetch('http://localhost:8000/api/v1/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: cleanPassword,
+            first_name: cleanFirst,
+            last_name: cleanLast,
+          }),
+        }).catch(() => null);
 
-      if (!response.ok) {
-        let msg = 'Registration failed. Please check your information.';
-        if (typeof data.detail === 'string') {
-          msg = data.detail;
-        } else if (data.message) {
-          msg = data.message;
-        } else if (response.status === 409) {
-          msg = 'An account with this email address already exists.';
+        if (fastapiRes && fastapiRes.ok) {
+          response = fastapiRes;
         }
-        throw new Error(msg);
       }
 
-      toast.success('Account Created Successfully!', 'Please log in with your new credentials.');
-      router.push('/login?registered=true');
-    } catch (err: unknown) {
-      const msg = (err as Error).message || 'Unable to reach the registration service.';
-      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('connection refused') || msg.includes('Load failed')) {
-        // Graceful local dev session creation
+      if (response && response.ok) {
         const fullName = `${cleanFirst} ${cleanLast}`.trim() || 'Candidate';
         let role = 'Student';
         if (cleanEmail.includes('admin')) role = 'Admin';
@@ -104,29 +118,43 @@ export default function SignupPage() {
           const params = new URLSearchParams(window.location.search);
           const enrollCourseParam = params.get('enrollCourse');
           if (enrollCourseParam) {
-            const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
-            if (!existing.some((c: any) => c.course_title === enrollCourseParam)) {
-              existing.unshift({
-                course_id: 'enrolled_' + Date.now(),
-                course_title: enrollCourseParam,
-                total_lessons: 28,
-                completed_lessons: 0,
-                percentage: 0
-              });
-              localStorage.setItem('student_enrolled_courses', JSON.stringify(existing));
-            }
+            try {
+              const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
+              if (!existing.some((c: any) => c.course_title === enrollCourseParam)) {
+                existing.unshift({
+                  course_id: 'enrolled_' + Date.now(),
+                  course_title: enrollCourseParam,
+                  total_lessons: 28,
+                  completed_lessons: 0,
+                  percentage: 0
+                });
+                localStorage.setItem('student_enrolled_courses', JSON.stringify(existing));
+              }
+            } catch {}
           }
         }
 
-        toast.success(`Account Created! Welcome, ${cleanFirst}!`, `Signed in as ${role}`);
-        
+        toast.success('Account Created Successfully! 🎉', `Welcome, ${fullName}!`);
         if (role === 'Admin') router.push('/admin/courses');
         else if (role === 'Instructor') router.push('/instructor');
         else router.push('/dashboard');
-      } else {
-        setError(msg);
-        toast.error('Registration Failed', msg);
+        return;
       }
+
+      const data = response ? await response.json().catch(() => ({})) : {};
+      let msg = 'Registration failed. Please check your information.';
+      if (typeof data.detail === 'string') {
+        msg = data.detail;
+      } else if (data.message) {
+        msg = data.message;
+      } else if (response && response.status === 409) {
+        msg = 'An account with this email address already exists.';
+      }
+      throw new Error(msg);
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'Unable to reach the registration service.';
+      setError(msg);
+      toast.error('Registration Notice', msg);
     } finally {
       setLoading(false);
     }
@@ -416,14 +444,14 @@ export default function SignupPage() {
             {/* Password Requirements Live Tracker */}
             <div className="mt-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
               <p className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Password Requirements:</span>
+                <span>Enterprise Password Policy:</span>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isPasswordValid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {isPasswordValid ? '✓ Strong & Ready' : 'Incomplete'}
+                  {isPasswordValid ? '✓ Meets Bank-Grade Policy' : 'Requirements Pending'}
                 </span>
               </p>
               
               <div className="grid grid-cols-2 gap-2 text-xs">
-                {/* 8+ Characters */}
+                {/* 10+ Characters */}
                 <div className={`flex items-center gap-1.5 transition-colors ${hasMinLength ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
                   <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasMinLength ? "3" : "2"} viewBox="0 0 24 24">
                     {hasMinLength ? (
@@ -432,19 +460,19 @@ export default function SignupPage() {
                       <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>At least 8 characters</span>
+                  <span>Min 10 characters</span>
                 </div>
 
-                {/* Uppercase Letter */}
-                <div className={`flex items-center gap-1.5 transition-colors ${hasUppercase ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasUppercase ? "3" : "2"} viewBox="0 0 24 24">
-                    {hasUppercase ? (
+                {/* Uppercase & Lowercase Letter */}
+                <div className={`flex items-center gap-1.5 transition-colors ${(hasUppercase && hasLowercase) ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={(hasUppercase && hasLowercase) ? "3" : "2"} viewBox="0 0 24 24">
+                    {(hasUppercase && hasLowercase) ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
                       <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>1 uppercase letter (A-Z)</span>
+                  <span>Upper &amp; lower (A-z)</span>
                 </div>
 
                 {/* Number */}
@@ -459,16 +487,16 @@ export default function SignupPage() {
                   <span>1 number (0-9)</span>
                 </div>
 
-                {/* Special Character / Recommended */}
-                <div className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-400'}`}>
+                {/* Special Character */}
+                <div className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
                   <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={hasSpecial ? "3" : "2"} viewBox="0 0 24 24">
                     {hasSpecial ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     ) : (
-                      <circle cx="12" cy="12" r="9" strokeDasharray="2 2" />
+                      <circle cx="12" cy="12" r="9" />
                     )}
                   </svg>
-                  <span>1 symbol (recommended)</span>
+                  <span>1 special symbol (!@#$)</span>
                 </div>
               </div>
             </div>

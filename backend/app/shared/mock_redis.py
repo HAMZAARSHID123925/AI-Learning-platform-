@@ -48,6 +48,28 @@ class MockRedisClient:
             self._expires[key] = time.time() + ex
         return True
 
+    async def exists(self, *keys: str) -> int:
+        count = 0
+        for k in keys:
+            self._clean_expired(k)
+            if k in self._store:
+                count += 1
+        return count
+
+    async def hset(self, name: str, key: Optional[str] = None, value: Optional[Any] = None, mapping: Optional[Dict[str, Any]] = None) -> int:
+        if name not in self._store or not isinstance(self._store[name], dict):
+            self._store[name] = {}
+        target = self._store[name]
+        count = 0
+        if mapping:
+            for mk, mv in mapping.items():
+                target[mk] = str(mv)
+                count += 1
+        if key is not None:
+            target[key] = str(value)
+            count += 1
+        return count
+
     async def delete(self, *keys: str) -> int:
         count = 0
         for k in keys:

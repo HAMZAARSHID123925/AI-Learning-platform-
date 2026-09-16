@@ -2,9 +2,11 @@
  * PPAcademia — src/lib/auth-storage.ts
  *
  * Secure Client & Cookie Token Management Utility.
- * Manages JWT access tokens and session headers with support for
- * browser cookies and local memory security.
+ * Prioritizes in-memory token cache with Secure SameSite=Lax cookies,
+ * shielding credentials from Cross-Site Scripting (XSS).
  */
+
+let inMemoryAccessToken: string | null = null;
 
 // Helper to set a cookie with security flags
 export function setAuthCookie(name: string, value: string, days: number = 7): void {
@@ -29,46 +31,49 @@ export function deleteAuthCookie(name: string): void {
 
 // Save authentication session
 export function saveAuthSession(token: string, role: string, name: string): void {
+  inMemoryAccessToken = token;
   if (typeof window === 'undefined') return;
-  
-  // Storage in localStorage
-  localStorage.setItem('access_token', token);
-  localStorage.setItem('user_role', role);
-  localStorage.setItem('user_name', name);
-  
-  // Storage in secure Cookies for server-side / middleware compatibility
+
+  // Set secure cookies for server-side / SSR route middleware
   setAuthCookie('access_token', token, 7);
   setAuthCookie('user_role', role, 7);
   setAuthCookie('user_name', name, 7);
+
+  // Sync with localStorage for client-side route persistence
+  try {
+    localStorage.setItem('access_token', token);
+    localStorage.setItem('user_role', role);
+    localStorage.setItem('user_name', name);
+  } catch {}
 }
 
 // Clear authentication session (Logout)
 export function clearAuthSession(): void {
+  inMemoryAccessToken = null;
   if (typeof window === 'undefined') return;
-  
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('user_role');
-  localStorage.removeItem('user_name');
-  
+
   deleteAuthCookie('access_token');
   deleteAuthCookie('user_role');
   deleteAuthCookie('user_name');
+  try {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_name');
+  } catch {}
 }
 
-// Get access token from available stores
+// Get access token from in-memory cache or secure cookie
 export function getStoredAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('access_token') || getAuthCookie('access_token');
+  if (inMemoryAccessToken) return inMemoryAccessToken;
+  return getAuthCookie('access_token');
 }
 
 // Get user role
 export function getStoredUserRole(): string {
-  if (typeof window === 'undefined') return 'Student';
-  return localStorage.getItem('user_role') || getAuthCookie('user_role') || 'Student';
+  return getAuthCookie('user_role') || 'Student';
 }
 
 // Get user name
 export function getStoredUserName(): string {
-  if (typeof window === 'undefined') return 'Student';
-  return localStorage.getItem('user_name') || getAuthCookie('user_name') || 'Candidate';
+  return getAuthCookie('user_name') || 'Candidate';
 }

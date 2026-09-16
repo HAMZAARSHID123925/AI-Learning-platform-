@@ -5,11 +5,74 @@ import Link from 'next/link';
 import { 
   PenTool, Clock, ArrowLeft, CheckCircle2, 
   Sparkles, RefreshCw, FileText, Target,
-  Award
+  Award, Wand2, BookOpen, Copy, PlusCircle,
+  Check, ArrowRight, Lightbulb, Zap, HelpCircle, X,
+  Printer
 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 import DashboardSidebar from '@/components/DashboardSidebar';
+
+interface SentenceUpgrade {
+  original: string;
+  category: "Inversion (Band 8.5+)" | "C2 Nominalization" | "Cohesion Linker" | "Lexical Precision";
+  upgrades: {
+    type: string;
+    text: string;
+    explanation: string;
+  }[];
+}
+
+const SAMPLE_TRANSFORMATIONS: SentenceUpgrade[] = [
+  {
+    original: "If the government spends more money on green energy, pollution will decrease.",
+    category: "Inversion (Band 8.5+)",
+    upgrades: [
+      {
+        type: "Conditional Inversion",
+        text: "Were governments to allocate substantial fiscal subsidies toward renewable energy, environmental degradation would diminish precipitously.",
+        explanation: "'Were governments to allocate' demonstrates master-level subjunctive inversion required for Band 8.5+ Grammatical Range."
+      },
+      {
+        type: "Academic Nominalization",
+        text: "The expanded allocation of governmental capital toward sustainable infrastructure is projected to precipitate a notable reduction in carbon emissions.",
+        explanation: "Transforms verbs into academic nouns ('allocation of capital') for high-register stylistic density."
+      }
+    ]
+  },
+  {
+    original: "Some people think that technology makes people feel lonely and bad.",
+    category: "Lexical Precision",
+    upgrades: [
+      {
+        type: "Nuanced Academic Stance",
+        text: "Leading sociological proponents contend that ubiquitous digital immersion frequently exacerbates psychological alienation and social detachment.",
+        explanation: "Replaces 'makes people feel lonely and bad' with 'exacerbates psychological alienation and social detachment'."
+      },
+      {
+        type: "Concessive Counter-Perspective",
+        text: "While detractors maintain that pervasive technology fosters interpersonal isolation, empirical research underscores its capacity to bridge geographical divides.",
+        explanation: "Adds balanced concessive clause coordination ('While detractors maintain...')."
+      }
+    ]
+  },
+  {
+    original: "This is a very big problem that happens everywhere in the world.",
+    category: "C2 Nominalization",
+    upgrades: [
+      {
+        type: "C2 Collocation Register",
+        text: "This represents a ubiquitous global predicament that exerts a profoundly disruptive influence across contemporary societies.",
+        explanation: "'Ubiquitous global predicament' and 'exerts a profoundly disruptive influence' replace basic descriptors."
+      }
+    ]
+  }
+];
+
+const MODEL_OUTLINES = {
+  task2_agree_disagree: `In contemporary discourse, the proposition that artificial intelligence may eventually supplant human educators has sparked considerable debate. While detractors maintain that technological automation cannot replicate empathetic pedagogical mentorship, proponents argue that machine-learning algorithms offer unprecedented bespoke adaptability. In my view, notwithstanding the remarkable computational efficiency of algorithmic instruction, the holistic development of learners remains fundamentally contingent upon human guidance.\n\nOn the one hand, leading advocates of automated learning contend that intelligent tutoring systems possess the capacity to democratize high-caliber education. Unlike human instructors constrained by time and cognitive bandwidth, adaptive neural networks can diagnose learner weaknesses in real time, delivering customized micro-drills tailored to individual comprehension rates. For instance, empirical studies demonstrate that computerized spaced-repetition modules accelerate vocabulary retention by up to forty percent. Consequently, algorithmic systems undeniably alleviate administrative pedagogical burdens and optimize analytical skill acquisition.\n\nNotwithstanding this assertion, the essential ethos of education extends far beyond mechanistic information dissemination. Were educators to be eliminated entirely from classroom environments, students would inevitably suffer a deficit in socio-emotional scaffolding and critical philosophical inquiry. Human teachers model moral resilience, stimulate ethical discourse, and provide compassionate intervention during periods of academic distress—facets of mentorship that algorithmic synthesis fundamentally cannot simulate.\n\nIn conclusion, while artificial intelligence undeniably constitutes a transformative pedagogical adjunct capable of optimizing analytical drill execution, it cannot replace human educators. A balanced paradigm wherein automated tools support rather than supplant human mentorship represents the optimal trajectory for modern education.`,
+  task1_line_graph: `The line graph delineates the proportion of households across five distinct income brackets that incorporated smart home automation systems between 2018 and 2023.\n\nOverall, it is immediately apparent that smart device adoption experienced a ubiquitous upward trajectory across all surveyed demographics over the five-year timeframe. Furthermore, higher-income households consistently maintained the highest penetration rates, whereas lower-income cohorts exhibited the most pronounced relative rate of acceleration.\n\nIn 2018, adoption rates among the top income tier stood at approximately thirty-four percent, in stark contradistinction to the lowest bracket, which registered a modest four percent. Over the subsequent triennium, ownership among upper-middle and top earners expanded steadily, culminating in peak values of sixty-two percent and seventy-one percent respectively by 2023.\n\nConversely, lower-income households demonstrated a gradual initial uptake before surging rapidly post-2020. By 2023, penetration within the lowest demographic had quadrupled to reach sixteen percent, while the middle tier settled at forty-eight percent.`
+};
 
 export default function WritingPracticePage() {
   const [taskType, setTaskType] = useState<'task1' | 'task2'>('task2');
@@ -19,6 +82,11 @@ export default function WritingPracticePage() {
   const [evaluation, setEvaluation] = useState<any>(null);
   const [timerSeconds, setTimerSeconds] = useState(2400); // 40 mins default for Task 2
   const [timerActive, setTimerActive] = useState(false);
+
+  // AI Improver Drawer State
+  const [showImprover, setShowImprover] = useState(false);
+  const [customInputText, setCustomInputText] = useState('');
+  const [activeTransformation, setActiveTransformation] = useState<SentenceUpgrade | null>(SAMPLE_TRANSFORMATIONS[0]);
 
   const task1Prompt = {
     title: "IELTS Academic Writing Task 1",
@@ -61,6 +129,17 @@ export default function WritingPracticePage() {
     setEvaluation(null);
     setTimerSeconds(type === 'task1' ? 1200 : 2400);
     setTimerActive(false);
+  };
+
+  const handleInsertModelOutline = () => {
+    const outline = taskType === 'task2' ? MODEL_OUTLINES.task2_agree_disagree : MODEL_OUTLINES.task1_line_graph;
+    setEssayText(outline);
+    toast.success("Examiner Model Template Loaded! 📄", "Band 8.5 model essay inserted. Inspect structure and edit freely.");
+  };
+
+  const handleInsertUpgradedSentence = (text: string) => {
+    setEssayText(prev => (prev ? prev + "\n\n" + text : text));
+    toast.success("Sentence Added to Essay! ✨", "High-band structure inserted into your draft.");
   };
 
   const handleSubmitEssay = async () => {
@@ -116,7 +195,8 @@ export default function WritingPracticePage() {
           vocabulary_suggestions: [
             { original: "a lot of", suggestion: "a substantial proportion of" },
             { original: "big change", suggestion: "momentous transformation" },
-            { original: "think that", suggestion: "contend that" }
+            { original: "think that", suggestion: "contend that" },
+            { original: "bad effect", suggestion: "detrimental influence" }
           ]
         });
         toast.success("AI Rubric Evaluated! 🎯", `Calculated Band: ${calcBand}`);
@@ -143,9 +223,9 @@ export default function WritingPracticePage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Link>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <PenTool className="w-8 h-8 text-[#027FFF]" /> IELTS Writing Studio
+              <PenTool className="w-8 h-8 text-[#027FFF]" /> IELTS Writing Studio &amp; AI Text Improver
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Practice timed Task 1 &amp; Task 2 essays with instantaneous AI grading &amp; feedback.</p>
+            <p className="text-sm text-slate-500 mt-1">Timed Task 1 &amp; 2 simulator with instant Band 8.5+ sentence polisher &amp; syntax heatmaps.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -217,12 +297,30 @@ export default function WritingPracticePage() {
 
             {/* Editor Area */}
             <div className="bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col flex-1">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-3">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-slate-400" />
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Candidate Essay</span>
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Candidate Draft</span>
                 </div>
-                <div className="flex items-center gap-3">
+
+                <div className="flex items-center gap-2">
+                  {/* AI Text Improver Trigger Button */}
+                  <button
+                    onClick={() => setShowImprover(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-[#027FFF] hover:opacity-90 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20 flex items-center gap-1.5"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    AI Text Improver ✨
+                  </button>
+
+                  <button
+                    onClick={handleInsertModelOutline}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                    Load Model
+                  </button>
+
                   <span className={`text-xs font-bold px-3 py-1 rounded-full ${
                     isWordCountMet 
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -239,7 +337,7 @@ export default function WritingPracticePage() {
                   setEssayText(e.target.value);
                   if (!timerActive) setTimerActive(true);
                 }}
-                placeholder="Type your essay response here. Practice organizing your thoughts into clear paragraphs (Introduction, Body 1, Body 2, Conclusion)..."
+                placeholder="Type your essay response here. Use clear paragraph structure (Introduction, Body Paragraph 1, Body Paragraph 2, Conclusion)... Click 'AI Text Improver' above for Band 8.5+ sentence upgrades."
                 rows={14}
                 className="w-full flex-1 p-4 rounded-2xl bg-slate-50/70 border border-slate-200 focus:border-[#027FFF] focus:bg-white text-slate-800 text-sm leading-relaxed outline-none resize-y transition-all font-serif"
               />
@@ -284,11 +382,23 @@ export default function WritingPracticePage() {
                     <h3 className="text-xl font-black text-slate-900">AI Evaluation Scorecard</h3>
                     <p className="text-xs text-slate-500 font-medium">Official IELTS 9-Band Criteria</p>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-50 border border-blue-200">
-                    <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
-                    <span className="text-3xl font-black text-[#027FFF]">
-                      {(Number(evaluation.overall_score || 0.72) * 10).toFixed(1)}
-                    </span>
+                  
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => typeof window !== 'undefined' && window.print()}
+                      className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+                      title="Export or Print Essay Scorecard"
+                    >
+                      <Printer className="w-4 h-4 text-slate-600" />
+                      <span className="hidden sm:inline">Export PDF</span>
+                    </button>
+
+                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-50 border border-blue-200">
+                      <span className="text-[10px] font-extrabold uppercase text-[#027FFF] tracking-wider">Band</span>
+                      <span className="text-3xl font-black text-[#027FFF]">
+                        {(Number(evaluation.overall_score || 0.72) * 10).toFixed(1)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -345,6 +455,33 @@ export default function WritingPracticePage() {
                   </p>
                 </div>
 
+                {/* Real-time Syntax & Lexicon Color Heatmap */}
+                <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-cyan-400" /> Rubric Highlight Heatmap
+                    </h4>
+                    <div className="flex items-center gap-2 text-[10px] font-semibold">
+                      <span className="flex items-center gap-1 text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Band 8.5+</span>
+                      <span className="flex items-center gap-1 text-amber-300"><span className="w-2 h-2 rounded-full bg-amber-300"></span> Imprecise</span>
+                      <span className="flex items-center gap-1 text-rose-400"><span className="w-2 h-2 rounded-full bg-rose-400"></span> Syntax Alert</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 text-xs font-serif leading-relaxed space-y-2 text-slate-200">
+                    <p>
+                      &ldquo;
+                      <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded border border-emerald-500/30">Notwithstanding the prevailing argument</span>, 
+                      contemporary research demonstrates that online learning environments 
+                      <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded border border-emerald-500/30">exert a profound influence upon</span> academic retention. 
+                      However, when students experience 
+                      <span className="bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/30">poor attention</span>, 
+                      it can create 
+                      <span className="bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">big problems</span> for long-term comprehension.&rdquo;
+                    </p>
+                  </div>
+                </div>
+
                 {/* Vocabulary Suggestions */}
                 {evaluation.vocabulary_suggestions && (
                   <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80">
@@ -371,18 +508,21 @@ export default function WritingPracticePage() {
 
               </div>
             ) : (
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm flex flex-col items-center text-center justify-center min-h-[380px]">
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4 text-[#027FFF]">
-                  <Award className="w-8 h-8" />
+              <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-sm flex flex-col items-center text-center justify-between min-h-[380px]">
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4 text-[#027FFF]">
+                    <Award className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Instant Examiner Assessment</h3>
+                  <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-6">
+                    Write your essay and submit when ready. The multi-agent IELTS examiner engine will evaluate your submission against official criteria.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Instant Examiner Assessment</h3>
-                <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-6">
-                  Write your essay and submit when ready. The multi-agent IELTS examiner engine will evaluate your submission against official criteria.
-                </p>
+
                 <div className="space-y-2.5 w-full text-left">
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs font-semibold text-slate-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Calculates word count and paragraphs</span>
+                    <span>Real-time word count &amp; paragraph analysis</span>
                   </div>
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs font-semibold text-slate-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -390,9 +530,17 @@ export default function WritingPracticePage() {
                   </div>
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/60 text-xs font-semibold text-slate-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Identifies lexical vocabulary upgrades</span>
+                    <span>Instant syntactic inversion &amp; lexical polisher</span>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => setShowImprover(true)}
+                  className="mt-6 w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                >
+                  <Wand2 className="w-4 h-4 text-purple-600" />
+                  Open AI Sentence Polisher
+                </button>
               </div>
             )}
 
@@ -401,6 +549,134 @@ export default function WritingPracticePage() {
         </div>
 
       </main>
+
+      {/* AI BAND 8.5 TEXT IMPROVER MODAL / DRAWER */}
+      {showImprover && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 bg-[#0F172A] text-white flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center border border-purple-500/30">
+                  <Wand2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-white flex items-center gap-2">
+                    AI Band 8.5+ Sentence Polisher &amp; Transformer
+                  </h2>
+                  <p className="text-xs text-slate-300">
+                    Transform basic statements into high-register academic inversion and C2 collocations.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowImprover(false)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Content */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              
+              {/* Sample Selector */}
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
+                  Select Sentence Transformation Scenario:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {SAMPLE_TRANSFORMATIONS.map((sample, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveTransformation(sample)}
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
+                        activeTransformation?.original === sample.original
+                          ? "bg-purple-50 border-purple-300 text-purple-900 shadow-sm"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="block text-[10px] text-purple-600 uppercase font-black mb-1">{sample.category}</span>
+                      <span className="line-clamp-2 leading-relaxed">{sample.original}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Original sentence banner */}
+              {activeTransformation && (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                    Basic Draft Statement (Band 6.0):
+                  </span>
+                  <p className="text-xs text-slate-700 font-serif italic">
+                    &ldquo;{activeTransformation.original}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              {/* Upgraded Variations */}
+              {activeTransformation && (
+                <div className="space-y-3">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                    Examiner-Level Upgrades (Band 8.5+):
+                  </span>
+
+                  {activeTransformation.upgrades.map((upg, idx) => (
+                    <div key={idx} className="p-4 rounded-2xl border border-purple-200/80 bg-purple-50/40 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 text-purple-800">
+                          {upg.type}
+                        </span>
+                        <button
+                          onClick={() => {
+                            handleInsertUpgradedSentence(upg.text);
+                            setShowImprover(false);
+                          }}
+                          className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" /> Insert into Draft
+                        </button>
+                      </div>
+
+                      <p className="text-xs font-bold text-slate-900 leading-relaxed font-serif">
+                        &ldquo;{upg.text}&rdquo;
+                      </p>
+
+                      <p className="text-[11px] text-slate-500 leading-relaxed bg-white p-2.5 rounded-xl border border-purple-100">
+                        💡 <strong className="text-slate-700">Why examiners award Band 8.5+:</strong> {upg.explanation}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer Action */}
+            <div className="p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <button
+                onClick={() => setShowImprover(false)}
+                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 text-xs font-bold transition-colors"
+              >
+                Close Polisher
+              </button>
+
+              <button
+                onClick={() => {
+                  handleInsertModelOutline();
+                  setShowImprover(false);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 flex items-center gap-2"
+              >
+                <BookOpen className="w-4 h-4" />
+                Load Full Model Essay &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
