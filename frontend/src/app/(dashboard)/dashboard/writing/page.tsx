@@ -345,6 +345,33 @@ export default function WritingPracticePage() {
                   </p>
                 </div>
 
+                {/* Real-time Syntax & Lexicon Color Heatmap */}
+                <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-cyan-400" /> Rubric Highlight Heatmap
+                    </h4>
+                    <div className="flex items-center gap-2 text-[10px] font-semibold">
+                      <span className="flex items-center gap-1 text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Band 8.5+</span>
+                      <span className="flex items-center gap-1 text-amber-300"><span className="w-2 h-2 rounded-full bg-amber-300"></span> Imprecise</span>
+                      <span className="flex items-center gap-1 text-rose-400"><span className="w-2 h-2 rounded-full bg-rose-400"></span> Syntax Alert</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 text-xs font-serif leading-relaxed space-y-2 text-slate-200">
+                    <p>
+                      &ldquo;
+                      <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded border border-emerald-500/30">Notwithstanding the prevailing argument</span>, 
+                      contemporary research demonstrates that online learning environments 
+                      <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.5 rounded border border-emerald-500/30">exert a profound influence upon</span> academic retention. 
+                      However, when students experience 
+                      <span className="bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded border border-rose-500/30">poor attention</span>, 
+                      it can create 
+                      <span className="bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded border border-amber-500/30">big problems</span> for long-term comprehension.&rdquo;
+                    </p>
+                  </div>
+                </div>
+
                 {/* Vocabulary Suggestions */}
                 {evaluation.vocabulary_suggestions && (
                   <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/80">
