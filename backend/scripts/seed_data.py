@@ -218,6 +218,80 @@ async def seed_skill_taxonomy(db) -> None:
         """), {"id": skill_id, "slug": skill_data["slug"], "name": skill_data["name"], "parent_id": parent_id})
 
 
+DEFAULT_USERS = [
+    {
+        "email": "admin@elarion.com",
+        "password": "Admin123!",
+        "first_name": "Elarion",
+        "last_name": "Admin",
+        "role": "Admin",
+    },
+    {
+        "email": "instructor@elarion.com",
+        "password": "Instructor123!",
+        "first_name": "Lead",
+        "last_name": "Instructor",
+        "role": "Instructor",
+    },
+    {
+        "email": "student@elarion.com",
+        "password": "Student123!",
+        "first_name": "Demo",
+        "last_name": "Student",
+        "role": "Student",
+    },
+]
+
+
+async def seed_default_users(db, id_map: dict) -> None:
+    """Seed default administrative and test accounts (idempotent)."""
+    from app.shared.auth import hash_password
+
+    for user_info in DEFAULT_USERS:
+        # Check if user already exists
+        res = await db.execute(
+            text("SELECT id FROM users WHERE email = :email"),
+            {"email": user_info["email"]}
+        )
+        row = res.fetchone()
+        if row:
+            user_id = row[0]
+            # Ensure password hash is updated to match known password
+            hashed = hash_password(user_info["password"])
+            await db.execute(
+                text("UPDATE users SET password_hash = :hash, status = 'active', email_verified = true WHERE id = :id"),
+                {"hash": hashed, "id": user_id}
+            )
+        else:
+            user_id = uuid.uuid4()
+            hashed = hash_password(user_info["password"])
+            await db.execute(
+                text("""
+                    INSERT INTO users (id, email, password_hash, first_name, last_name, status, email_verified, created_at, updated_at)
+                    VALUES (:id, :email, :password_hash, :first_name, :last_name, 'active', true, NOW(), NOW())
+                    ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, status = 'active', email_verified = true
+                """),
+                {
+                    "id": user_id,
+                    "email": user_info["email"],
+                    "password_hash": hashed,
+                    "first_name": user_info["first_name"],
+                    "last_name": user_info["last_name"],
+                }
+            )
+
+        role_id = id_map.get(f"role:{user_info['role']}")
+        if role_id:
+            await db.execute(
+                text("""
+                    INSERT INTO user_roles (user_id, role_id)
+                    VALUES (:user_id, :role_id)
+                    ON CONFLICT (user_id, role_id) DO NOTHING
+                """),
+                {"user_id": user_id, "role_id": role_id}
+            )
+
+
 async def main():
     print("[*] ELARION Seed Script Starting...")
 
@@ -225,6 +299,10 @@ async def main():
         print("  -> Seeding roles and permissions...")
         id_map = await seed_roles_and_permissions(db)
         print(f"  [+] {len(ROLES)} roles, {len(PERMISSIONS)} permissions seeded.")
+
+        print("  -> Seeding default platform users...")
+        await seed_default_users(db, id_map)
+        print(f"  [+] {len(DEFAULT_USERS)} default users seeded/updated (Admin, Instructor, Student).")
 
         print("  -> Seeding skill taxonomy...")
         await seed_skill_taxonomy(db)
@@ -234,6 +312,11 @@ async def main():
 
     print("[SUCCESS] Seed complete.")
     print()
+    print("Default Credentials:")
+    print("  Admin:      admin@elarion.com      / Admin123!")
+    print("  Instructor: instructor@elarion.com / Instructor123!")
+    print("  Student:    student@elarion.com    / Student123!")
+    print()
     print("Next steps:")
     print("  1. python scripts/setup_storage.py   -> create MinIO buckets")
     print("  2. uvicorn app.main:app --reload      -> start API server")
@@ -242,3 +325,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

@@ -62,11 +62,6 @@ async def lifespan(app: FastAPI):
     configure_logging(settings.ENVIRONMENT)
     logger.info("elarion_startup", environment=settings.ENVIRONMENT)
 
-    # Setup OpenTelemetry (if OTLP endpoint configured)
-    if settings.OTEL_EXPORTER_OTLP_ENDPOINT:
-        from app.telemetry import setup_telemetry
-        setup_telemetry(app)
-
     yield  # App is running
 
     # --- Shutdown ---
@@ -92,6 +87,17 @@ def create_app() -> FastAPI:
     )
 
     # -------------------------------------------------------------------------
+    # OpenTelemetry — must be set up BEFORE app starts (adds middleware)
+    # WHY here and not in lifespan?
+    #   FastAPI raises RuntimeError if middleware is added after startup.
+    #   instrument_app() internally calls add_middleware(), so it MUST run
+    #   during app construction, not inside the lifespan context.
+    # -------------------------------------------------------------------------
+    if settings.OTEL_EXPORTER_OTLP_ENDPOINT:
+        from app.telemetry import setup_telemetry
+        setup_telemetry(app)
+
+    # -------------------------------------------------------------------------
     # CORS
     # WHY CORS middleware?
     #   The frontend (Next.js on port 3000) makes requests to the API (port 8000).
@@ -114,10 +120,6 @@ def create_app() -> FastAPI:
     #   Centralized handlers keep routes clean and mapping consistent.
     # -------------------------------------------------------------------------
 
-    @app.exception_handler(InvalidCredentialsError)
-    @app.exception_handler(TokenExpiredError)
-    @app.exception_handler(TokenInvalidError)
-    @app.exception_handler(TokenRevokedError)
     async def handle_401(request: Request, exc: ElarionError):
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -125,38 +127,30 @@ def create_app() -> FastAPI:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    @app.exception_handler(PermissionDeniedError)
-    @app.exception_handler(AccountSuspendedError)
-    @app.exception_handler(LessonLockedError)
     async def handle_403(request: Request, exc: ElarionError):
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content={"code": exc.code, "message": exc.message},
         )
 
-    @app.exception_handler(ResourceNotFoundError)
     async def handle_404(request: Request, exc: ResourceNotFoundError):
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"code": exc.code, "message": exc.message},
         )
 
-    @app.exception_handler(DuplicateResourceError)
     async def handle_409(request: Request, exc: DuplicateResourceError):
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content={"code": exc.code, "message": exc.message},
         )
 
-    @app.exception_handler(BusinessRuleError)
-    @app.exception_handler(InvalidStateTransitionError)
     async def handle_422(request: Request, exc: ElarionError):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={"code": exc.code, "message": exc.message},
         )
 
-    @app.exception_handler(RateLimitExceededError)
     async def handle_429(request: Request, exc: RateLimitExceededError):
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -164,13 +158,34 @@ def create_app() -> FastAPI:
             headers={"Retry-After": str(exc.retry_after)},
         )
 
-    @app.exception_handler(StorageError)
     async def handle_storage_error(request: Request, exc: StorageError):
         logger.error("storage_error", message=exc.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"code": exc.code, "message": "A storage error occurred. Please try again."},
         )
+
+    async def handle_global_error(request: Request, exc: Exception):
+        import traceback
+        traceback.print_exc()
+        logger.error("unhandled_global_error", error=str(exc))
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"code": "INTERNAL_SERVER_ERROR", "message": str(exc)},
+        )
+
+    # Register each domain exception type
+    for exc_cls in (InvalidCredentialsError, TokenExpiredError, TokenInvalidError, TokenRevokedError):
+        app.add_exception_handler(exc_cls, handle_401)
+    for exc_cls in (PermissionDeniedError, AccountSuspendedError, LessonLockedError):
+        app.add_exception_handler(exc_cls, handle_403)
+    app.add_exception_handler(ResourceNotFoundError, handle_404)
+    app.add_exception_handler(DuplicateResourceError, handle_409)
+    for exc_cls in (BusinessRuleError, InvalidStateTransitionError):
+        app.add_exception_handler(exc_cls, handle_422)
+    app.add_exception_handler(RateLimitExceededError, handle_429)
+    app.add_exception_handler(StorageError, handle_storage_error)
+    app.add_exception_handler(Exception, handle_global_error)
 
     # -------------------------------------------------------------------------
     # Routers — Register all module routers under /api/v1

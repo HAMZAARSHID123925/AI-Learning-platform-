@@ -115,6 +115,54 @@ async def get_current_user(
     return user
 
 
+_bearer_scheme_optional = HTTPBearer(auto_error=False)
+
+
+async def get_optional_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme_optional),
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    FastAPI dependency: Optionally authenticate the current request.
+    Returns the User model instance if a valid Bearer token is provided, else None.
+    Never raises 401.
+    """
+    if credentials is None or not credentials.credentials:
+        return None
+
+    try:
+        from app.modules.module1_auth.models import Role, RolePermission, User, UserRole
+
+        settings = get_settings()
+        token = credentials.credentials
+        payload = decode_access_token(token)
+
+        jti = payload.get("jti")
+        if jti:
+            blacklist_key = f"{settings.REDIS_KEY_PREFIX}:blacklist:jwt:{jti}"
+            if await redis.exists(blacklist_key):
+                return None
+
+        user_id = UUID(payload["sub"])
+        result = await db.execute(
+            select(User)
+            .where(User.id == user_id)
+            .options(
+                selectinload(User.user_roles)
+                .selectinload(UserRole.role)
+                .selectinload(Role.role_permissions)
+                .selectinload(RolePermission.permission)
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user and user.status.value != "suspended":
+            return user
+        return None
+    except Exception:
+        return None
+
+
 def require_permission(permission_code: str):
     """
     Dependency factory: Require a specific permission code.

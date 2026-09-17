@@ -21,8 +21,14 @@ from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.modules.module1_auth.models import User
-from app.modules.module2_content.models import Course, CourseModule, Lesson, LessonStatus
-from app.modules.module4_experience.models import LearningPathState, Notification, PathState, StudentProgress
+from app.modules.module2_content.models import Course, CourseModule, CourseStatus, Lesson, LessonStatus
+from app.modules.module4_experience.models import (
+    Enrollment,
+    LearningPathState,
+    Notification,
+    PathState,
+    StudentProgress,
+)
 from app.modules.module4_experience.schemas import (
     ActiveRemediationSummary,
     CourseProgressSummary,
@@ -89,8 +95,17 @@ async def get_aggregated_student_dashboard(
         raise ResourceNotFoundError("User", student_id)
     student_name = f"{user.first_name} {user.last_name}".strip()
 
-    # 3. Course Progress Aggregation
-    courses_query = select(Course).where(Course.status == "published").order_by(Course.created_at.asc())
+    # 3. Course Progress Aggregation (Only Active Enrollments for this Student)
+    courses_query = (
+        select(Course)
+        .join(Enrollment, Enrollment.course_id == Course.id)
+        .where(
+            Enrollment.student_id == student_id,
+            Enrollment.status == "active",
+            Course.status == CourseStatus.published,
+        )
+        .order_by(Enrollment.enrolled_at.desc())
+    )
     courses_res = await db.execute(courses_query)
     courses = courses_res.scalars().all()
 

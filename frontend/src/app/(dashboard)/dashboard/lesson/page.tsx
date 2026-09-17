@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, CheckCircle2, PlayCircle, FileText, Download, 
   Video, Play, Pause, Volume2, VolumeX, Maximize2, 
   HelpCircle, Bot, Send, Sparkles, X, ChevronRight,
   BookOpen, Check, Award, RotateCcw
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 
 interface Lesson {
@@ -136,9 +138,71 @@ const INITIAL_LESSONS: Lesson[] = [
 ];
 
 export default function LessonPlayerPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center text-slate-500 font-semibold">Loading Lesson Player...</div>}>
+      <LessonPlayerContent />
+    </Suspense>
+  );
+}
+
+function LessonPlayerContent() {
+  const searchParams = useSearchParams();
+  const requestedLessonId = searchParams.get('id');
+  const requestedCourseId = searchParams.get('courseId');
+
   const [lessons, setLessons] = useState<Lesson[]>(INITIAL_LESSONS);
   const [activeLessonId, setActiveLessonId] = useState<string>('les-1');
   const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'quiz'>('overview');
+  const [dbLessonBody, setDbLessonBody] = useState<string | null>(null);
+  const [mediaAssetUrl, setMediaAssetUrl] = useState<string | null>(null);
+
+  // Dynamic backend loading
+  useEffect(() => {
+    async function loadBackendLesson() {
+      if (!requestedLessonId) return;
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/lessons/${requestedLessonId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDbLessonBody(data.body_markdown || null);
+          
+          // Check for MinIO S3 Presigned URL in assets
+          if (data.assets && data.assets.length > 0) {
+            const firstAsset = data.assets[0];
+            if (firstAsset.presigned_url) {
+              setMediaAssetUrl(firstAsset.presigned_url);
+            }
+          }
+
+          // Merge into lessons state if not present
+          setLessons(prev => {
+            if (prev.some(l => l.id === data.id)) return prev;
+            const newLesson: Lesson = {
+              id: data.id,
+              title: data.title,
+              type: data.assets && data.assets.length > 0 && data.assets[0].mime_type.includes('pdf') ? 'pdf' : 'video',
+              duration: `${data.estimated_minutes || 15} mins`,
+              videoUrl: data.assets?.[0]?.presigned_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+              pdfUrl: data.assets?.[0]?.presigned_url,
+              completed: false,
+              description: data.body_markdown ? data.body_markdown.slice(0, 150) + '...' : 'Interactive lesson streamed via MinIO S3 storage.',
+              overviewNotes: [
+                'Live syllabus unit loaded from PostgreSQL database.',
+                'Assets and media verified via MinIO S3 object storage.',
+                'Telemetry and completion logged directly to student dashboard.'
+              ],
+              transcript: []
+            };
+            return [newLesson, ...prev];
+          });
+          setActiveLessonId(data.id);
+        }
+      } catch (err) {
+        console.warn("Backend lesson load error:", err);
+      }
+    }
+    loadBackendLesson();
+  }, [requestedLessonId]);
   
   // Video player state
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -227,22 +291,24 @@ export default function LessonPlayerPage() {
   };
 
   // Complete and next lesson
-  const handleToggleComplete = () => {
+  const handleToggleComplete = async () => {
     const nextState = !activeLesson.completed;
     const updated = lessons.map(l => l.id === activeLessonId ? { ...l, completed: nextState } : l);
     setLessons(updated);
 
-    // Save to student_enrolled_courses in localStorage
-    if (typeof window !== 'undefined') {
-      const savedEnrolled = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
-      if (savedEnrolled.length > 0) {
-        savedEnrolled[0].completed_lessons = updated.filter(l => l.completed).length;
-        savedEnrolled[0].percentage = Math.round((savedEnrolled[0].completed_lessons / savedEnrolled[0].total_lessons) * 100);
-        localStorage.setItem('student_enrolled_courses', JSON.stringify(savedEnrolled));
-      }
-    }
-
     if (nextState) {
+      // Call real backend completion endpoint if valid UUID
+      if (activeLesson.id && activeLesson.id.includes('-') && activeLesson.id.length >= 32) {
+        try {
+          await fetchWithAuth(`/lessons/${activeLesson.id}/complete`, {
+            method: 'POST',
+            body: JSON.stringify({ time_spent_seconds: 600 }),
+          });
+        } catch (err) {
+          console.warn("Backend lesson completion sync error:", err);
+        }
+      }
+
       toast.success('Lesson Completed! 🎉', `"${activeLesson.title}" marked as complete.`);
       // Advance to next lesson if available
       const currentIndex = lessons.findIndex(l => l.id === activeLessonId);
@@ -626,6 +692,17 @@ export default function LessonPlayerPage() {
           <div>
             {activeTab === 'overview' && (
               <div className="space-y-6">
+                {dbLessonBody && (
+                  <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                    <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-[#027FFF]" /> Lesson Content &amp; Study Notes
+                    </h3>
+                    <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line font-serif leading-relaxed">
+                      {dbLessonBody}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 mb-3">Key Learning Outcomes</h3>
                   <div className="space-y-2.5">

@@ -139,11 +139,6 @@ class LessonResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class LessonDetailResponse(LessonResponse):
-    """Full lesson with body — used when a student opens a lesson."""
-    body_markdown: str | None
-
-
 # =============================================================================
 # Asset Schemas
 # =============================================================================
@@ -159,3 +154,17 @@ class AssetResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LessonDetailResponse(LessonResponse):
+    """Full lesson with body and assets — used when a student opens a lesson."""
+    body_markdown: str | None = None
+    assets: list[AssetResponse] = Field(default_factory=list)
+
+
+class ModuleWithLessonsResponse(ModuleResponse):
+    lessons: list[LessonResponse] = Field(default_factory=list)
+
+
+class CourseDetailResponse(CourseResponse):
+    modules: list[ModuleWithLessonsResponse] = Field(default_factory=list)

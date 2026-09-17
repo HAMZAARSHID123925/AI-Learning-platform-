@@ -116,7 +116,7 @@ async def get_lesson(db: AsyncSession, lesson_id: uuid.UUID) -> Lesson:
     result = await db.execute(
         select(Lesson)
         .where(Lesson.id == lesson_id)
-        .options(selectinload(Lesson.lesson_skills))
+        .options(selectinload(Lesson.lesson_skills), selectinload(Lesson.assets))
     )
     lesson = result.scalar_one_or_none()
     if not lesson:

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -11,54 +13,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Email and password are required.' }, { status: 400 });
     }
 
-    // Determine user role and name from credentials
-    let role = 'Student';
-    let name = cleanEmail.split('@')[0] || 'Candidate';
-    name = name.charAt(0).toUpperCase() + name.slice(1);
+    // Call real FastAPI backend
+    const backendRes = await fetch(`${BACKEND_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password }),
+    }).catch(() => null);
 
-    if (cleanEmail.includes('admin')) {
-      role = 'Admin';
-      name = 'System Administrator';
-    } else if (cleanEmail.includes('instructor') || cleanEmail.includes('teacher')) {
-      role = 'Instructor';
-      name = 'Lead Instructor';
+    if (backendRes && backendRes.ok) {
+      const data = await backendRes.json();
+      const token = data.access_token;
+      const user = data.user || {};
+      const roles = user.roles || [];
+      const primaryRole = roles[0] || 'Student';
+      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || cleanEmail;
+
+      const response = NextResponse.json(data);
+
+      response.cookies.set('access_token', token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 86400,
+      });
+
+      response.cookies.set('user_role', primaryRole, {
+        path: '/',
+        maxAge: 7 * 86400,
+      });
+
+      response.cookies.set('user_name', name, {
+        path: '/',
+        maxAge: 7 * 86400,
+      });
+
+      return response;
     }
 
-    const token = 'jwt_session_' + Buffer.from(`${cleanEmail}:${Date.now()}`).toString('base64');
+    if (backendRes) {
+      const errorData = await backendRes.json().catch(() => ({}));
+      return NextResponse.json(
+        { message: errorData.message || errorData.detail || 'Invalid email or password.' },
+        { status: backendRes.status }
+      );
+    }
 
-    const response = NextResponse.json({
-      access_token: token,
-      token_type: 'Bearer',
-      expires_in: 900,
-      user: {
-        id: 'usr-' + Date.now(),
-        email: cleanEmail,
-        first_name: name.split(' ')[0],
-        last_name: name.split(' ')[1] || '',
-        roles: [role],
-      }
-    });
-
-    // Set secure cookie flags
-    response.cookies.set('access_token', token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 86400,
-    });
-
-    response.cookies.set('user_role', role, {
-      path: '/',
-      maxAge: 7 * 86400,
-    });
-
-    response.cookies.set('user_name', name, {
-      path: '/',
-      maxAge: 7 * 86400,
-    });
-
-    return response;
+    return NextResponse.json({ message: 'Authentication server unavailable.' }, { status: 503 });
   } catch (err: unknown) {
     return NextResponse.json({ message: 'Authentication failed.' }, { status: 500 });
   }
