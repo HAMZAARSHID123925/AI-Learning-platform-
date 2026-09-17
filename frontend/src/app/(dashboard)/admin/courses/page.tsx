@@ -597,6 +597,10 @@ function AdminCoursesContent() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to create lesson.');
       }
+      const createdLesson = await res.json();
+      if (createdLesson?.id) {
+        await fetchWithAuth(`/lessons/${createdLesson.id}/publish`, { method: 'POST' }).catch(() => {});
+      }
       toast.success("Lesson Saved in Database! 🎯", `"${newLessonTitle}" added.`);
       setNewLessonTitle('');
       if (selectedCourseForCurriculum?.id) {
