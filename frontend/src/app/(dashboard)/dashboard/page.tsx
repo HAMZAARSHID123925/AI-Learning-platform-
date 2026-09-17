@@ -70,6 +70,8 @@ export default function DashboardPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Student');
+  const [targetBand, setTargetBand] = useState<string>('8.5');
+  const [daysToExam, setDaysToExam] = useState<number>(64);
   const [studentEnrolledCourses, setStudentEnrolledCourses] = useState<CourseProgress[]>([]);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [diagnosticResult, setDiagnosticResult] = useState<{
@@ -95,13 +97,30 @@ export default function DashboardPage() {
     const token = localStorage.getItem('access_token');
     if (!token) { router.push('/login'); return; }
 
+    const savedRole = (localStorage.getItem('user_role') || '').toLowerCase();
+    if (savedRole === 'instructor' || savedRole === 'teacher') {
+      router.push('/instructor');
+      return;
+    }
+    if (savedRole === 'admin' || savedRole === 'superadmin') {
+      router.push('/admin/courses');
+      return;
+    }
+
     const savedTrack = localStorage.getItem('courseTrack');
     const savedName = localStorage.getItem('user_name');
+    const savedTargetBand = localStorage.getItem('target_band') || '8.5';
+    const savedExamDate = localStorage.getItem('exam_date') || '2026-11-20';
     const diagnosticDone = localStorage.getItem('diagnostic_completed');
     const savedDiagData = localStorage.getItem('diagnostic_data');
 
     if (savedName) setUserName(savedName);
     if (savedTrack) setCourseTrack(savedTrack);
+    setTargetBand(savedTargetBand);
+
+    // Calculate days remaining
+    const diff = Math.ceil((new Date(savedExamDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    setDaysToExam(diff > 0 ? diff : 0);
     
     // Clean up any old dummy fallback from local storage
     if (typeof window !== 'undefined') {
@@ -568,8 +587,13 @@ export default function DashboardPage() {
                   </span>
                   
                   <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
-                    <Clock className="w-3.5 h-3.5 text-blue-400" />
-                    Track: {isIELTS ? 'IELTS Band 8.5 Masterclass' : 'General English Fluency'}
+                    <Target className="w-3.5 h-3.5 text-blue-400" />
+                    Target: Band {targetBand}
+                  </span>
+
+                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    {daysToExam} Days to Official Exam
                   </span>
                 </div>
 

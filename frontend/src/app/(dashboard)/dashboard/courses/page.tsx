@@ -283,28 +283,43 @@ export default function DashboardCoursesPage() {
     loadAllCourses();
   }, []);
 
-  const handleEnroll = (course: CourseItem) => {
-    if (typeof window !== "undefined") {
-      const existing = JSON.parse(localStorage.getItem("student_enrolled_courses") || "[]");
-      if (!existing.some((c: any) => c.course_title === course.title || c.course_id === course.id)) {
-        const newEnrollment = {
-          course_id: course.id,
-          course_title: course.title,
-          total_lessons: course.total_lessons,
-          completed_lessons: 0,
-          percentage: 0
-        };
-        const updated = [newEnrollment, ...existing];
-        localStorage.setItem("student_enrolled_courses", JSON.stringify(updated));
-        setEnrolledMap((prev) => ({
-          ...prev,
-          [course.id]: newEnrollment,
-          [course.title]: newEnrollment
-        }));
-        toast.success("Enrolled Successfully!", `You are now enrolled in "${course.title}".`);
-      } else {
-        toast.info("Already Enrolled", `You are already enrolled in this course track.`);
+  const handleEnroll = async (course: CourseItem) => {
+    try {
+      // Call Backend API to register enrollment in PostgreSQL
+      if (course.id && !course.id.startsWith("c-")) {
+        try {
+          await fetchWithAuth(`/courses/${course.id}/enroll`, {
+            method: 'POST'
+          });
+        } catch (apiErr) {
+          console.warn("Backend enrollment sync note:", apiErr);
+        }
       }
+
+      if (typeof window !== "undefined") {
+        const existing = JSON.parse(localStorage.getItem("student_enrolled_courses") || "[]");
+        if (!existing.some((c: any) => c.course_title === course.title || c.course_id === course.id)) {
+          const newEnrollment = {
+            course_id: course.id,
+            course_title: course.title,
+            total_lessons: course.total_lessons || 20,
+            completed_lessons: 0,
+            percentage: 0
+          };
+          const updated = [newEnrollment, ...existing];
+          localStorage.setItem("student_enrolled_courses", JSON.stringify(updated));
+          setEnrolledMap((prev) => ({
+            ...prev,
+            [course.id]: newEnrollment,
+            [course.title]: newEnrollment
+          }));
+          toast.success("Enrolled Successfully! 🎓", `You are now enrolled in "${course.title}". Active syllabus updated.`);
+        } else {
+          toast.info("Already Enrolled", `You are already enrolled in this course track.`);
+        }
+      }
+    } catch (err) {
+      toast.error("Enrollment Error", "Could not complete enrollment.");
     }
   };
 

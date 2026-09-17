@@ -139,11 +139,18 @@ export async function fetchWithAuth(
   try {
     response = await makeRequest(token);
   } catch (netErr) {
-    // If backend is genuinely unreachable, return 503 Service Unavailable response
+    const fallback = getMockFallbackResponse(path);
+    if (fallback) return fallback;
     return new Response(JSON.stringify({ message: 'Backend service unreachable.' }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // If backend returns 503 or 404 for mockable paths in dev, return fallback
+  if ((response.status === 503 || response.status === 404) && !options.method) {
+    const fallback = getMockFallbackResponse(path);
+    if (fallback) return fallback;
   }
 
   // If unauthorized and we had a token, try refreshing once

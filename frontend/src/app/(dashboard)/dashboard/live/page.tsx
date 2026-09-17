@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Calendar as CalendarIcon, Video, Users, Clock, 
   PlayCircle, ChevronRight, CheckCircle2, ArrowLeft,
   Mic, MicOff, VideoOff, MessageSquare, Hand, ScreenShare,
-  PhoneOff, Send, Sparkles, AlertCircle
+  PhoneOff, Send, Sparkles, AlertCircle, RefreshCw
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/api';
 import { toast } from '@/components/ToastProvider';
 import DashboardSidebar from '@/components/DashboardSidebar';
+
+interface LiveSessionItem {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  max_participants?: number;
+  instructor_name?: string;
+  status?: string;
+}
 
 interface ChatMessage {
   id: string;
@@ -22,6 +32,10 @@ interface ChatMessage {
 export default function LiveClassesPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [inClassroom, setInClassroom] = useState(false);
+  const [activeSession, setActiveSession] = useState<LiveSessionItem | null>(null);
+  const [liveSessions, setLiveSessions] = useState<LiveSessionItem[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [rsvpdSessions, setRsvpdSessions] = useState<Record<string, boolean>>({});
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isHandRaised, setIsHandRaised] = useState(false);
@@ -51,9 +65,44 @@ export default function LiveClassesPage() {
     }
   ]);
 
-  const handleJoinVirtualRoom = () => {
+  const loadSessions = useCallback(async () => {
+    try {
+      setLoadingSessions(true);
+      const res = await fetchWithAuth('/live-sessions');
+      if (res.ok) {
+        const data = await res.json();
+        const items: LiveSessionItem[] = Array.isArray(data) ? data : (data.items || []);
+        setLiveSessions(items);
+        if (items.length > 0) {
+          setActiveSession(items[0]);
+        }
+      }
+    } catch (err) {
+      console.warn("Using offline live sessions catalog:", err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  const handleJoinVirtualRoom = (session?: LiveSessionItem) => {
+    if (session) setActiveSession(session);
     setInClassroom(true);
-    toast.success("Connected to Classroom", "Audio/Video streams established with instructor Sarah.");
+    toast.success("Connected to Classroom", `Audio/Video streams connected to "${session?.title || activeSession?.title || 'Live Virtual Classroom'}".`);
+  };
+
+  const handleToggleRsvp = (sessionId: string) => {
+    setRsvpdSessions(prev => {
+      const next = !prev[sessionId];
+      toast.success(
+        next ? "RSVP Confirmed! 📅" : "RSVP Cancelled", 
+        next ? "Added to your study calendar with live notifications enabled." : "Session removed from confirmed calendar."
+      );
+      return { ...prev, [sessionId]: next };
+    });
   };
 
   const handleLeaveRoom = () => {
@@ -321,26 +370,28 @@ export default function LiveClassesPage() {
                     ACTIVE NOW • READY TO JOIN
                   </div>
                   
-                  <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-3">Mastering IELTS Speaking Part 3</h2>
+                  <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-3">
+                    {activeSession?.title || 'Mastering IELTS Speaking Part 3 & Abstract Lexicon'}
+                  </h2>
                   <p className="text-slate-600 mb-6 max-w-xl leading-relaxed text-sm">
-                    Join Instructor Sarah for an intensive breakdown of Part 3 abstract questions. We will cover advanced vocabulary structures and how to extend your answers naturally.
+                    Interactive high-register seminar with live examiner audio feedback, spontaneous conversation drills, and Band 8.5+ cadence calibration.
                   </p>
                   
                   <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 font-medium">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-[#027FFF]" />
-                      Today, 2:00 PM - 3:30 PM
+                      {activeSession?.scheduled_at ? new Date(activeSession.scheduled_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Today, 2:00 PM - 3:30 PM'}
                     </div>
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-[#027FFF]" />
-                      24 Students Enrolled
+                      {activeSession?.max_participants || 30} Max Participants
                     </div>
                   </div>
                 </div>
 
                 <div className="shrink-0 w-full lg:w-auto">
                   <button 
-                    onClick={handleJoinVirtualRoom}
+                    onClick={() => handleJoinVirtualRoom(activeSession || undefined)}
                     className="w-full lg:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-sm hover:shadow-md text-sm"
                   >
                     <Video className="w-5 h-5" />
@@ -351,52 +402,118 @@ export default function LiveClassesPage() {
             </div>
 
             {/* TABS */}
-            <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
+            <div className="flex items-center justify-between border-b border-slate-200 mb-8">
+              <div className="flex items-center gap-8">
+                <button 
+                  onClick={() => setActiveTab('upcoming')}
+                  className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'upcoming' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+                >
+                  Upcoming Schedule ({liveSessions.length || 2})
+                </button>
+                <button 
+                  onClick={() => setActiveTab('past')}
+                  className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'past' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+                >
+                  Past Recordings
+                </button>
+              </div>
+
               <button 
-                onClick={() => setActiveTab('upcoming')}
-                className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'upcoming' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
+                onClick={loadSessions} 
+                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#027FFF] font-semibold transition-colors pb-4"
               >
-                Upcoming Schedule
-              </button>
-              <button 
-                onClick={() => setActiveTab('past')}
-                className={`pb-4 text-sm font-bold transition-colors border-b-2 ${activeTab === 'past' ? 'border-[#027FFF] text-[#027FFF]' : 'border-transparent text-slate-500 hover:text-slate-900'}`}
-              >
-                Past Recordings
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingSessions ? 'animate-spin' : ''}`} /> Refresh Schedule
               </button>
             </div>
 
             {/* TAB CONTENT */}
             {activeTab === 'upcoming' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Card 1 */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
-                        <CalendarIcon className="w-5 h-5 text-[#027FFF]" />
+                {liveSessions.length > 0 ? (
+                  liveSessions.map((sess) => {
+                    const isRsvpd = !!rsvpdSessions[sess.id];
+                    const dateFormatted = new Date(sess.scheduled_at).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={sess.id} className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
+                                <CalendarIcon className="w-5 h-5 text-[#027FFF]" />
+                              </div>
+                              <div>
+                                <h3 className="text-slate-900 font-bold text-lg">{sess.title}</h3>
+                                <p className="text-xs text-slate-500 font-medium">Examiner-Led Workshop</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2 mb-6">
+                            <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                              <Clock className="w-4 h-4 text-slate-400" />
+                              {dateFormatted}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                              <Users className="w-4 h-4 text-slate-400" />
+                              {sess.max_participants || 30} Available Seats
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleToggleRsvp(sess.id)}
+                            className={`flex-1 py-3 rounded-xl border font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+                              isRsvpd
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : 'bg-blue-50 border-blue-200 text-[#027FFF] hover:bg-blue-100'
+                            }`}
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> {isRsvpd ? 'RSVP Confirmed ✓' : 'Confirm RSVP'}
+                          </button>
+                          <button
+                            onClick={() => handleJoinVirtualRoom(sess)}
+                            className="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+                          >
+                            <Video className="w-3.5 h-3.5 text-emerald-400" /> Join
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-slate-900 font-bold text-lg">Advanced Essay Structures</h3>
-                        <p className="text-xs text-slate-500 font-medium">IELTS Academic Writing</p>
+                    );
+                  })
+                ) : (
+                  <>
+                    {/* Fallback mock cards if database is freshly seeded */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
+                            <CalendarIcon className="w-5 h-5 text-[#027FFF]" />
+                          </div>
+                          <div>
+                            <h3 className="text-slate-900 font-bold text-lg">Advanced Essay Structures</h3>
+                            <p className="text-xs text-slate-500 font-medium">IELTS Academic Writing</p>
+                          </div>
+                        </div>
                       </div>
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          Tomorrow • 4:00 PM - 5:00 PM
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                          <Users className="w-4 h-4 text-slate-400" />
+                          Faculty Lead (18 enrolled)
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleToggleRsvp('fallback-1')}
+                        className="w-full py-3 rounded-xl bg-blue-50 border border-blue-200 text-[#027FFF] font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> {rsvpdSessions['fallback-1'] ? 'RSVP Confirmed ✓' : 'Confirm RSVP'}
+                      </button>
                     </div>
-                  </div>
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      Tomorrow • 4:00 PM - 5:00 PM
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                      <Users className="w-4 h-4 text-slate-400" />
-                      Instructor Emma (18 enrolled)
-                    </div>
-                  </div>
-                  <button className="w-full py-3 rounded-xl bg-blue-50 border border-blue-200 text-[#027FFF] font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> RSVP Confirmed
-                  </button>
-                </div>
+                  </>
+                )}
 
                 {/* Card 2 */}
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-6 hover:border-[#027FFF] transition-all shadow-sm">

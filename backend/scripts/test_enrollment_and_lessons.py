@@ -108,7 +108,8 @@ for c in my_courses:
 print("\n=== 6. Student Accesses Lesson Detail ===")
 _, lesson_data = api_call(f"/lessons/{lesson_id}", token=student_token)
 print(f"Lesson: {lesson_data['title']}, estimated {lesson_data['estimated_minutes']} mins")
-print(f"Body snippet: {lesson_data.get('body_markdown', '')[:60]}...")
+body_snippet = lesson_data.get('body_markdown') or ''
+print(f"Body snippet: {body_snippet[:60]}...")
 
 print("\n=== 7. Student Marks Lesson Complete ===")
 _, complete_res = api_call(f"/lessons/{lesson_id}/complete", method="POST", data={"time_spent_seconds": 600}, token=student_token)
