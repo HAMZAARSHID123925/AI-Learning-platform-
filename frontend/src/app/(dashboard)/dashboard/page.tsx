@@ -95,6 +95,16 @@ export default function DashboardPage() {
     const token = localStorage.getItem('access_token');
     if (!token) { router.push('/login'); return; }
 
+    const savedRole = (localStorage.getItem('user_role') || '').toLowerCase();
+    if (savedRole === 'instructor' || savedRole === 'teacher') {
+      router.push('/instructor');
+      return;
+    }
+    if (savedRole === 'admin' || savedRole === 'superadmin') {
+      router.push('/admin/courses');
+      return;
+    }
+
     const savedTrack = localStorage.getItem('courseTrack');
     const savedName = localStorage.getItem('user_name');
     const diagnosticDone = localStorage.getItem('diagnostic_completed');
