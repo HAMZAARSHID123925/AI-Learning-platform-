@@ -103,26 +103,9 @@ export default function DashboardPage() {
     if (savedName) setUserName(savedName);
     if (savedTrack) setCourseTrack(savedTrack);
     
-    // Load student's enrolled courses from local storage
-    const savedEnrolled = localStorage.getItem('student_enrolled_courses');
-    if (savedEnrolled) {
-      try {
-        setStudentEnrolledCourses(JSON.parse(savedEnrolled));
-      } catch {
-        // ignore
-      }
-    } else {
-      const defaultCourse: CourseProgress = {
-        course_id: 'default-track-course',
-        course_title: (savedTrack === 'general') 
-          ? 'General English Communicative Fluency' 
-          : 'IELTS Academic Writing & Speaking Masterclass',
-        total_lessons: 28,
-        completed_lessons: 2,
-        percentage: 8
-      };
-      setStudentEnrolledCourses([defaultCourse]);
-      localStorage.setItem('student_enrolled_courses', JSON.stringify([defaultCourse]));
+    // Clean up any old dummy fallback from local storage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('student_enrolled_courses');
     }
 
     if (savedDiagData) {
@@ -290,27 +273,25 @@ export default function DashboardPage() {
     body: `Score ${(f.score_at_flag * 100).toFixed(0)}% — below threshold of ${(f.threshold * 100).toFixed(0)}%. Status: ${f.status}.`,
   }));
 
-  const handleEnrollInCourse = (crs: { id: string; title: string; modules?: number }) => {
-    const isAlreadyEnrolled = studentEnrolledCourses.some(c => c.course_id === crs.id || c.course_title === crs.title);
-    if (isAlreadyEnrolled) {
-      router.push('/dashboard/lesson');
-      return;
+  const handleEnrollInCourse = async (crs: { id: string; title: string }) => {
+    try {
+      const res = await fetchWithAuth('/enrollments', {
+        method: 'POST',
+        body: JSON.stringify({ course_id: crs.id }),
+      });
+      if (res.ok || res.status === 409) {
+        toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
+        loadAllData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error('Enrollment Failed', err.message || 'Could not enroll in course.');
+      }
+    } catch {
+      toast.error('Network Error', 'Failed to reach server.');
     }
-
-    const newCourse: CourseProgress = {
-      course_id: crs.id,
-      course_title: crs.title,
-      total_lessons: (crs.modules || 4) * 4,
-      completed_lessons: 0,
-      percentage: 0
-    };
-    const updated = [newCourse, ...studentEnrolledCourses];
-    setStudentEnrolledCourses(updated);
-    localStorage.setItem('student_enrolled_courses', JSON.stringify(updated));
-    toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
   };
 
-  const enrolledCourses = dashData?.enrolled_courses?.length ? dashData.enrolled_courses : studentEnrolledCourses;
+  const enrolledCourses = dashData?.enrolled_courses || [];
 
   // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
   return (
