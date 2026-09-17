@@ -192,6 +192,44 @@ export default function InstructorDashboardPage() {
     );
   };
 
+  const loadInstructorData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [usersRes, sessionsRes] = await Promise.all([
+        fetchWithAuth('/users'),
+        fetchWithAuth('/live-sessions'),
+      ]);
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        const raw = usersData.items || (Array.isArray(usersData) ? usersData : []);
+        const realStudents = raw
+          .filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor'))
+          .map((u: any) => ({
+            id: u.id,
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+            email: u.email,
+            track: 'IELTS Academic',
+            currentBand: '7.0',
+            targetBand: '8.5',
+            status: u.is_active ? 'Active' : 'Suspended',
+            weakArea: 'Grammar Inversion & Cohesion',
+            joined: new Date(u.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          }));
+        if (realStudents.length > 0) {
+          setStudents(realStudents);
+        }
+      }
+      if (sessionsRes.ok) {
+        const sess = await sessionsRes.json();
+        setLiveSessions(Array.isArray(sess) ? sess : []);
+      }
+    } catch (err) {
+      console.error('Failed to load instructor data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // RBAC Route Guard: Instructor or Admin privileges required
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -199,9 +237,11 @@ export default function InstructorDashboardPage() {
       if (role !== 'instructor' && role !== 'admin' && role !== 'superadmin' && role !== 'teacher') {
         toast.error("Access Restricted 🔒", "Instructor privileges required to access Instructor Hub.");
         router.push('/dashboard');
+      } else {
+        loadInstructorData();
       }
     }
-  }, [router]);
+  }, [router, loadInstructorData]);
 
   const handleScheduleSession = async () => {
     if (!sessionTitle) return;

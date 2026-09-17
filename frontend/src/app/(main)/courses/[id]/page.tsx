@@ -92,6 +92,9 @@ export default function CourseDetailPage() {
         body: JSON.stringify({ course_id: course.id }),
       });
       if (res.ok || res.status === 409) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('courseTrack', 'ielts');
+        }
         router.push("/dashboard");
       } else {
         const err = await res.json().catch(() => ({}));

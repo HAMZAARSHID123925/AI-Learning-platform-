@@ -271,11 +271,14 @@ async def login_user(
     Rate limiting: 5 attempts per 15 minutes per IP (spec §Module1 Rule 9)
     """
     # Rate limit check BEFORE any DB query (fail fast, reduce DB load)
-    if ip_address:
+    # In development mode, allow higher threshold (50) for fast developer testing
+    rate_limit_max = 50 if settings.is_development else settings.RATE_LIMIT_LOGIN_MAX
+    rate_limit_key = f"{settings.REDIS_KEY_PREFIX}:rate:login:{ip_address}" if ip_address else None
+    if rate_limit_key:
         await _check_rate_limit(
             redis,
-            key=f"{settings.REDIS_KEY_PREFIX}:rate:login:{ip_address}",
-            max_attempts=settings.RATE_LIMIT_LOGIN_MAX,
+            key=rate_limit_key,
+            max_attempts=rate_limit_max,
             window_seconds=settings.RATE_LIMIT_LOGIN_WINDOW_SECONDS,
         )
 
@@ -345,6 +348,13 @@ async def login_user(
         actor_id=user.id,
         ip_address=ip_address,
     )
+
+    # Clear rate limit counter on successful login so legitimate user is never blocked
+    if rate_limit_key:
+        try:
+            await redis.delete(rate_limit_key)
+        except Exception:
+            pass
 
     logger.info("user_login", user_id=str(user.id), email=user.email)
     return access_token, raw_refresh_token, user

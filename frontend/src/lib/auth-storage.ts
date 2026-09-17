@@ -62,18 +62,42 @@ export function clearAuthSession(): void {
   } catch {}
 }
 
-// Get access token from in-memory cache or secure cookie
+// Get access token from in-memory cache, secure cookie, or localStorage
 export function getStoredAccessToken(): string | null {
   if (inMemoryAccessToken) return inMemoryAccessToken;
-  return getAuthCookie('access_token');
+  const cookie = getAuthCookie('access_token');
+  if (cookie) return cookie;
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('access_token');
+      if (local) return local;
+    } catch {}
+  }
+  return null;
 }
 
 // Get user role
 export function getStoredUserRole(): string {
-  return getAuthCookie('user_role') || 'Student';
+  const cookie = getAuthCookie('user_role');
+  if (cookie) return cookie;
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('user_role');
+      if (local) return local;
+    } catch {}
+  }
+  return 'Student';
 }
 
 // Get user name
 export function getStoredUserName(): string {
-  return getAuthCookie('user_name') || 'Candidate';
+  const cookie = getAuthCookie('user_name');
+  if (cookie) return cookie;
+  if (typeof window !== 'undefined') {
+    try {
+      const local = localStorage.getItem('user_name');
+      if (local) return local;
+    } catch {}
+  }
+  return 'Candidate';
 }
