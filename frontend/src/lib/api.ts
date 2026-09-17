@@ -122,42 +122,44 @@ export async function fetchWithAuth(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const token = getStoredAccessToken();
+  let token = getStoredAccessToken();
 
-  // If running in dev session mode with synthetic credentials, serve rich mock response immediately
-  if (token && token.startsWith('jwt_session_')) {
+  const makeRequest = async (t: string | null): Promise<Response> => {
+    return await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  };
+
+  let response: Response;
+  try {
+    response = await makeRequest(token);
+  } catch (netErr) {
     const fallback = getMockFallbackResponse(path);
     if (fallback) return fallback;
-    return new Response(JSON.stringify({ success: true, message: 'Local dev studio response' }), {
-      status: 200,
+    return new Response(JSON.stringify({ message: 'Backend service unreachable.' }), {
+      status: 503,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const makeRequest = async (t: string | null): Promise<Response> => {
-    try {
-      return await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(t ? { Authorization: `Bearer ${t}` } : {}),
-          ...(options.headers || {}),
-        },
-      });
-    } catch {
-      // Network failed or offline backend
-      const fallback = getMockFallbackResponse(path);
-      if (fallback) return fallback;
-      return new Response(JSON.stringify({ message: 'Offline fallback active' }), { status: 200 });
-    }
-  };
+  // If backend returns 503 or 404 for mockable paths in dev, return fallback
+  if ((response.status === 503 || response.status === 404) && !options.method) {
+    const fallback = getMockFallbackResponse(path);
+    if (fallback) return fallback;
+  }
 
-  let response = await makeRequest(token);
-
-  if (response.status === 401 || response.status === 403 || response.status === 404 || response.status === 500) {
-    const mock = getMockFallbackResponse(path);
-    if (mock) {
-      return mock;
+  // If unauthorized and we had a token, try refreshing once
+  if (response.status === 401 && token) {
+    const refreshedToken = await tryRefreshToken();
+    if (refreshedToken) {
+      try {
+        response = await makeRequest(refreshedToken);
+      } catch {}
     }
   }
 

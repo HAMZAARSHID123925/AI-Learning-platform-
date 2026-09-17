@@ -55,20 +55,19 @@ def get_redis_client() -> Any:
 
 async def get_redis() -> AsyncGenerator[Any, None]:
     pool = _get_pool()
+    client = None
     if pool:
         try:
-            client = redis.Redis(connection_pool=pool)
-            # Test connectivity
-            await client.ping()
-            try:
-                yield client
-            finally:
-                await client.aclose()
-            return
+            test_client = redis.Redis(connection_pool=pool)
+            await test_client.ping()
+            client = test_client
         except Exception:
-            # Fallback to mock redis in local dev if Redis server is down
-            pass
-    yield _mock_redis
+            client = None
+    
+    if client is not None:
+        yield client
+    else:
+        yield _mock_redis
 
 
 async def close_redis_pool() -> None:

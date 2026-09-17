@@ -96,3 +96,23 @@ class NotificationListResponse(BaseModel):
     unread_count: int
     page: int
     page_size: int
+
+
+# =============================================================================
+# Enrollment Schemas
+# =============================================================================
+
+class EnrollCourseRequest(BaseModel):
+    course_id: uuid.UUID
+
+
+class EnrollmentResponse(BaseModel):
+    id: uuid.UUID
+    student_id: uuid.UUID
+    course_id: uuid.UUID
+    status: str
+    enrolled_at: datetime
+    course_title: str | None = None
+    course_slug: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)

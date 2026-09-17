@@ -112,15 +112,15 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         Only this dependency commits. This enforces a clean boundary:
         services perform operations, the request lifecycle manages transactions.
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    session = AsyncSessionLocal()
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 @asynccontextmanager

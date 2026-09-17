@@ -27,11 +27,19 @@ from app.modules.module4_experience.schemas import (
     CompleteLessonRequest,
     CompleteLessonResponse,
     CourseProgressSummary,
+    EnrollCourseRequest,
+    EnrollmentResponse,
     NotificationListResponse,
     NotificationResponse,
     StudentDashboardResponse,
 )
-from app.modules.module4_experience.services import dashboard_service, notification_service, progress_service, sse_service
+from app.modules.module4_experience.services import (
+    dashboard_service,
+    enrollment_service,
+    notification_service,
+    progress_service,
+    sse_service,
+)
 from app.shared.dependencies import get_current_user
 from app.shared.exceptions import AuthorizationError
 
@@ -281,3 +289,87 @@ async def mark_all_read(
         "message": "All notifications marked as read.",
         "updated_count": count,
     }
+
+
+# =============================================================================
+# Student Course Enrollment Endpoints
+# =============================================================================
+
+@router.post(
+    "/enrollments",
+    response_model=EnrollmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Enroll student in a course",
+    tags=["Enrollments"],
+)
+async def enroll_course(
+    body: EnrollCourseRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Enrolls the logged-in student in a published course.
+    Idempotent: returns existing enrollment if already enrolled.
+    """
+    enrollment = await enrollment_service.enroll_student(
+        db=db,
+        student_id=current_user.id,
+        course_id=body.course_id,
+    )
+    return EnrollmentResponse(
+        id=enrollment.id,
+        student_id=enrollment.student_id,
+        course_id=enrollment.course_id,
+        status=enrollment.status,
+        enrolled_at=enrollment.enrolled_at,
+        course_title=enrollment.course.title if enrollment.course else None,
+        course_slug=enrollment.course.slug if enrollment.course else None,
+    )
+
+
+@router.get(
+    "/enrollments/me",
+    response_model=list[EnrollmentResponse],
+    summary="List student's active enrollments",
+    tags=["Enrollments"],
+)
+async def get_my_enrollments(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns all active course enrollments for the current student."""
+    enrollments = await enrollment_service.get_student_enrollments(
+        db=db,
+        student_id=current_user.id,
+    )
+    return [
+        EnrollmentResponse(
+            id=e.id,
+            student_id=e.student_id,
+            course_id=e.course_id,
+            status=e.status,
+            enrolled_at=e.enrolled_at,
+            course_title=e.course.title if e.course else None,
+            course_slug=e.course.slug if e.course else None,
+        )
+        for e in enrollments
+    ]
+
+
+@router.delete(
+    "/enrollments/{course_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Unenroll from a course",
+    tags=["Enrollments"],
+)
+async def unenroll_course(
+    course_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Un-enrolls current student from course."""
+    await enrollment_service.unenroll_student(
+        db=db,
+        student_id=current_user.id,
+        course_id=course_id,
+    )

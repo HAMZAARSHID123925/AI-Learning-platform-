@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.modules.module2_content.schemas import (
     AssetResponse,
+    CourseDetailResponse,
     CourseResponse,
     CreateCourseRequest,
     CreateLessonRequest,
@@ -24,12 +25,13 @@ from app.modules.module2_content.schemas import (
     LessonDetailResponse,
     LessonResponse,
     ModuleResponse,
+    ModuleWithLessonsResponse,
     UpdateCourseRequest,
     UpdateLessonRequest,
     UpdateModuleRequest,
 )
 from app.modules.module2_content.services import asset_service, course_service, lesson_service
-from app.shared.dependencies import get_current_user, require_permission
+from app.shared.dependencies import get_current_user, get_optional_current_user, require_permission
 from app.shared.pagination import PaginatedResponse, PaginationParams
 
 router = APIRouter()
@@ -60,6 +62,10 @@ async def create_course(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Create a new course in 'draft' status.
+    Requires course:create permission (Instructor or Admin).
+    """
     course = await course_service.create_course(
         db=db,
         instructor_id=current_user.id,
@@ -88,21 +94,23 @@ async def create_course(
     tags=["Courses"],
 )
 async def list_courses(
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
     page: int = 1,
     page_size: int = 20,
     status_filter: str | None = None,
 ):
     """
-    Students see only published courses.
+    Public visitors and Students see only published courses.
     Instructors see their own courses (all statuses).
     Admins see all courses.
     """
     params = PaginationParams(page=page, page_size=page_size)
     instructor_id = None
 
-    if current_user.has_role("Instructor") and not _is_admin(current_user):
+    if current_user is None:
+        status_filter = "published"
+    elif current_user.has_role("Instructor") and not _is_admin(current_user):
         instructor_id = current_user.id
     elif current_user.has_role("Student"):
         status_filter = "published"
@@ -131,17 +139,52 @@ async def list_courses(
 
 @router.get(
     "/courses/{course_id}",
-    response_model=CourseResponse,
-    summary="Get course by ID",
+    response_model=CourseDetailResponse,
+    summary="Get course detail with full syllabus",
     tags=["Courses"],
 )
 async def get_course(
     course_id: uuid.UUID,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     course = await course_service.get_course(db, course_id)
-    return CourseResponse(
+
+    modules_data: list[ModuleWithLessonsResponse] = []
+    is_staff = current_user is not None and (_is_admin(current_user) or current_user.has_role("Instructor"))
+
+    for m in (course.modules or []):
+        lessons_data = [
+            LessonResponse(
+                id=l.id,
+                module_id=l.module_id,
+                title=l.title,
+                slug=l.slug,
+                status=l.status.value,
+                sequence_order=l.sequence_order,
+                content_version=l.content_version,
+                estimated_minutes=l.estimated_minutes,
+                skill_ids=[ls.skill_id for ls in l.lesson_skills] if "lesson_skills" in l.__dict__ else [],
+                published_at=l.published_at,
+                created_at=l.created_at,
+                updated_at=l.updated_at,
+            )
+            for l in (m.lessons or [])
+        ]
+        modules_data.append(
+            ModuleWithLessonsResponse(
+                id=m.id,
+                course_id=m.course_id,
+                title=m.title,
+                description=m.description,
+                sequence_order=m.sequence_order,
+                lesson_count=len(lessons_data),
+                lessons=lessons_data,
+                created_at=m.created_at,
+            )
+        )
+
+    return CourseDetailResponse(
         id=course.id,
         instructor_id=course.instructor_id,
         title=course.title,
@@ -150,6 +193,7 @@ async def get_course(
         status=course.status.value,
         thumbnail_url=course.thumbnail_url,
         module_count=len(course.modules),
+        modules=modules_data,
         created_at=course.created_at,
         updated_at=course.updated_at,
     )
@@ -201,6 +245,23 @@ async def publish_course(
         slug=course.slug, description=course.description, status=course.status.value,
         thumbnail_url=course.thumbnail_url, module_count=len(course.modules),
         created_at=course.created_at, updated_at=course.updated_at,
+    )
+
+
+@router.delete(
+    "/courses/{course_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a course",
+    tags=["Courses"],
+    dependencies=[Depends(require_permission("course:create"))],
+)
+async def delete_course(
+    course_id: uuid.UUID,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await course_service.delete_course(
+        db=db, course_id=course_id, actor_id=current_user.id, is_admin=_is_admin(current_user)
     )
 
 
@@ -289,12 +350,31 @@ async def get_lesson(
 
     lesson = await lesson_service.get_lesson(db, lesson_id)
     skill_ids = [ls.skill_id for ls in lesson.lesson_skills]
+
+    # Generate presigned URLs for all attached media/document assets
+    assets_data: list[AssetResponse] = []
+    for a in (lesson.assets or []):
+        url = await asset_service.generate_presigned_url(a.storage_key) if a.storage_key else None
+        assets_data.append(
+            AssetResponse(
+                id=a.id,
+                lesson_id=a.lesson_id,
+                asset_type=a.asset_type.value,
+                original_filename=a.original_filename,
+                file_size_bytes=a.file_size_bytes,
+                mime_type=a.mime_type,
+                presigned_url=url,
+                created_at=a.created_at,
+            )
+        )
+
     return LessonDetailResponse(
         id=lesson.id, module_id=lesson.module_id, title=lesson.title,
         slug=lesson.slug, status=lesson.status.value, sequence_order=lesson.sequence_order,
         content_version=lesson.content_version, estimated_minutes=lesson.estimated_minutes,
         skill_ids=skill_ids, published_at=lesson.published_at,
         body_markdown=lesson.body_markdown,
+        assets=assets_data,
         created_at=lesson.created_at, updated_at=lesson.updated_at,
     )
 

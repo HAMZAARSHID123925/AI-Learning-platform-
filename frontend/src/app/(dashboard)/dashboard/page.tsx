@@ -70,6 +70,8 @@ export default function DashboardPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Student');
+  const [targetBand, setTargetBand] = useState<string>('8.5');
+  const [daysToExam, setDaysToExam] = useState<number>(64);
   const [studentEnrolledCourses, setStudentEnrolledCourses] = useState<CourseProgress[]>([]);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [diagnosticResult, setDiagnosticResult] = useState<{
@@ -95,34 +97,34 @@ export default function DashboardPage() {
     const token = localStorage.getItem('access_token');
     if (!token) { router.push('/login'); return; }
 
+    const savedRole = (localStorage.getItem('user_role') || '').toLowerCase();
+    if (savedRole === 'instructor' || savedRole === 'teacher') {
+      router.push('/instructor');
+      return;
+    }
+    if (savedRole === 'admin' || savedRole === 'superadmin') {
+      router.push('/admin/courses');
+      return;
+    }
+
     const savedTrack = localStorage.getItem('courseTrack');
     const savedName = localStorage.getItem('user_name');
+    const savedTargetBand = localStorage.getItem('target_band') || '8.5';
+    const savedExamDate = localStorage.getItem('exam_date') || '2026-11-20';
     const diagnosticDone = localStorage.getItem('diagnostic_completed');
     const savedDiagData = localStorage.getItem('diagnostic_data');
 
     if (savedName) setUserName(savedName);
     if (savedTrack) setCourseTrack(savedTrack);
+    setTargetBand(savedTargetBand);
+
+    // Calculate days remaining
+    const diff = Math.ceil((new Date(savedExamDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    setDaysToExam(diff > 0 ? diff : 0);
     
-    // Load student's enrolled courses from local storage
-    const savedEnrolled = localStorage.getItem('student_enrolled_courses');
-    if (savedEnrolled) {
-      try {
-        setStudentEnrolledCourses(JSON.parse(savedEnrolled));
-      } catch {
-        // ignore
-      }
-    } else {
-      const defaultCourse: CourseProgress = {
-        course_id: 'default-track-course',
-        course_title: (savedTrack === 'general') 
-          ? 'General English Communicative Fluency' 
-          : 'IELTS Academic Writing & Speaking Masterclass',
-        total_lessons: 28,
-        completed_lessons: 2,
-        percentage: 8
-      };
-      setStudentEnrolledCourses([defaultCourse]);
-      localStorage.setItem('student_enrolled_courses', JSON.stringify([defaultCourse]));
+    // Clean up any old dummy fallback from local storage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('student_enrolled_courses');
     }
 
     if (savedDiagData) {
@@ -153,6 +155,10 @@ export default function DashboardPage() {
         const d: DashboardData = await dashRes.json();
         setDashData(d);
         setUnreadCount(d.unread_notifications_count);
+        if (d.enrolled_courses && d.enrolled_courses.length > 0 && typeof window !== 'undefined' && !localStorage.getItem('courseTrack')) {
+          localStorage.setItem('courseTrack', 'ielts');
+          setCourseTrack('ielts');
+        }
       }
       if (flagsRes.ok) {
         const flags: WeaknessFlag[] = await flagsRes.json();
@@ -254,30 +260,30 @@ export default function DashboardPage() {
       }))
     : (isIELTS
         ? [
-            { subject: 'Lexical Resource', A: 75, fullMark: 100 },
-            { subject: 'Grammar', A: 68, fullMark: 100 },
-            { subject: 'Coherence', A: 80, fullMark: 100 },
-            { subject: 'Pronunciation', A: 62, fullMark: 100 },
-            { subject: 'Task Achievement', A: 70, fullMark: 100 },
+            { subject: 'Lexical Resource', A: 0, fullMark: 100 },
+            { subject: 'Grammar', A: 0, fullMark: 100 },
+            { subject: 'Coherence', A: 0, fullMark: 100 },
+            { subject: 'Pronunciation', A: 0, fullMark: 100 },
+            { subject: 'Task Achievement', A: 0, fullMark: 100 },
           ]
         : [
-            { subject: 'Vocabulary', A: 75, fullMark: 100 },
-            { subject: 'Grammar', A: 68, fullMark: 100 },
-            { subject: 'Conversation', A: 60, fullMark: 100 },
-            { subject: 'Listening', A: 78, fullMark: 100 },
-            { subject: 'Reading', A: 82, fullMark: 100 },
+            { subject: 'Vocabulary', A: 0, fullMark: 100 },
+            { subject: 'Grammar', A: 0, fullMark: 100 },
+            { subject: 'Conversation', A: 0, fullMark: 100 },
+            { subject: 'Listening', A: 0, fullMark: 100 },
+            { subject: 'Reading', A: 0, fullMark: 100 },
           ]);
 
   const progressHistory = dashData?.enrolled_courses?.length
     ? dashData.enrolled_courses.map((c) => ({
-        name: c.course_title.slice(0, 8),
+        name: c.course_title.slice(0, 10),
         score: isIELTS
-          ? +(4 + c.percentage / 20).toFixed(1)
+          ? +(5.0 + (c.percentage / 100) * 3.5).toFixed(1)
           : Math.round(c.percentage),
       }))
     : (isIELTS
-        ? [{ name: 'Wk 1', score: 5.5 }, { name: 'Wk 2', score: 6.0 }, { name: 'Wk 3', score: 6.5 }, { name: 'Wk 4', score: 7.0 }]
-        : [{ name: 'Wk 1', score: 30 }, { name: 'Wk 2', score: 50 }, { name: 'Wk 3', score: 65 }, { name: 'Wk 4', score: 75 }]);
+        ? [{ name: 'Baseline', score: 5.0 }]
+        : [{ name: 'Baseline', score: 0 }]);
 
   const completionPct = dashData?.overall_completion_percentage ?? 0;
   const estBand = dashData ? Math.min(9, +(4.5 + (completionPct / 100) * 4.5).toFixed(1)) : null;
@@ -290,27 +296,25 @@ export default function DashboardPage() {
     body: `Score ${(f.score_at_flag * 100).toFixed(0)}% — below threshold of ${(f.threshold * 100).toFixed(0)}%. Status: ${f.status}.`,
   }));
 
-  const handleEnrollInCourse = (crs: { id: string; title: string; modules?: number }) => {
-    const isAlreadyEnrolled = studentEnrolledCourses.some(c => c.course_id === crs.id || c.course_title === crs.title);
-    if (isAlreadyEnrolled) {
-      router.push('/dashboard/lesson');
-      return;
+  const handleEnrollInCourse = async (crs: { id: string; title: string }) => {
+    try {
+      const res = await fetchWithAuth('/enrollments', {
+        method: 'POST',
+        body: JSON.stringify({ course_id: crs.id }),
+      });
+      if (res.ok || res.status === 409) {
+        toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
+        loadAllData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error('Enrollment Failed', err.message || 'Could not enroll in course.');
+      }
+    } catch {
+      toast.error('Network Error', 'Failed to reach server.');
     }
-
-    const newCourse: CourseProgress = {
-      course_id: crs.id,
-      course_title: crs.title,
-      total_lessons: (crs.modules || 4) * 4,
-      completed_lessons: 0,
-      percentage: 0
-    };
-    const updated = [newCourse, ...studentEnrolledCourses];
-    setStudentEnrolledCourses(updated);
-    localStorage.setItem('student_enrolled_courses', JSON.stringify(updated));
-    toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
   };
 
-  const enrolledCourses = dashData?.enrolled_courses?.length ? dashData.enrolled_courses : studentEnrolledCourses;
+  const enrolledCourses = dashData?.enrolled_courses || [];
 
   // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
   return (
@@ -564,7 +568,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ── 30-DAY AI STUDY PATH & DAILY STREAK MISSION ── */}
+          {/* ── REAL AI STUDY PATH & ACTIVE COURSE PROGRESS ── */}
           <div className="bg-gradient-to-br from-[#0B1329] via-[#111C44] to-[#0A1026] border border-blue-900/40 rounded-3xl p-6 lg:p-8 text-white shadow-2xl relative overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
@@ -572,38 +576,51 @@ export default function DashboardPage() {
             
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 relative z-10">
               
-              {/* Left Column: Mission Details */}
+              {/* Left Column: Real Course Details */}
               <div className="flex-1 space-y-4">
                 
                 {/* Badges Row */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-black flex items-center gap-1.5 shadow-xs">
-                    <Flame className="w-3.5 h-3.5 fill-amber-400" />
-                    5-DAY STREAK ACTIVE
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {enrolledCourses.length > 0 ? `${enrolledCourses.length} COURSE ENROLLED IN DB` : 'READY TO ENROLL'}
                   </span>
                   
                   <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
-                    <Clock className="w-3.5 h-3.5 text-blue-400" />
-                    Target Exam: Oct 28, 2026 (42 Days Left)
+                    <Target className="w-3.5 h-3.5 text-blue-400" />
+                    Target: Band {targetBand}
+                  </span>
+
+                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    {daysToExam} Days to Official Exam
                   </span>
                 </div>
 
                 {/* Main Heading & Recommendation */}
                 <div>
                   <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug">
-                    Day 12 of 30: <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-cyan-300">Academic Argumentation Mastery</span>
+                    {enrolledCourses.length > 0 ? (
+                      <>Active Syllabus: <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-cyan-300">{enrolledCourses[0].course_title}</span></>
+                    ) : (
+                      <>Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-cyan-300">PPAcademia AI Learning Platform</span></>
+                    )}
                   </h2>
                   <p className="text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed mt-1.5 font-medium">
-                    Today&apos;s AI diagnosis recommends strengthening your <span className="text-amber-400 font-bold underline decoration-amber-400/40 underline-offset-2">Lexical Cohesion</span> and completing 1 Speaking drill on abstract question expansion.
+                    {enrolledCourses.length > 0 ? (
+                      `You are currently working through ${enrolledCourses[0].course_title}. ${enrolledCourses[0].completed_lessons} of ${enrolledCourses[0].total_lessons} lessons completed.`
+                    ) : (
+                      'Browse our curriculum catalog to enroll in examiner-curated preparation modules and activate your adaptive AI study schedule.'
+                    )}
                   </p>
                 </div>
 
-                {/* Checklist of Daily 15-Minute Missions (High Contrast & Clear Active State) */}
+                {/* Checklist of Real Actions */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   
-                  {/* Task 1: Completed */}
+                  {/* Task 1: View Syllabus */}
                   <Link 
-                    href="/dashboard/writing" 
+                    href={enrolledCourses.length > 0 ? `/courses/${enrolledCourses[0].course_id}` : '/courses'} 
                     className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 hover:bg-slate-900 hover:border-emerald-400 transition-all group backdrop-blur-md shadow-sm"
                   >
                     <div className="flex items-center gap-3">
@@ -611,15 +628,15 @@ export default function DashboardPage() {
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Task 2 Essay Drill</p>
-                        <p className="text-[10px] text-emerald-400 font-medium">Completed (Band 6.0)</p>
+                        <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Course Syllabus</p>
+                        <p className="text-[10px] text-emerald-400 font-medium">{enrolledCourses.length > 0 ? `${enrolledCourses[0].total_lessons} Lessons` : 'Browse Catalog'}</p>
                       </div>
                     </div>
                   </Link>
 
-                  {/* Task 2: Active & Ready (Next Up Glowing Card) */}
+                  {/* Task 2: Active Lesson (Next Up) */}
                   <Link 
-                    href="/dashboard/simulator" 
+                    href={enrolledCourses.length > 0 ? `/courses/${enrolledCourses[0].course_id}` : '/courses'} 
                     className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-2 border-blue-400 hover:border-cyan-300 transition-all group backdrop-blur-md shadow-lg shadow-blue-500/20 ring-2 ring-blue-400/30 relative overflow-hidden"
                   >
                     <div className="absolute -right-4 -bottom-4 w-12 h-12 bg-blue-400/20 rounded-full blur-lg"></div>
@@ -629,27 +646,29 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white group-hover:text-cyan-200 transition-colors">Part 2 Cue Card</p>
-                          <span className="px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 text-[9px] font-black uppercase">Next Up</span>
+                          <p className="text-xs font-black text-white group-hover:text-cyan-200 transition-colors truncate max-w-[110px]">
+                            {dashData?.next_recommended_lesson?.lesson_title || (enrolledCourses.length > 0 ? 'Curriculum' : 'Enroll Now')}
+                          </p>
+                          <span className="px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 text-[9px] font-black uppercase">Next</span>
                         </div>
-                        <p className="text-[10px] text-blue-200 font-semibold">Ready to start (2 mins)</p>
+                        <p className="text-[10px] text-blue-200 font-semibold">Ready to study</p>
                       </div>
                     </div>
                     <ArrowUpRight className="w-4 h-4 text-blue-300 group-hover:text-white transition-colors group-hover:translate-x-0.5 group-hover:-translate-y-0.5 relative z-10" />
                   </Link>
 
-                  {/* Task 3: Up Next */}
+                  {/* Task 3: Assessment */}
                   <Link 
-                    href="/dashboard/lesson" 
+                    href="/dashboard/writing" 
                     className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-700/60 hover:bg-slate-900/90 hover:border-slate-600 transition-all group backdrop-blur-md"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center border border-slate-700 shrink-0 font-bold text-xs">
-                        3
+                        <PenTool className="w-3.5 h-3.5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Lexical Guide Video</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Next lesson (8 mins)</p>
+                        <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Writing Practice</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Examiner rubric drill</p>
                       </div>
                     </div>
                   </Link>
@@ -657,18 +676,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column: Modern Circular Progress Ring */}
+              {/* Right Column: Real Circular Progress Ring */}
               <div className="shrink-0 flex flex-col items-center bg-slate-900/90 border border-blue-500/20 rounded-3xl p-5 text-center min-w-[200px] shadow-lg backdrop-blur-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
                 
                 <span className="text-[11px] text-blue-300 font-black uppercase tracking-wider mb-2">
-                  30-Day Milestone
+                  Course Completion
                 </span>
 
                 {/* Circular Gauge Graphic */}
                 <div className="relative w-24 h-24 flex items-center justify-center my-1">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    {/* Background circle */}
                     <path
                       className="text-slate-800"
                       strokeWidth="3.5"
@@ -676,10 +694,9 @@ export default function DashboardPage() {
                       fill="none"
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     />
-                    {/* Progress arc */}
                     <path
                       className="text-[#027FFF]"
-                      strokeDasharray="40, 100"
+                      strokeDasharray={`${Math.round(enrolledCourses[0]?.percentage || completionPct || 0)}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
                       stroke="url(#progressGradient)"
@@ -694,14 +711,20 @@ export default function DashboardPage() {
                     </defs>
                   </svg>
                   <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-xl font-black text-white leading-none">40%</span>
+                    <span className="text-xl font-black text-white leading-none">
+                      {Math.round(enrolledCourses[0]?.percentage || completionPct || 0)}%
+                    </span>
                     <span className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Progress</span>
                   </div>
                 </div>
 
                 <div className="mt-2 text-center">
-                  <span className="text-xs text-emerald-400 font-bold block">12 of 30 Days Completed</span>
-                  <span className="text-[10px] text-slate-400 font-medium">18 Days Remaining</span>
+                  <span className="text-xs text-emerald-400 font-bold block">
+                    {enrolledCourses[0]?.completed_lessons || 0} of {enrolledCourses[0]?.total_lessons || 0} Lessons
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {enrolledCourses.length > 0 ? 'Active in Neon DB' : 'Not Enrolled'}
+                  </span>
                 </div>
               </div>
 
@@ -781,7 +804,7 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── EXAMINER FEEDBACK & HUMAN AI-OVERRIDE DISPATCH ── */}
+          {/* ── EXAMINER FEEDBACK & ADAPTIVE REMEDIATION DISPATCH ── */}
           <div className="bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 border border-purple-800/80 rounded-3xl p-6 lg:p-7 text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -790,37 +813,45 @@ export default function DashboardPage() {
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-400/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                    <Award className="w-3 h-3 text-purple-300" /> Official Certified Examiner Review
+                    <Award className="w-3 h-3 text-purple-300" /> {dashData?.active_remediations?.length ? 'Active Remediation Drill' : 'Examiner Evaluation Suite'}
                   </span>
-                  <span className="text-[11px] text-slate-400 font-medium font-mono">Assessed by Senior Examiner</span>
+                  <span className="text-[11px] text-slate-400 font-medium font-mono">
+                    {dashData?.active_remediations?.length ? 'Escalated from Diagnostic Gap' : 'Calibrated vs Cambridge Rubrics'}
+                  </span>
                 </div>
 
                 <h3 className="text-lg font-black text-white tracking-tight">
-                  Task 2 Essay: AI in Healthcare &amp; Wealth Disparity
+                  {dashData?.active_remediations?.length 
+                    ? dashData.active_remediations[0].title 
+                    : 'Certified Multi-Agent Assessment & Scoring'}
                 </h3>
 
                 <p className="text-xs text-purple-100/90 leading-relaxed font-serif bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                  &ldquo;Commendable coherence across body paragraphs. However, allocate greater focus to conditional inversion and nominalization in your topic sentences to unlock Band 8.0+ Grammatical Range.&rdquo;
+                  {dashData?.active_remediations?.length 
+                    ? `Target remediation for ${dashData.active_remediations[0].skill_name}. Complete this micro-drill to resolve examiner deduction flags and update your mastery radar.`
+                    : 'Submit an essay or speaking submission to receive examiner-calibrated scoring across Task Response (TR), Coherence & Cohesion (CC), Lexical Resource (LR), and Grammatical Range (GRA).'}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <div className="flex items-center gap-2 bg-purple-800/40 border border-purple-500/30 px-3 py-1 rounded-xl text-xs font-bold font-mono">
-                    <span className="text-purple-300">TR: 6.5</span> • 
-                    <span className="text-purple-300">CC: 6.5</span> • 
-                    <span className="text-purple-300">LR: 7.0</span> • 
-                    <span className="text-purple-300">GRA: 6.0</span>
+                    <span className="text-purple-300">TR</span> • 
+                    <span className="text-purple-300">CC</span> • 
+                    <span className="text-purple-300">LR</span> • 
+                    <span className="text-purple-300">GRA</span>
                   </div>
                   <span className="text-xs text-slate-300 font-bold">
-                    Target Recovery: <strong className="text-amber-400 font-bold">Inversion &amp; Complex Syntax Mastery</strong>
+                    Target: <strong className="text-amber-400 font-bold">Band 8.5 Proficiency Target</strong>
                   </span>
                 </div>
               </div>
 
               <div className="shrink-0 flex flex-col items-center sm:items-end gap-3 w-full sm:w-auto">
                 <div className="text-center sm:text-right bg-white/10 border border-white/15 px-5 py-3 rounded-2xl w-full sm:w-auto">
-                  <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block mb-0.5">Examiner Calibrated Band</span>
-                  <span className="text-3xl font-black text-white font-mono">Band 6.5</span>
-                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Verified vs Cambridge Rubric</span>
+                  <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block mb-0.5">Examiner Assessment</span>
+                  <span className="text-2xl font-black text-white font-mono">
+                    {dashData?.active_remediations?.length ? 'Drill Active' : 'Ready'}
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Real-Time Evaluation</span>
                 </div>
 
                 <Link
@@ -828,7 +859,7 @@ export default function DashboardPage() {
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white text-xs font-black transition-all shadow-md shadow-purple-500/30 flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Launch Assigned Recovery Drill &rarr;
+                  {dashData?.active_remediations?.length ? 'Launch Assigned Recovery Drill →' : 'Start Assessment →'}
                 </Link>
               </div>
 
@@ -886,10 +917,10 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
                         <span className="text-xs font-bold text-slate-500">{c.percentage.toFixed(0)}% Done</span>
                         <Link 
-                          href="/dashboard/lesson" 
+                          href={`/courses/${c.course_id}`} 
                           className="px-3.5 py-1.5 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
                         >
-                          Continue Lesson <ArrowUpRight className="w-3 h-3" />
+                          View Syllabus & Lessons <ArrowUpRight className="w-3 h-3" />
                         </Link>
                       </div>
                     </div>
