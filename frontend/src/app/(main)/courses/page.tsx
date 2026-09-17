@@ -12,26 +12,29 @@ export default function CoursesPage() {
   const [liveCourses, setLiveCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleEnroll = (courseTitle: string, courseId: string = 'c_' + Date.now(), totalLessons: number = 24) => {
-    // 1. Save enrollment in local storage for student active courses
+  const handleEnroll = async (courseTitle: string, courseId: string) => {
     if (typeof window !== 'undefined') {
-      const existing = JSON.parse(localStorage.getItem('student_enrolled_courses') || '[]');
-      if (!existing.some((c: any) => c.course_title === courseTitle || c.course_id === courseId)) {
-        const newEnrollment = {
-          course_id: courseId,
-          course_title: courseTitle,
-          total_lessons: totalLessons,
-          completed_lessons: 0,
-          percentage: 0
-        };
-        localStorage.setItem('student_enrolled_courses', JSON.stringify([newEnrollment, ...existing]));
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        router.push(`/login?redirect=${encodeURIComponent(`/courses/${courseId}`)}`);
+        return;
       }
 
-      const token = localStorage.getItem('access_token');
-      if (token) {
+      try {
+        const res = await fetchWithAuth('/enrollments', {
+          method: 'POST',
+          body: JSON.stringify({ course_id: courseId }),
+        });
+        if (res.ok || res.status === 409) {
+          // 409 means already enrolled
+          router.push('/dashboard');
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(err.message || 'Failed to enroll in course. Please try again.');
+        }
+      } catch (err: any) {
+        console.error("Enrollment error:", err);
         router.push('/dashboard');
-      } else {
-        router.push(`/signup?enrollCourse=${encodeURIComponent(courseTitle)}`);
       }
     }
   };
@@ -40,40 +43,20 @@ export default function CoursesPage() {
     async function loadPublishedCourses() {
       try {
         setLoading(true);
-        // 1. Check local storage for newly created admin courses
-        let localCreated: any[] = [];
-        const savedAdminCourses = localStorage.getItem('admin_courses');
-        if (savedAdminCourses) {
-          try {
-            localCreated = JSON.parse(savedAdminCourses).filter((c: any) => c.status === 'published');
-          } catch {
-            // ignore
-          }
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin_courses');
         }
 
-        // 2. Query backend API
-        let remoteItems: any[] = [];
-        try {
-          const res = await fetchWithAuth('/courses?page_size=50');
-          if (res.ok) {
-            const data = await res.json();
-            remoteItems = (data.items || []).filter((c: any) => c.status === 'published');
-          }
-        } catch {
-          // backend offline or dev mode
+        const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50');
+        if (res.ok) {
+          const data = await res.json();
+          setLiveCourses(data.items || []);
+        } else {
+          setLiveCourses([]);
         }
-
-        // Combine unique courses
-        const combined = [...localCreated];
-        remoteItems.forEach(ri => {
-          if (!combined.some(c => c.id === ri.id || c.title === ri.title)) {
-            combined.push(ri);
-          }
-        });
-
-        setLiveCourses(combined);
       } catch (err) {
-        console.warn("Using flagship catalog courses:", err);
+        console.warn("Backend catalog query error:", err);
+        setLiveCourses([]);
       } finally {
         setLoading(false);
       }
@@ -191,311 +174,71 @@ export default function CoursesPage() {
 <section className="max-w-[80rem] mx-auto px-4 py-space-lg w-full">
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
 
-{/* Live Admin-Published Courses */}
-{liveCourses.map((course) => (
-  <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-[#027FFF]/30">
-    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
-      <div className="flex flex-col items-center">
-        <span className="material-symbols-outlined text-white text-[48px] mb-2">school</span>
-        <span className="text-white font-bold text-lg">{course.title}</span>
-      </div>
-      <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-        <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-xs shadow-sm">
-          Live &amp; Published
-        </span>
-        <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-xs backdrop-blur-sm">
-          {course.module_count || 4} Modules
-        </span>
-      </div>
-    </div>
-    <div className="flex flex-col flex-1 p-6 justify-between gap-4">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{course.title}</h2>
-        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{course.description || 'Full examiner-curated syllabus with interactive quizzes and AI assessments.'}</p>
-      </div>
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <span className="text-lg font-extrabold text-slate-900">{course.price || 'Included in Pro'}</span>
-        <button 
-          onClick={() => handleEnroll(course.title, course.id, (course.module_count || 4) * 6)} 
-          className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs"
-        >
-          Enroll Now &rarr;
-        </button>
-      </div>
-    </div>
+{/* Real PostgreSQL Database Courses */}
+{loading ? (
+  <div className="col-span-full py-16 text-center text-slate-500 font-medium">
+    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#027FFF] mb-3"></div>
+    <p>Loading published courses from database...</p>
   </div>
-))}
-
-{/* Course Card 1: Academic English & Test Prep Masterclass */}
-<div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
-{/* Thumbnail / Visual Banner */}
-<div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
-<img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Editorial close-up of a student analyzing academic charts and thesis statements on a modern slate surface desk with Cambridge rubric documents in soft natural daylight, academic prestigious tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxXsnnwEJopXO4z_q_-wS6_iEJ68hLZldZVIAYHBvKZvT6BEWw1i9miUB4j374zP9h3C0_tLN0VdpzYa7MI-ROo9fmgSGZi_MO-GCIEzER7s6qhcjhNfOXd8lSz4fFNOAYizt9k5ke8Bfd2spRxAVMvhhZ_l_RskGn-BUlSIT6NgYwqL_C6c1xKN7rhmHdQozEXWwgycRcUGGYdOGTWwT8JDaaE7igriMeRFlNJwvpKXUUvFBvo4XLTQ" />
-<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-{/* Badges overlay */}
-<div className="absolute top-space-sm left-space-sm right-space-sm flex items-center justify-between gap-space-xs">
-<span className="px-space-sm py-space-xxs rounded-md bg-secondary text-on-secondary font-label-sm text-label-sm font-semibold shadow-sm">
-                Most Popular
-              </span>
-<span className="px-space-sm py-space-xxs rounded-md bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface font-caption text-caption font-bold uppercase tracking-wider">
-                Comprehensive
-              </span>
-</div>
-{/* In-card preview tag */}
-<div className="absolute bottom-space-sm left-space-sm flex items-center gap-space-xs text-white">
-<span className="material-symbols-outlined text-[18px] text-tertiary-fixed">verified</span>
-<span className="font-caption text-caption font-semibold">Standard Band 7.5 - 9.0 Track</span>
-</div>
-</div>
-{/* Card Content Body */}
-<div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
-<div className="flex flex-col gap-space-sm">
-<h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                Academic English & Test Prep Masterclass
-              </h2>
-<p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
-                All-in-one immersive pathway engineered for university matriculation and medical accreditation candidates needing high band performance.
-              </p>
-{/* Stats Strip */}
-<div className="flex items-center flex-wrap gap-x-space-xs gap-y-space-xxs py-space-xs px-space-sm rounded-lg bg-surface-container font-caption text-caption text-on-surface font-medium">
-<span className="flex items-center gap-1"><span className="font-semibold text-secondary">4</span> Modules</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">28</span> Lessons</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">12</span> Adaptive Quizzes</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">4</span> Full Mock Tests</span>
-</div>
-{/* Key Topics Pill Tags */}
-<div className="flex flex-col gap-space-xxs pt-space-xs">
-<span className="font-caption text-caption text-on-surface-variant font-semibold uppercase tracking-wider">Core Modules Covered</span>
-<div className="flex flex-wrap gap-space-xxs">
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Reading Speed Strategies</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Academic Writing Task 1 &amp; 2</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Listening Distractor Drills</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Fluency &amp; Pronunciation</span>
-</div>
-</div>
-{/* Features Checklist */}
-<div className="flex flex-col gap-space-xs pt-space-xs">
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Real-time Multi-Agent Essay Evaluation</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Cambridge-aligned rubric scoring breakdown</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Automated lexical gap &amp; coherence analysis</span>
-</div>
-</div>
-</div>
-{/* Actions Row */}
-<div className="flex flex-col gap-space-xs pt-space-sm">
-<div className="flex items-center justify-between pb-space-xxs">
-<div className="flex items-baseline gap-space-xxs">
-<span className="font-headline-sm text-headline-sm text-on-surface font-bold">$149</span>
-<span className="font-caption text-caption text-on-surface-variant line-through">$229</span>
-</div>
-<span className="font-caption text-caption text-on-tertiary-container font-semibold px-space-xs py-0.5 rounded bg-surface-container-low">Lifetime Updates</span>
-</div>
-<div className="grid grid-cols-2 gap-space-xs">
-<button className="w-full py-space-xs px-space-sm rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 text-center" onClick={scrollToSyllabus}>
-<span>View Syllabus</span>
-<span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-</button>
-<button 
-  onClick={() => handleEnroll('Academic English & Test Prep Masterclass', 'course-academic-masterclass', 28)}
-  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
->
-  Enroll Now
-</button>
-</div>
-</div>
-</div>
-</div>
-{/* Course Card 2: General English Fast-Track */}
-<div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
-{/* Thumbnail / Visual Banner */}
-<div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
-<img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Modern professional workstation setup with immigration documents, high-tech microphone for speech test practice, clean minimal blue and deep slate palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGC8kn7HOrwvI_UyH-egBErdqGku9Z3s1CHgIyl_--f0XMTRgToKI6ewF9OeQ7oGlCI-dwpUg0dF3x4IiMw_HYb7MnzwVvydIRTxLSk8IDE2sd6SGWrQaT_RS5yqIdA277UG6bbOoCtlbY2hV75jDUwSD81a-_z67Ju90QqOwdfR85OHTLzdEqHK75PTzZMf7vT4HXc_fIDw-IK5Y3xyo9FJwCNsiW-Rx2N_oi-FOjT2Unr1EQTjZT6w" />
-<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-{/* Badges overlay */}
-<div className="absolute top-space-sm left-space-sm right-space-sm flex items-center justify-between gap-space-xs">
-<span className="px-space-sm py-space-xxs rounded-md bg-secondary text-on-secondary font-label-sm text-label-sm font-semibold shadow-sm">
-                Express Entry &amp; Work Visa
-              </span>
-<span className="px-space-sm py-space-xxs rounded-md bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface font-caption text-caption font-bold uppercase tracking-wider">
-                Fast-Track
-              </span>
-</div>
-<div className="absolute bottom-space-sm left-space-sm flex items-center gap-space-xs text-white">
-<span className="material-symbols-outlined text-[18px] text-tertiary-fixed">flag</span>
-<span className="font-caption text-caption font-semibold">Optimized for CLB 9+ Targets</span>
-</div>
-</div>
-{/* Card Content Body */}
-<div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
-<div className="flex flex-col gap-space-sm">
-<h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                General English Fast-Track
-              </h2>
-<p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
-                Rapid target-band alignment tailored for skilled migration, formal correspondence, and daily conversational English competence.
-              </p>
-{/* Stats Strip */}
-<div className="flex items-center flex-wrap gap-x-space-xs gap-y-space-xxs py-space-xs px-space-sm rounded-lg bg-surface-container font-caption text-caption text-on-surface font-medium">
-<span className="flex items-center gap-1"><span className="font-semibold text-secondary">3</span> Modules</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">18</span> Lessons</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">8</span> Adaptive Quizzes</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">3</span> Mock Tests</span>
-</div>
-{/* Key Topics Pill Tags */}
-<div className="flex flex-col gap-space-xxs pt-space-xs">
-<span className="font-caption text-caption text-on-surface-variant font-semibold uppercase tracking-wider">Targeted Skills Focus</span>
-<div className="flex flex-wrap gap-space-xxs">
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Workplace &amp; Formal Letters</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Semi-formal Correspondence</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">High-speed General Reading</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Conversational Simulator</span>
-</div>
-</div>
-{/* Features Checklist */}
-<div className="flex flex-col gap-space-xs pt-space-xs">
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Automated letter tone &amp; structure analyzer</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Speaking phonology &amp; tempo evaluator</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Express Entry / CLB immigration benchmark</span>
-</div>
-</div>
-</div>
-{/* Actions Row */}
-<div className="flex flex-col gap-space-xs pt-space-sm">
-<div className="flex items-center justify-between pb-space-xxs">
-<div className="flex items-baseline gap-space-xxs">
-<span className="font-headline-sm text-headline-sm text-on-surface font-bold">$119</span>
-<span className="font-caption text-caption text-on-surface-variant line-through">$189</span>
-</div>
-<span className="font-caption text-caption text-on-tertiary-container font-semibold px-space-xs py-0.5 rounded bg-surface-container-low">Immediate Access</span>
-</div>
-<div className="grid grid-cols-2 gap-space-xs">
-<button className="w-full py-space-xs px-space-sm rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 text-center" onClick={scrollToSyllabus}>
-<span>View Syllabus</span>
-<span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-</button>
-<button 
-  onClick={() => handleEnroll('General English Fast-Track', 'course-general-fast-track', 18)}
-  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
->
-  Enroll Now
-</button>
-</div>
-</div>
-</div>
-</div>
-{/* Course Card 3: Intensive English Writing & Grammar Bootcamp */}
-<div className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
-{/* Thumbnail / Visual Banner */}
-<div className="relative h-52 w-full overflow-hidden bg-surface-container-high">
-<img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Close up architectural capture of digital AI sentence structure correction with highlighted syntax errors on high-resolution tablet, analytical and scholarly mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZg5hn_Btj93GeMt4NKcKD25Xsu0VYEiwAOr_HFU7Z6XBp-s5OkY1HNiunanxJO8w5FoOqDaKJ4J6LJ_PNEMzcb2l01VtzrX7o2I1bMZj_8rQOWfp9B7LtWTDU6dBRWmWQxeUPSBNGgXz71nMmbgDOjHbJBTVEK7odQ3f1EVGCBf6NmWfpd-ZDg7hvzRaXoBA56w-9c4i3Exkdekw0OjJVryZUfkx8VT_3m590hesIaOqutKK6Ip6YNw" />
-<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-{/* Badges overlay */}
-<div className="absolute top-space-sm left-space-sm right-space-sm flex items-center justify-between gap-space-xs">
-<span className="px-space-sm py-space-xxs rounded-md bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm font-semibold shadow-sm">
-                Targeted Skill Repair
-              </span>
-<span className="px-space-sm py-space-xxs rounded-md bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface font-caption text-caption font-bold uppercase tracking-wider">
-                Bootcamp
-              </span>
-</div>
-<div className="absolute bottom-space-sm left-space-sm flex items-center gap-space-xs text-white">
-<span className="material-symbols-outlined text-[18px] text-tertiary-fixed">speed</span>
-<span className="font-caption text-caption font-semibold">Eliminate Band 6.5 Writing Ceiling</span>
-</div>
-</div>
-{/* Card Content Body */}
-<div className="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
-<div className="flex flex-col gap-space-sm">
-<h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight group-hover:text-secondary transition-colors">
-                Intensive English Writing &amp; Grammar Bootcamp
-              </h2>
-<p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
-                Hyper-focused precision training tackling complex complex sentences, detractor argumentation, and paragraph coherence metrics.
-              </p>
-{/* Stats Strip */}
-<div className="flex items-center flex-wrap gap-x-space-xs gap-y-space-xxs py-space-xs px-space-sm rounded-lg bg-surface-container font-caption text-caption text-on-surface font-medium">
-<span className="flex items-center gap-1"><span className="font-semibold text-secondary">2</span> Modules</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">10</span> Lessons</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">Instant</span> Essay AI</span>
-<span>•</span>
-<span><span className="font-semibold text-secondary">48</span> Drill Sets</span>
-</div>
-{/* Key Topics Pill Tags */}
-<div className="flex flex-col gap-space-xxs pt-space-xs">
-<span className="font-caption text-caption text-on-surface-variant font-semibold uppercase tracking-wider">Focus Domains</span>
-<div className="flex flex-wrap gap-space-xxs">
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Coherence &amp; Cohesion</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Lexical Sophistication</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Complex Structures</span>
-<span className="px-space-xs py-space-xxs rounded bg-surface-container-low text-on-surface font-caption text-caption">Detractor Argumentation</span>
-</div>
-</div>
-{/* Features Checklist */}
-<div className="flex flex-col gap-space-xs pt-space-xs">
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">10-second instant essay diagnostic &amp; score prediction</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Syntactic mistake heatmaps &amp; collocation drills</span>
-</div>
-<div className="flex items-start gap-space-xs">
-<span className="material-symbols-outlined text-secondary text-[18px] mt-0.5">check_circle</span>
-<span className="font-body-sm text-body-sm text-on-surface">Spaced-repetition grammar repair engine</span>
-</div>
-</div>
-</div>
-{/* Actions Row */}
-<div className="flex flex-col gap-space-xs pt-space-sm">
-<div className="flex items-center justify-between pb-space-xxs">
-<div className="flex items-baseline gap-space-xxs">
-<span className="font-headline-sm text-headline-sm text-on-surface font-bold">$89</span>
-<span className="font-caption text-caption text-on-surface-variant line-through">$139</span>
-</div>
-<span className="font-caption text-caption text-on-tertiary-container font-semibold px-space-xs py-0.5 rounded bg-surface-container-low">Most Targeted</span>
-</div>
-<div className="grid grid-cols-2 gap-space-xs">
-<button className="w-full py-space-xs px-space-sm rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 text-center" onClick={scrollToSyllabus}>
-<span>View Syllabus</span>
-<span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-</button>
-<button 
-  onClick={() => handleEnroll('Intensive English Writing & Grammar Bootcamp', 'course-grammar-bootcamp', 10)}
-  className="w-full py-space-xs px-space-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary-container transition-colors text-center flex items-center justify-center"
->
-  Enroll Now
-</button>
-</div>
-</div>
-</div>
-</div>
+) : liveCourses.length === 0 ? (
+  <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs p-8">
+    <span className="material-symbols-outlined text-slate-400 text-5xl mb-3">school</span>
+    <h3 className="text-lg font-bold text-slate-800">No Published Courses Yet</h3>
+    <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">
+      There are currently no courses published in the database. Log into the Admin Studio to create and publish your first course.
+    </p>
+    <Link href="/login" className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-[#027FFF] text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm">
+      Go to Admin Studio &rarr;
+    </Link>
+  </div>
+) : (
+  liveCourses.map((course) => (
+    <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-[#027FFF]/30">
+      <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
+        <div className="flex flex-col items-center">
+          <span className="material-symbols-outlined text-white text-[48px] mb-2">school</span>
+          <span className="text-white font-bold text-lg line-clamp-2">{course.title}</span>
+        </div>
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+          <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-xs shadow-sm">
+            Live in DB
+          </span>
+          <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-xs backdrop-blur-sm">
+            {course.module_count || 0} Modules
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-col flex-1 p-6 justify-between gap-4">
+        <div>
+          <Link href={`/courses/${course.id}`}>
+            <h2 className="text-lg font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors hover:underline cursor-pointer">{course.title}</h2>
+          </Link>
+          <p className="text-xs text-slate-600 mt-1 line-clamp-3">{course.description || 'Full examiner-curated syllabus with interactive lessons, practice tests, and AI assessments.'}</p>
+        </div>
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          <span className="text-lg font-extrabold text-slate-900">$49.00</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/courses/${course.id}`}
+              className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all"
+            >
+              Details
+            </Link>
+            <button 
+              onClick={() => handleEnroll(course.title, course.id)} 
+              className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs"
+            >
+              Enroll &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ))
+)}
 </div>
 </section>
+
 {/* 3. Course Syllabus Interactive Preview Showcase */}
 <section className="max-w-[80rem] mx-auto px-4 py-space-2xl w-full" id="syllabus-section">
 <div className="bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden">

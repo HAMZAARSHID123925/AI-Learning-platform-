@@ -12,7 +12,7 @@ python-multipart==0.0.12         # Required for file upload (multipart/form-data
 
 # --- Database ----------------------------------------------------------------
 sqlalchemy[asyncio]==2.0.35      # ORM with async support
-asyncpg==0.29.0                  # Async PostgreSQL driver (used by SQLAlchemy)
+asyncpg==0.30.0                  # Async PostgreSQL driver — 0.30.0 has py3.13 wheels
 alembic==1.13.3                  # Database migrations
 
 # --- Validation & Config -----------------------------------------------------
@@ -33,13 +33,13 @@ aiobotocore==2.15.1              # Async S3-compatible client (MinIO / AWS S3)
 aiofiles==24.1.0                 # Async file I/O for upload handling
 
 # --- PDF Text Extraction (Phase 2 — embedding pipeline) ----------------------
-pymupdf==1.24.10                 # Fast PDF text extraction (fitz)
+pymupdf==1.25.5                  # Fast PDF text extraction (fitz) — 1.25.5 has py3.13 wheels
 
 # --- AI / ML -----------------------------------------------------------------
 # Embeddings: FastEmbed runs locally — no API key required
 # Vector dimension: 384 (BAAI/bge-small-en-v1.5)
 # Production switch: OpenAI text-embedding-3-small (1536 dims)
-fastembed==0.3.6                 # Local embedding model — BAAI/bge-small-en-v1.5
+fastembed==0.8.0                 # Local embedding model — BAAI/bge-small-en-v1.5 (0.8.0 supports py3.13)
 
 # LLM (Generation & Grading): Groq free tier for development
 # Production switch: Anthropic Claude API

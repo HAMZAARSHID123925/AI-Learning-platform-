@@ -168,22 +168,38 @@ async def publish_course(
     if course.status == CourseStatus.archived:
         raise InvalidStateTransitionError("Course", "archived", "published")
 
-    # Must have at least one published lesson
-    from app.modules.module2_content.models import Lesson, LessonStatus
-    lesson_count = await db.execute(
-        select(func.count(Lesson.id))
-        .join(CourseModule, Lesson.module_id == CourseModule.id)
-        .where(
-            CourseModule.course_id == course_id,
-            Lesson.status == LessonStatus.published,
+    # Must have at least one published lesson (unless admin override)
+    if not is_admin:
+        from app.modules.module2_content.models import Lesson, LessonStatus
+        lesson_count = await db.execute(
+            select(func.count(Lesson.id))
+            .join(CourseModule, Lesson.module_id == CourseModule.id)
+            .where(
+                CourseModule.course_id == course_id,
+                Lesson.status == LessonStatus.published,
+            )
         )
-    )
-    if lesson_count.scalar_one() == 0:
-        raise BusinessRuleError("Cannot publish a course with no published lessons.")
+        if lesson_count.scalar_one() == 0:
+            raise BusinessRuleError("Cannot publish a course with no published lessons.")
 
     course.status = CourseStatus.published
     logger.info("course_published", course_id=str(course_id), instructor=str(actor_id))
     return course
+
+
+async def delete_course(
+    db: AsyncSession,
+    course_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    is_admin: bool,
+) -> None:
+    """Delete a course. Only Admin or owner instructor can delete."""
+    course = await get_course(db, course_id)
+    if not is_admin and course.instructor_id != actor_id:
+        raise PermissionDeniedError()
+    await db.delete(course)
+    await db.flush()
+    logger.info("course_deleted", course_id=str(course_id), actor=str(actor_id))
 
 
 # =============================================================================
