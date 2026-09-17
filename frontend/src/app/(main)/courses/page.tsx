@@ -27,6 +27,7 @@ export default function CoursesPage() {
         });
         if (res.ok || res.status === 409) {
           // 409 means already enrolled
+          localStorage.setItem('courseTrack', 'ielts');
           router.push('/dashboard');
         } else {
           const err = await res.json().catch(() => ({}));

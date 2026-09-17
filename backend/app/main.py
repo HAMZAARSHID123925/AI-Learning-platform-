@@ -15,6 +15,9 @@ Industry Pattern: Application Factory
 
 from __future__ import annotations
 
+from app.config import get_settings
+get_settings.cache_clear()  # Ensure fresh reload picks up any .env changes
+
 from contextlib import asynccontextmanager
 
 import structlog

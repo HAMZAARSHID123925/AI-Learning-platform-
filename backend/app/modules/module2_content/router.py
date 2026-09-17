@@ -170,7 +170,6 @@ async def get_course(
                 updated_at=l.updated_at,
             )
             for l in (m.lessons or [])
-            if is_staff or l.status.value == "published"
         ]
         modules_data.append(
             ModuleWithLessonsResponse(
