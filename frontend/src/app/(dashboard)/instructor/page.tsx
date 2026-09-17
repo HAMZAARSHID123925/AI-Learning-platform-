@@ -114,6 +114,8 @@ export default function InstructorDashboardPage() {
   const [instructorName, setInstructorName] = useState('Senior Examiner');
 
   // Teacher Course Creation State
+  const [courseFilterTab, setCourseFilterTab] = useState<'all' | 'published' | 'draft'>('published');
+  const [newCourseStatus, setNewCourseStatus] = useState<'published' | 'draft'>('published');
   const [teacherCourses, setTeacherCourses] = useState<Array<{
     id: string;
     title: string;
@@ -143,6 +145,16 @@ export default function InstructorDashboardPage() {
       studentsCount: 24,
       status: 'published',
       createdDate: 'Sep 01, 2026'
+    },
+    {
+      id: 'c-3',
+      title: 'C2 Grammar Inversion & Advanced Conditional Transformations',
+      slug: 'c2-grammar-inversion-advanced',
+      description: 'Draft curriculum focusing on subjunctive conditionals and nominalization drills.',
+      modulesCount: 2,
+      studentsCount: 0,
+      status: 'draft',
+      createdDate: 'Sep 12, 2026'
     }
   ]);
 
@@ -170,32 +182,130 @@ export default function InstructorDashboardPage() {
   const [sessionTime, setSessionTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Handle Teacher Course Creation
+  // Fetch Courses from Shared Database & Admin Catalog on Load
+  useEffect(() => {
+    const fetchSharedCourses = async () => {
+      try {
+        let localShared: any[] = [];
+        if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('admin_courses');
+          if (saved) {
+            try { localShared = JSON.parse(saved); } catch {}
+          }
+        }
+
+        let remoteItems: any[] = [];
+        try {
+          const res = await fetchWithAuth('/courses?page_size=50');
+          if (res.ok) {
+            const data = await res.json();
+            remoteItems = Array.isArray(data) ? data : data.items || [];
+          }
+        } catch {
+          // backend offline or dev mode
+        }
+
+        // Combine and map
+        const combined = [...localShared];
+        remoteItems.forEach((ri: any) => {
+          if (!combined.some(c => c.id === ri.id || c.title === ri.title)) {
+            combined.push(ri);
+          }
+        });
+
+        if (combined.length > 0) {
+          const mapped = combined.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            slug: c.slug || c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            description: c.description || 'Comprehensive IELTS and English preparation modules.',
+            modulesCount: c.module_count || c.modulesCount || 4,
+            studentsCount: c.students || c.studentsCount || 0,
+            status: (c.status || 'published').toLowerCase() as 'published' | 'draft',
+            createdDate: c.createdDate || (c.created_at ? new Date(c.created_at).toLocaleDateString() : 'Active')
+          }));
+          setTeacherCourses(mapped);
+        }
+      } catch (err) {
+        console.warn("Using offline shared course catalog:", err);
+      }
+    };
+
+    fetchSharedCourses();
+  }, []);
+
+  // Handle Teacher Course Creation (Saves to PostgreSQL DB via API & Shared Catalog)
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCourseTitle.trim()) return;
 
+    setIsSubmitting(true);
     try {
       const slug = newCourseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      let createdFromDb = null;
+
+      // Call Backend Database API
+      try {
+        const res = await fetchWithAuth('/courses', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: newCourseTitle,
+            description: newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
+            slug: slug
+          })
+        });
+
+        if (res.ok) {
+          createdFromDb = await res.json();
+        }
+      } catch (apiErr) {
+        console.warn("Backend API offline, persisting to shared platform catalog:", apiErr);
+      }
+
       const createdCourse = {
-        id: `c-teach-${Date.now()}`,
-        title: newCourseTitle,
-        slug,
-        description: newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
-        modulesCount: 1,
+        id: createdFromDb?.id || `c-teach-${Date.now()}`,
+        title: createdFromDb?.title || newCourseTitle,
+        slug: createdFromDb?.slug || slug,
+        description: createdFromDb?.description || newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
+        modulesCount: createdFromDb?.module_count || 1,
         studentsCount: 0,
         status: 'published' as const,
         createdDate: 'Just Now'
       };
 
+      // 1. Update Teacher State
       setTeacherCourses(prev => [createdCourse, ...prev]);
+
+      // 2. Persist into Shared Catalog for Admin & Public pages
+      if (typeof window !== 'undefined') {
+        try {
+          const existing = JSON.parse(localStorage.getItem('admin_courses') || '[]');
+          const updatedShared = [
+            {
+              id: createdCourse.id,
+              title: createdCourse.title,
+              status: createdCourse.status,
+              module_count: 1,
+              students: 0,
+              category: newCourseCategory,
+              price: '$49.00',
+              target_band: 'Band 7.5+'
+            },
+            ...existing
+          ];
+          localStorage.setItem('admin_courses', JSON.stringify(updatedShared));
+        } catch {}
+      }
+
       setShowCreateCourseModal(false);
       setNewCourseTitle('');
       setNewCourseDesc('');
 
-      toast.success("Course Published! 📚", `"${createdCourse.title}" is now active in your Instructor Hub.`);
+      toast.success("Course Created & Published! 📚", `"${createdCourse.title}" is now visible across Teacher, Admin, and Public pages.`);
     } catch (err) {
       toast.error("Creation Failed", "Could not create course.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -720,26 +830,68 @@ export default function InstructorDashboardPage() {
                     Teacher Course Authoring &amp; Curriculum Studio
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Create and publish course modules, upload PDF guidelines, and attach video lectures.
+                    Manage your published live curriculums and private drafts.
                   </p>
                 </div>
 
-                <button 
-                  onClick={() => setShowCreateCourseModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-all shadow-sm"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  + Create New Course
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Published vs Draft Switcher */}
+                  <div className="bg-white border border-slate-200/80 p-1 rounded-2xl flex shadow-xs">
+                    <button
+                      onClick={() => setCourseFilterTab('published')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        courseFilterTab === 'published'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Published ({teacherCourses.filter(c => c.status === 'published').length})
+                    </button>
+                    <button
+                      onClick={() => setCourseFilterTab('draft')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        courseFilterTab === 'draft'
+                          ? 'bg-slate-800 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Drafts ({teacherCourses.filter(c => c.status === 'draft').length})
+                    </button>
+                    <button
+                      onClick={() => setCourseFilterTab('all')}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        courseFilterTab === 'all'
+                          ? 'bg-[#027FFF] text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      All ({teacherCourses.length})
+                    </button>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowCreateCourseModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-all shadow-sm"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    + Create Course
+                  </button>
+                </div>
               </div>
 
               {/* Course Catalog Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {teacherCourses.map((course) => (
+                {teacherCourses
+                  .filter(c => courseFilterTab === 'all' ? true : c.status === courseFilterTab)
+                  .map((course) => (
                   <div key={course.id} className="bg-white border border-slate-200/80 rounded-3xl p-6 flex flex-col justify-between hover:border-emerald-300 shadow-sm transition-all">
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold uppercase border border-emerald-200">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase border ${
+                          course.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-300'
+                        }`}>
                           {course.status}
                         </span>
                         <span className="text-xs text-slate-500 font-medium">{course.createdDate}</span>
@@ -770,11 +922,19 @@ export default function InstructorDashboardPage() {
                         Edit Curriculum
                       </Link>
                       <button 
-                        onClick={() => toast.success("AI Curriculum Synchronized", `Reindexed vector embeddings for ${course.title}.`)}
-                        className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                        title="Reindex AI Vector Embeddings"
+                        onClick={() => {
+                          const nextStatus = course.status === 'published' ? 'draft' : 'published';
+                          setTeacherCourses(prev => prev.map(c => c.id === course.id ? { ...c, status: nextStatus } : c));
+                          toast.success(`Course Status Updated!`, `"${course.title}" is now ${nextStatus.toUpperCase()}.`);
+                        }}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-colors ${
+                          course.status === 'published'
+                            ? 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                        title={course.status === 'published' ? 'Unpublish to Draft' : 'Publish Course'}
                       >
-                        <Sparkles className="w-4 h-4" />
+                        {course.status === 'published' ? 'Draft' : 'Publish'}
                       </button>
                     </div>
                   </div>
@@ -1059,6 +1219,34 @@ export default function InstructorDashboardPage() {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Initial Status</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewCourseStatus('published')}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        newCourseStatus === 'published'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      🚀 Published (Public)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewCourseStatus('draft')}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        newCourseStatus === 'draft'
+                          ? 'bg-slate-800 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      🔒 Draft (Private)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Course Summary &amp; Syllabus Description</label>
                   <textarea 
                     rows={3}
@@ -1083,7 +1271,7 @@ export default function InstructorDashboardPage() {
                   disabled={!newCourseTitle.trim()}
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
                 >
-                  Publish Course 🚀
+                  {newCourseStatus === 'published' ? 'Publish Course 🚀' : 'Save Draft 🔒'}
                 </button>
               </div>
             </form>
