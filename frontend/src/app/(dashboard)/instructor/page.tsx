@@ -7,7 +7,7 @@ import {
   ChevronRight, ArrowRight, BrainCircuit, LogOut, CheckCircle, Clock,
   FileCheck2, Mic, Sliders, MessageSquare, Award, Sparkles, Send,
   Play, Pause, RotateCcw, CheckCircle2, ChevronDown, Check,
-  Volume2, ShieldAlert, BarChart3, Edit3, X
+  Volume2, ShieldAlert, BarChart3, Edit3, X, UploadCloud
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from '@/lib/api';
@@ -115,7 +115,6 @@ export default function InstructorDashboardPage() {
 
   // Teacher Course Creation State
   const [courseFilterTab, setCourseFilterTab] = useState<'all' | 'published' | 'draft'>('published');
-  const [newCourseStatus, setNewCourseStatus] = useState<'published' | 'draft'>('published');
   const [teacherCourses, setTeacherCourses] = useState<Array<{
     id: string;
     title: string;
@@ -160,8 +159,15 @@ export default function InstructorDashboardPage() {
 
   const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
   const [newCourseTitle, setNewCourseTitle] = useState('');
-  const [newCourseDesc, setNewCourseDesc] = useState('');
+  const [newCourseDesc, setNewCourseDesc] = useState('Examiner-curated course syllabus with interactive lessons, practice tests, and AI rubric grading.');
   const [newCourseCategory, setNewCourseCategory] = useState('IELTS Academic Writing & Speaking');
+  const [newCourseTargetBand, setNewCourseTargetBand] = useState('Band 7.5+');
+  const [newCoursePrice, setNewCoursePrice] = useState('$49.00 (Standard)');
+  const [newCourseDuration, setNewCourseDuration] = useState('6 Weeks / 30 Hours');
+  const [newCourseInstructor, setNewCourseInstructor] = useState('Faculty Lead');
+  const [newCourseLevel, setNewCourseLevel] = useState('Intermediate to Advanced');
+  const [newCourseStatus, setNewCourseStatus] = useState<'published' | 'draft'>('published');
+  const [newCourseFile, setNewCourseFile] = useState<File | null>(null);
 
   // Submissions & Grading Studio State
   const [submissions, setSubmissions] = useState<StudentSubmission[]>(INITIAL_SUBMISSIONS);
@@ -235,11 +241,15 @@ export default function InstructorDashboardPage() {
   }, []);
 
   // Handle Teacher Course Creation (Saves to PostgreSQL DB via API & Shared Catalog)
-  const handleCreateCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateCourse = async (overrideStatus?: 'published' | 'draft' | React.FormEvent) => {
+    if (overrideStatus && typeof overrideStatus === 'object' && 'preventDefault' in overrideStatus) {
+      overrideStatus.preventDefault();
+    }
     if (!newCourseTitle.trim()) return;
 
     setIsSubmitting(true);
+    const finalStatus: 'published' | 'draft' = (typeof overrideStatus === 'string' ? overrideStatus : newCourseStatus);
+
     try {
       const slug = newCourseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       let createdFromDb = null;
@@ -249,14 +259,19 @@ export default function InstructorDashboardPage() {
         const res = await fetchWithAuth('/courses', {
           method: 'POST',
           body: JSON.stringify({
-            title: newCourseTitle,
-            description: newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
+            title: newCourseTitle.trim(),
+            description: newCourseDesc.trim() || 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
             slug: slug
           })
         });
 
         if (res.ok) {
           createdFromDb = await res.json();
+          if (finalStatus === 'published' && createdFromDb.id) {
+            await fetchWithAuth(`/courses/${createdFromDb.id}/publish`, {
+              method: 'POST',
+            }).catch(() => {});
+          }
         }
       } catch (apiErr) {
         console.warn("Backend API offline, persisting to shared platform catalog:", apiErr);
@@ -264,12 +279,12 @@ export default function InstructorDashboardPage() {
 
       const createdCourse = {
         id: createdFromDb?.id || `c-teach-${Date.now()}`,
-        title: createdFromDb?.title || newCourseTitle,
+        title: createdFromDb?.title || newCourseTitle.trim(),
         slug: createdFromDb?.slug || slug,
-        description: createdFromDb?.description || newCourseDesc || 'Interactive IELTS academic curriculum with AI-powered assessment drills.',
+        description: createdFromDb?.description || newCourseDesc || 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
         modulesCount: createdFromDb?.module_count || 1,
         studentsCount: 0,
-        status: 'published' as const,
+        status: finalStatus,
         createdDate: 'Just Now'
       };
 
@@ -284,12 +299,16 @@ export default function InstructorDashboardPage() {
             {
               id: createdCourse.id,
               title: createdCourse.title,
+              description: createdCourse.description,
               status: createdCourse.status,
               module_count: 1,
               students: 0,
               category: newCourseCategory,
-              price: '$49.00',
-              target_band: 'Band 7.5+'
+              price: newCoursePrice,
+              duration: newCourseDuration,
+              instructor: newCourseInstructor,
+              level: newCourseLevel,
+              target_band: newCourseTargetBand
             },
             ...existing
           ];
@@ -299,9 +318,12 @@ export default function InstructorDashboardPage() {
 
       setShowCreateCourseModal(false);
       setNewCourseTitle('');
-      setNewCourseDesc('');
+      setNewCourseFile(null);
 
-      toast.success("Course Created & Published! 📚", `"${createdCourse.title}" is now visible across Teacher, Admin, and Public pages.`);
+      toast.success(
+        finalStatus === 'published' ? "Course Created & Published! 🚀" : "Course Saved as Draft 🔒", 
+        `"${createdCourse.title}" is now visible across Teacher, Admin, and Public pages.`
+      );
     } catch (err) {
       toast.error("Creation Failed", "Could not create course.");
     } finally {
@@ -325,33 +347,14 @@ export default function InstructorDashboardPage() {
     }
   }, [selectedSub]);
 
-  // Handle saving verified examiner score
+  // Handle saving verified examiner score & syncing with Student Results and Notifications
   const handleSaveExaminerGrade = () => {
     if (!selectedSub) return;
     const finalBandNum = parseFloat(roundedBand);
 
-    setSubmissions(prev => prev.map(s => {
-      if (s.id === selectedSub.id) {
-        return {
-          ...s,
-          status: 'EXAMINER_VERIFIED',
-          examinerScore: {
-            overall: finalBandNum,
-            tr_ta: gradeTR,
-            cc: gradeCC,
-            lr: gradeLR,
-            gra: gradeGRA
-          },
-          examinerNote: examinerFeedback,
-          remediationAssigned: selectedRemediation
-        };
-      }
-      return s;
-    }));
-
-    setSelectedSub(prev => prev ? {
-      ...prev,
-      status: 'EXAMINER_VERIFIED',
+    const updatedSub = {
+      ...selectedSub,
+      status: 'EXAMINER_VERIFIED' as const,
       examinerScore: {
         overall: finalBandNum,
         tr_ta: gradeTR,
@@ -359,9 +362,77 @@ export default function InstructorDashboardPage() {
         lr: gradeLR,
         gra: gradeGRA
       },
-      examinerNote: examinerFeedback,
+      examinerNote: examinerFeedback || 'Examiner calibrated score with syntactic and coherence evaluation.',
       remediationAssigned: selectedRemediation
-    } : null);
+    };
+
+    setSubmissions(prev => prev.map(s => s.id === selectedSub.id ? updatedSub : s));
+    setSelectedSub(updatedSub);
+
+    // 1. Persist into Student Results & Telemetry storage
+    if (typeof window !== 'undefined') {
+      try {
+        const studentAssessmentRecord = {
+          id: `examiner-eval-${selectedSub.id}`,
+          title: `Official Examiner Evaluation: ${selectedSub.title}`,
+          testType: selectedSub.type === 'speaking_part2' ? 'Speaking Examiner Review' : 'Writing Academic Examiner Assessment',
+          date: 'Graded by Examiner Just Now',
+          duration: selectedSub.audioDuration || '45m 00s',
+          overallBand: finalBandNum,
+          cefrLevel: finalBandNum >= 8.5 ? 'C2 Expert User' : finalBandNum >= 7.5 ? 'C1 Proficient User' : 'B2 Upper Intermediate',
+          skillBreakdown: [
+            { subject: selectedSub.type === 'speaking_part2' ? 'Fluency' : 'Task Response', A: Math.round(gradeTR * 10), fullMark: 100 },
+            { subject: selectedSub.type === 'speaking_part2' ? 'Coherence' : 'Cohesion', A: Math.round(gradeCC * 10), fullMark: 100 },
+            { subject: 'Vocabulary', A: Math.round(gradeLR * 10), fullMark: 100 },
+            { subject: 'Grammar', A: Math.round(gradeGRA * 10), fullMark: 100 },
+            { subject: selectedSub.type === 'speaking_part2' ? 'Pronunciation' : 'Syntax', A: Math.round(((gradeTR + gradeGRA) / 2) * 10), fullMark: 100 },
+          ],
+          fourSkills: {
+            listening: 8.0,
+            reading: 7.5,
+            writing: selectedSub.type.includes('essay') ? finalBandNum : 7.0,
+            speaking: selectedSub.type.includes('speaking') ? finalBandNum : 7.5
+          },
+          greatestStrength: {
+            title: gradeLR >= 7.5 ? "Advanced Lexical Resource" : "Task Achievement & Coherence",
+            desc: "Demonstrated strong structural control and natural academic collocations."
+          },
+          primaryWeakness: {
+            title: selectedRemediation,
+            desc: examinerFeedback || `Assigned targeted drill: ${selectedRemediation} to overcome identified score plateau.`
+          },
+          feedback: {
+            paragraph1: `Official Examiner Feedback: ${examinerFeedback || 'Candidate demonstrated consistent grammatical range and logical flow.'}`,
+            highlighted1: `Band ${finalBandNum.toFixed(1)} Benchmark`,
+            paragraph2: `Assigned Action Drill: Review the assigned remediation "${selectedRemediation}" to elevate to Band ${(finalBandNum + 0.5).toFixed(1)}.`,
+            highlighted2: selectedRemediation
+          },
+          pieBreakdown: [
+            { name: 'Task/Fluency', value: Math.round(gradeTR * 10), color: '#027FFF' },
+            { name: 'Cohesion', value: Math.round(gradeCC * 10), color: '#06B6D4' },
+            { name: 'Lexical', value: Math.round(gradeLR * 10), color: '#8B5CF6' },
+            { name: 'Grammar', value: Math.round(gradeGRA * 10), color: '#F59E0B' }
+          ],
+          remediation: [
+            { title: selectedRemediation, type: "Instructor Assigned Drill", duration: "15 min" },
+            { title: "Advanced Academic Synonyms & Collocations", type: "Vocabulary Builder", duration: "10 min" }
+          ]
+        };
+
+        // Save as latest assessment for student results page
+        localStorage.setItem('penpage_latest_assessment', JSON.stringify(studentAssessmentRecord));
+
+        // Sync active remediation into student's remediation state
+        const existingRemediations = JSON.parse(localStorage.getItem('student_active_remediations') || '[]');
+        const updatedRemediations = [
+          { skill_name: selectedSub.type.includes('speaking') ? 'Speaking' : 'Writing', title: selectedRemediation, instructor_escalated: false },
+          ...existingRemediations.filter((r: any) => r.title !== selectedRemediation)
+        ];
+        localStorage.setItem('student_active_remediations', JSON.stringify(updatedRemediations));
+      } catch (storageErr) {
+        console.warn("Storage sync warning:", storageErr);
+      }
+    }
 
     toast.success(
       "Official Grade Published! 🎓", 
@@ -1217,104 +1288,210 @@ export default function InstructorDashboardPage() {
         </div>
       )}
 
-      {/* TEACHER CREATE COURSE MODAL */}
+      {/* TEACHER CREATE COURSE MODAL - FULLY UNIFIED WITH ADMIN MODAL */}
       {showCreateCourseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-emerald-600" /> Create New Course
-              </h2>
-              <button onClick={() => setShowCreateCourseModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-emerald-600" /> Create &amp; Curate New Course
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">Configure curriculum details, access tiers, and target band benchmarks.</p>
+              </div>
+              <button onClick={() => setShowCreateCourseModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateCourse}>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Course Title</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={newCourseTitle}
-                    onChange={(e) => setNewCourseTitle(e.target.value)}
-                    placeholder="e.g. Band 9.0 Lexical Resource &amp; Academic Collocations"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium"
-                  />
-                </div>
+            <div className="p-6 overflow-y-auto space-y-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Title *
+                </label>
+                <input 
+                  type="text" 
+                  value={newCourseTitle} 
+                  onChange={(e) => setNewCourseTitle(e.target.value)}
+                  placeholder="e.g. Band 9.0 Lexical Resource &amp; Academic Collocations" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                />
+              </div>
 
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Description &amp; Syllabus Overview
+                </label>
+                <textarea 
+                  rows={3} 
+                  value={newCourseDesc} 
+                  onChange={(e) => setNewCourseDesc(e.target.value)}
+                  placeholder="Describe the modules, targeted band score gains, and diagnostic drills..." 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium resize-none transition-colors"
+                />
+              </div>
+
+              {/* 2-Column: Track & Target Band */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Department / Track</label>
-                  <select
-                    value={newCourseCategory}
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Track Alignment / Category
+                  </label>
+                  <select 
+                    value={newCourseCategory} 
                     onChange={(e) => setNewCourseCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
                   >
-                    <option value="IELTS Academic Writing & Speaking">IELTS Academic Writing &amp; Speaking</option>
-                    <option value="IELTS General Training">IELTS General Training</option>
-                    <option value="C2 English Grammar & Transformations">C2 English Grammar &amp; Transformations</option>
-                    <option value="Executive English & Fluency">Executive English &amp; Fluency</option>
+                    <option>IELTS Preparation</option>
+                    <option>IELTS Academic</option>
+                    <option>IELTS General Training</option>
+                    <option>General English</option>
+                    <option>Business English &amp; Fluency</option>
+                    <option>Grammar &amp; Vocabulary Booster</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Initial Status</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNewCourseStatus('published')}
-                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                        newCourseStatus === 'published'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      🚀 Published (Public)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewCourseStatus('draft')}
-                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                        newCourseStatus === 'draft'
-                          ? 'bg-slate-800 text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      🔒 Draft (Private)
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Target Band / Level
+                  </label>
+                  <select 
+                    value={newCourseTargetBand} 
+                    onChange={(e) => setNewCourseTargetBand(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Band 7.5+</option>
+                    <option>Band 8.0+ (Elite)</option>
+                    <option>Band 8.5+</option>
+                    <option>Band 6.5 - 7.0 (Target)</option>
+                    <option>C1 Advanced (CEFR)</option>
+                    <option>B2 Upper Intermediate</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2-Column: Pricing Tier & Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Pricing &amp; Access Tier
+                  </label>
+                  <select 
+                    value={newCoursePrice} 
+                    onChange={(e) => setNewCoursePrice(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                  >
+                    <option>$49.00 (Standard)</option>
+                    <option>$0 (Free Access)</option>
+                    <option>$79.00 (Pro Cohort)</option>
+                    <option>$129.00 (1-on-1 Mentored)</option>
+                    <option>Included in Pro Subscription</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Course Summary &amp; Syllabus Description</label>
-                  <textarea 
-                    rows={3}
-                    value={newCourseDesc}
-                    onChange={(e) => setNewCourseDesc(e.target.value)}
-                    placeholder="Describe the modules, targeted band score gains, and diagnostic drills..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-600 text-sm font-medium resize-none"
-                  />
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Course Duration &amp; Hours
+                  </label>
+                  <select 
+                    value={newCourseDuration} 
+                    onChange={(e) => setNewCourseDuration(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                  >
+                    <option>6 Weeks / 30 Hours</option>
+                    <option>4 Weeks / 20 Hours (Crash Course)</option>
+                    <option>8 Weeks / 45 Hours (Comprehensive)</option>
+                    <option>12 Weeks / 60 Hours (Full Diploma)</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              {/* 2-Column: Lead Instructor & Course Level */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Assigned Lead Instructor
+                  </label>
+                  <select 
+                    value={newCourseInstructor} 
+                    onChange={(e) => setNewCourseInstructor(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Hamza Arshid (Lead Assessor)</option>
+                    <option>Prof. Alistair Finch (Oxford / British Council)</option>
+                    <option>Sarah Jenkins (Senior IELTS Examiner)</option>
+                    <option>Dr. Rohit Mehta (IELTS Medical Track)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Difficulty Level
+                  </label>
+                  <select 
+                    value={newCourseLevel} 
+                    onChange={(e) => setNewCourseLevel(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-600 text-sm font-medium transition-colors"
+                  >
+                    <option>Intermediate to Advanced</option>
+                    <option>All Levels Welcome</option>
+                    <option>Advanced Masterclass</option>
+                    <option>Foundation / Beginner</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Initial Asset Upload */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Course Syllabus / Introductory Video Asset
+                </label>
+                <label className="border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-6 flex flex-col items-center justify-center bg-slate-50 cursor-pointer transition-colors group relative">
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    onChange={(e) => setNewCourseFile(e.target.files?.[0] || null)}
+                    accept="video/mp4,application/pdf,text/markdown"
+                  />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <p className="text-sm text-slate-900 font-bold">
+                    {newCourseFile ? newCourseFile.name : 'Click to upload or drag & drop file'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {newCourseFile ? `${(newCourseFile.size / 1024 / 1024).toFixed(2)} MB uploaded` : 'MP4 Video Lecture, PDF Syllabus, or Markdown (Max 100MB)'}
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button 
+                onClick={() => setShowCreateCourseModal(false)} 
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Cancel
+              </button>
+              
+              <div className="flex items-center gap-3">
                 <button 
-                  type="button" 
-                  onClick={() => setShowCreateCourseModal(false)} 
-                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                  onClick={() => handleCreateCourse('draft')} 
+                  disabled={isSubmitting || !newCourseTitle.trim()} 
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-slate-800 text-sm font-bold transition-colors shadow-sm"
                 >
-                  Cancel
+                  Save as Draft
                 </button>
                 <button 
-                  type="submit"
-                  disabled={!newCourseTitle.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
+                  onClick={() => handleCreateCourse('published')} 
+                  disabled={isSubmitting || !newCourseTitle.trim()} 
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm flex items-center gap-2"
                 >
-                  {newCourseStatus === 'published' ? 'Publish Course 🚀' : 'Save Draft 🔒'}
+                  <CheckCircle className="w-4 h-4" />
+                  Create &amp; Publish Course
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

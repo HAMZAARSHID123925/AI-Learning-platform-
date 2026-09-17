@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from '@/components/ToastProvider';
+import { fetchWithAuth } from '@/lib/api';
 
 interface UserSettings {
   fullName: string;
@@ -55,22 +56,57 @@ export default function SettingsPage() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    // Load persisted settings if available
+    // 1. Load user profile from live backend
+    async function loadUserProfile() {
+      try {
+        const res = await fetchWithAuth('/users/me');
+        if (res.ok) {
+          const user = await res.json();
+          const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+          setSettings(prev => ({
+            ...prev,
+            fullName: fullName,
+            email: user.email,
+          }));
+        }
+      } catch (err) {
+        console.warn("Could not load backend user profile:", err);
+      }
+    }
+    loadUserProfile();
+
+    // 2. Load persisted target band, exam countdown, and hardware settings
     try {
       const saved = localStorage.getItem('penpage_user_settings');
       if (saved) {
-        setSettings(JSON.parse(saved));
+        setSettings(prev => ({ ...prev, ...JSON.parse(saved) }));
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, []);
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     try {
+      // 1. Save preferences locally for instant client responsiveness
       localStorage.setItem('penpage_user_settings', JSON.stringify(settings));
+      localStorage.setItem('user_name', settings.fullName);
+      localStorage.setItem('target_band', settings.targetBand.toString());
+      localStorage.setItem('exam_date', settings.examDate);
+
+      // 2. Sync updated name with backend database
+      const nameParts = settings.fullName.split(' ');
+      const firstName = nameParts[0] || 'Student';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      await fetchWithAuth('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+        }),
+      }).catch(() => null);
+
       setIsSaved(true);
-      toast.success('Settings Saved! 🎯', 'Your study goals, targets, and device preferences have been updated.');
+      toast.success('Settings Synchronized! 🎯', `Target Band ${settings.targetBand} and countdown saved.`);
       setTimeout(() => setIsSaved(false), 3000);
     } catch {
       toast.error('Save Notice', 'Could not persist settings.');

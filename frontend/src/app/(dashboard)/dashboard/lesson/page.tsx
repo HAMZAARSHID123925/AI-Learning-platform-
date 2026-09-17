@@ -156,53 +156,106 @@ function LessonPlayerContent() {
   const [dbLessonBody, setDbLessonBody] = useState<string | null>(null);
   const [mediaAssetUrl, setMediaAssetUrl] = useState<string | null>(null);
 
-  // Dynamic backend loading
+  const [courseTitle, setCourseTitle] = useState<string>('Academic Preparation Track');
+  const [moduleTitle, setModuleTitle] = useState<string>('Advanced Vocabulary & Structure');
+
+  // Dynamic backend loading: Fetch course syllabus and requested lesson
   useEffect(() => {
-    async function loadBackendLesson() {
-      if (!requestedLessonId) return;
-      try {
-        const res = await fetch(`http://localhost:8000/api/v1/lessons/${requestedLessonId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDbLessonBody(data.body_markdown || null);
-          
-          // Check for MinIO S3 Presigned URL in assets
-          if (data.assets && data.assets.length > 0) {
-            const firstAsset = data.assets[0];
-            if (firstAsset.presigned_url) {
-              setMediaAssetUrl(firstAsset.presigned_url);
+    async function loadDynamicCourseAndLesson() {
+      // 1. If courseId is passed, fetch full syllabus and all modules/lessons
+      if (requestedCourseId) {
+        try {
+          const res = await fetch(`http://localhost:8000/api/v1/courses/${requestedCourseId}`);
+          if (res.ok) {
+            const courseData = await res.json();
+            setCourseTitle(courseData.title || 'Course Curriculum');
+            
+            const dynamicLessons: Lesson[] = [];
+            (courseData.modules || []).forEach((m: any, mIdx: number) => {
+              if (mIdx === 0) setModuleTitle(m.title || 'Module 1');
+              (m.lessons || []).forEach((l: any, lIdx: number) => {
+                dynamicLessons.push({
+                  id: l.id,
+                  title: `${mIdx + 1}.${lIdx + 1} ${l.title}`,
+                  type: 'video',
+                  duration: `${l.estimated_minutes || 15} mins`,
+                  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                  completed: false,
+                  description: `Module: ${m.title}. Explore interactive video lectures, lecture notes, and automated checkpoints.`,
+                  overviewNotes: [
+                    'Comprehensive syllabus lesson stored in PostgreSQL.',
+                    'Synchronized with student progress and daily learning milestones.',
+                    'Presigned MinIO S3 media streaming enabled.'
+                  ],
+                  transcript: [
+                    { time: '00:00', text: `Welcome to ${l.title}. In this unit we cover key exam structures.` },
+                    { time: '04:15', text: 'Analyze the high-scoring sample sentences and lexical choices.' },
+                    { time: '09:30', text: 'Practice applying these concepts in your active writing and speaking.' }
+                  ]
+                });
+              });
+            });
+
+            if (dynamicLessons.length > 0) {
+              setLessons(dynamicLessons);
+              if (requestedLessonId && dynamicLessons.some(l => l.id === requestedLessonId)) {
+                setActiveLessonId(requestedLessonId);
+              } else {
+                setActiveLessonId(dynamicLessons[0].id);
+              }
             }
           }
-
-          // Merge into lessons state if not present
-          setLessons(prev => {
-            if (prev.some(l => l.id === data.id)) return prev;
-            const newLesson: Lesson = {
-              id: data.id,
-              title: data.title,
-              type: data.assets && data.assets.length > 0 && data.assets[0].mime_type.includes('pdf') ? 'pdf' : 'video',
-              duration: `${data.estimated_minutes || 15} mins`,
-              videoUrl: data.assets?.[0]?.presigned_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-              pdfUrl: data.assets?.[0]?.presigned_url,
-              completed: false,
-              description: data.body_markdown ? data.body_markdown.slice(0, 150) + '...' : 'Interactive lesson streamed via MinIO S3 storage.',
-              overviewNotes: [
-                'Live syllabus unit loaded from PostgreSQL database.',
-                'Assets and media verified via MinIO S3 object storage.',
-                'Telemetry and completion logged directly to student dashboard.'
-              ],
-              transcript: []
-            };
-            return [newLesson, ...prev];
-          });
-          setActiveLessonId(data.id);
+        } catch (err) {
+          console.warn("Course syllabus load error:", err);
         }
-      } catch (err) {
-        console.warn("Backend lesson load error:", err);
+      }
+
+      // 2. Fetch specific lesson details, text body, and presigned media
+      if (requestedLessonId) {
+        try {
+          const res = await fetch(`http://localhost:8000/api/v1/lessons/${requestedLessonId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setDbLessonBody(data.body_markdown || null);
+            
+            // Check for MinIO S3 Presigned URL in assets
+            if (data.assets && data.assets.length > 0) {
+              const firstAsset = data.assets[0];
+              if (firstAsset.presigned_url) {
+                setMediaAssetUrl(firstAsset.presigned_url);
+              }
+            }
+
+            // If not loaded via course, merge individual lesson
+            setLessons(prev => {
+              if (prev.some(l => l.id === data.id)) return prev;
+              const newLesson: Lesson = {
+                id: data.id,
+                title: data.title,
+                type: data.assets && data.assets.length > 0 && data.assets[0].mime_type.includes('pdf') ? 'pdf' : 'video',
+                duration: `${data.estimated_minutes || 15} mins`,
+                videoUrl: data.assets?.[0]?.presigned_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                pdfUrl: data.assets?.[0]?.presigned_url,
+                completed: false,
+                description: data.body_markdown ? data.body_markdown.slice(0, 150) + '...' : 'Interactive lesson streamed via MinIO S3 storage.',
+                overviewNotes: [
+                  'Live syllabus unit loaded from PostgreSQL database.',
+                  'Assets and media verified via MinIO S3 object storage.',
+                  'Telemetry and completion logged directly to student dashboard.'
+                ],
+                transcript: []
+              };
+              return [newLesson, ...prev];
+            });
+            setActiveLessonId(data.id);
+          }
+        } catch (err) {
+          console.warn("Backend lesson load error:", err);
+        }
       }
     }
-    loadBackendLesson();
-  }, [requestedLessonId]);
+    loadDynamicCourseAndLesson();
+  }, [requestedLessonId, requestedCourseId]);
   
   // Video player state
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -404,13 +457,13 @@ function LessonPlayerContent() {
         {/* Module Title & Progress */}
         <div className="p-6 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF] uppercase tracking-wider">
-              Module 1 of 4
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF] uppercase tracking-wider line-clamp-1">
+              {courseTitle}
             </span>
             <span className="text-xs font-bold text-emerald-600">{progressPercent}% Completed</span>
           </div>
-          <h2 className="text-sm font-black text-slate-900 leading-tight mb-2.5">
-            Advanced Academic Vocabulary &amp; Lexical Cohesion
+          <h2 className="text-sm font-black text-slate-900 leading-tight mb-2.5 line-clamp-2">
+            {moduleTitle}
           </h2>
           <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
             <div 

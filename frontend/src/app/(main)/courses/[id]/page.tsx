@@ -276,9 +276,10 @@ export default function CourseDetailPage() {
                     <div className="divide-y divide-slate-100 px-6 py-2">
                       {mod.lessons && mod.lessons.length > 0 ? (
                         mod.lessons.map((lesson, lIdx) => (
-                          <div
+                          <Link
                             key={lesson.id}
-                            className="py-3 flex items-center justify-between text-sm group"
+                            href={`/dashboard/lesson?courseId=${course.id}&id=${lesson.id}`}
+                            className="py-3 px-2 rounded-lg flex items-center justify-between text-sm group hover:bg-blue-50/60 transition-all cursor-pointer"
                           >
                             <div className="flex items-center gap-3">
                               <span className="material-symbols-outlined text-slate-400 group-hover:text-blue-600 transition-colors text-lg">
@@ -293,11 +294,11 @@ export default function CourseDetailPage() {
                                 <span className="material-symbols-outlined text-sm">schedule</span>
                                 {lesson.estimated_minutes || 15} mins
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase">
-                                {lesson.status}
+                              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors">
+                                Stream &rarr;
                               </span>
                             </div>
-                          </div>
+                          </Link>
                         ))
                       ) : (
                         <div className="py-4 text-center text-xs text-slate-400 italic">
