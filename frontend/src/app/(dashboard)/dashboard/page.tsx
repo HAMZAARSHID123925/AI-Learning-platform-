@@ -4,84 +4,118 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis 
-} from 'recharts';
-import { 
-  LayoutDashboard, BookOpen, Headphones, PenTool, Mic, 
-  LineChart as LineChartIcon, Settings, Video, LogOut, Bell, Users,
-  BrainCircuit, TrendingUp, Target, Flame, AlertCircle, ChevronRight,
-  Globe2, GraduationCap, CheckCircle2, X, RefreshCw, Sparkles, ArrowUpRight,
-  HelpCircle, Award, Clock, Play
+  BookOpen, Video, Bell, Sparkles, Award, Clock, Play,
+  CheckCircle2, ArrowRight, ArrowUpRight, TrendingUp,
+  Flame, Star, Calendar, ClipboardList, Target, Zap, 
+  ChevronRight, Compass, ShieldCheck, Check
 } from 'lucide-react';
+import DashboardSidebar from '@/components/DashboardSidebar';
 import { fetchWithAuth } from '@/lib/api';
-import { toast } from '@/components/ToastProvider';
-import DiagnosticPlacementModal from '@/components/DiagnosticPlacementModal';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface SkillMasteryItem {
-  skill_id: string;
-  skill_name: string;
-  score: number; // 0-1
-  status: string;
-}
-interface CourseProgress {
+interface EnrolledCourse {
   course_id: string;
   course_title: string;
-  course_slug?: string;
+  category: string;
+  icon: string;
   total_lessons: number;
   completed_lessons: number;
   percentage: number;
-}
-interface DashboardData {
-  student_name: string;
-  overall_completion_percentage: number;
-  skill_mastery_radar: SkillMasteryItem[];
-  active_remediations: { skill_name: string; title: string; instructor_escalated: boolean }[];
-  unread_notifications_count: number;
-  enrolled_courses: CourseProgress[];
-  next_recommended_lesson: { lesson_title: string; course_title: string; lesson_id: string } | null;
-}
-interface WeaknessFlag {
-  id: string;
-  score_at_flag: number;
-  threshold: number;
-  status: string;
-  created_at: string;
-}
-interface Notification {
-  id: string;
-  notification_type: string;
-  title: string;
-  body: string;
-  read: boolean;
-  created_at: string;
+  nextLessonTitle: string;
+  nextLessonDuration: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function DashboardPage() {
+const DEFAULT_COURSES: EnrolledCourse[] = [
+  {
+    course_id: "cs-101",
+    course_title: "Introduction to Computer Science & Python",
+    category: "Computer Science",
+    icon: "💻",
+    total_lessons: 12,
+    completed_lessons: 8,
+    percentage: 67,
+    nextLessonTitle: "Lesson 9: Working with Lists & Dictionaries",
+    nextLessonDuration: "15 mins"
+  },
+  {
+    course_id: "eng-201",
+    course_title: "Everyday English & Vocabulary Builder",
+    category: "English & Languages",
+    icon: "📖",
+    total_lessons: 10,
+    completed_lessons: 7,
+    percentage: 70,
+    nextLessonTitle: "Lesson 8: Professional Email & Dialogue",
+    nextLessonDuration: "12 mins"
+  },
+  {
+    course_id: "math-301",
+    course_title: "Algebra & Problem Solving Masterclass",
+    category: "Mathematics",
+    icon: "📐",
+    total_lessons: 15,
+    completed_lessons: 4,
+    percentage: 27,
+    nextLessonTitle: "Lesson 5: Two-Step Linear Equations",
+    nextLessonDuration: "20 mins"
+  }
+];
+
+const UPCOMING_CLASSES = [
+  {
+    id: "live-1",
+    title: "Python Logic & Interactive Debugging",
+    instructor: "Dr. Alex Vance",
+    time: "Tomorrow • 4:00 PM - 5:00 PM",
+    subject: "Computer Science",
+    status: "Upcoming"
+  },
+  {
+    id: "live-2",
+    title: "English Pronunciation & Accent Rhythm",
+    instructor: "Sarah Jenkins",
+    time: "Thursday • 6:00 PM - 7:00 PM",
+    subject: "English",
+    status: "Confirmed"
+  }
+];
+
+const PENDING_HOMEWORK = [
+  {
+    id: "hw-1",
+    title: "Python Function Lab: Temperature Converter",
+    course: "Computer Science & Python",
+    due: "Tomorrow, 5:00 PM",
+    dueBadge: "Due Soon"
+  },
+  {
+    id: "hw-2",
+    title: "Algebra Problem Set #3 (Equations 1-8)",
+    course: "Mathematics Masterclass",
+    due: "Friday, 11:59 PM",
+    dueBadge: "This Week"
+  }
+];
+
+export default function DashboardOverviewPage() {
   const router = useRouter();
-  const [isAuth, setIsAuth] = useState(false);
-  const [courseTrack, setCourseTrack] = useState<string | null>(null);
-  const [dashData, setDashData] = useState<DashboardData | null>(null);
-  const [weaknessFlags, setWeaknessFlags] = useState<WeaknessFlag[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [userName, setUserName] = useState("Student");
+  const [enrolledCourses] = useState<EnrolledCourse[]>(DEFAULT_COURSES);
+  const [unreadCount, setUnreadCount] = useState(1);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('Student');
-  const [targetBand, setTargetBand] = useState<string>('8.5');
-  const [daysToExam, setDaysToExam] = useState<number>(64);
-  const [studentEnrolledCourses, setStudentEnrolledCourses] = useState<CourseProgress[]>([]);
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
-  const [diagnosticResult, setDiagnosticResult] = useState<{
-    estimatedBand: number;
-    levelName: string;
-    targetMilestone: string;
-    strengths: string[];
-    weaknesses: string[];
-  } | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    let name = localStorage.getItem('user_name') || 'Student';
+    if (name.toLowerCase() === 'admin' || name.toLowerCase() === 'administrator') {
+      name = 'Student';
+    }
+    setUserName(name);
+  }, [router]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -93,1141 +127,338 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) { router.push('/login'); return; }
+  const primaryCourse = enrolledCourses[0];
 
-    const savedRole = (localStorage.getItem('user_role') || '').toLowerCase();
-    if (savedRole === 'instructor' || savedRole === 'teacher') {
-      router.push('/instructor');
-      return;
-    }
-    if (savedRole === 'admin' || savedRole === 'superadmin') {
-      router.push('/admin/courses');
-      return;
-    }
-
-    const savedTrack = localStorage.getItem('courseTrack');
-    const savedName = localStorage.getItem('user_name');
-    const savedTargetBand = localStorage.getItem('target_band') || '8.5';
-    const savedExamDate = localStorage.getItem('exam_date') || '2026-11-20';
-    const diagnosticDone = localStorage.getItem('diagnostic_completed');
-    const savedDiagData = localStorage.getItem('diagnostic_data');
-
-    if (savedName) setUserName(savedName);
-    if (savedTrack) setCourseTrack(savedTrack);
-    setTargetBand(savedTargetBand);
-
-    // Calculate days remaining
-    const diff = Math.ceil((new Date(savedExamDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    setDaysToExam(diff > 0 ? diff : 0);
-    
-    // Clean up any old dummy fallback from local storage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('student_enrolled_courses');
-    }
-
-    if (savedDiagData) {
-      try {
-        setDiagnosticResult(JSON.parse(savedDiagData));
-      } catch {
-        // ignore parse error
-      }
-    } else if (!diagnosticDone && savedTrack) {
-      // Prompt new users who haven't completed the 5-min diagnostic yet
-      setShowDiagnostic(true);
-    }
-
-    setIsAuth(true);
-    loadAllData();
-  }, [router]);
-
-  const loadAllData = async () => {
-    setLoading(true);
-    try {
-      const [dashRes, flagsRes, notifRes] = await Promise.all([
-        fetchWithAuth('/students/me/dashboard'),
-        fetchWithAuth('/students/me/weakness-flags'),
-        fetchWithAuth('/notifications'),
-      ]);
-
-      if (dashRes.ok) {
-        const d: DashboardData = await dashRes.json();
-        setDashData(d);
-        setUnreadCount(d.unread_notifications_count);
-        if (d.enrolled_courses && d.enrolled_courses.length > 0 && typeof window !== 'undefined' && !localStorage.getItem('courseTrack')) {
-          localStorage.setItem('courseTrack', 'ielts');
-          setCourseTrack('ielts');
-        }
-      }
-      if (flagsRes.ok) {
-        const flags: WeaknessFlag[] = await flagsRes.json();
-        setWeaknessFlags(flags);
-      }
-      if (notifRes.ok) {
-        const notifData = await notifRes.json();
-        const items: Notification[] = Array.isArray(notifData) ? notifData : (notifData.items || []);
-        setNotifications(items);
-        if (notifData.unread_count !== undefined) setUnreadCount(notifData.unread_count);
-      }
-    } catch (e) {
-      console.error('Dashboard load error:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markNotificationRead = async (id: string) => {
-    await fetchWithAuth(`/notifications/${id}/read`, { method: 'POST' });
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  };
-
-  const markAllRead = async () => {
-    await fetchWithAuth('/notifications/read-all', { method: 'POST' });
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
-  };
-
-  const handleSelectTrack = (track: string) => {
-    localStorage.setItem('courseTrack', track);
-    setCourseTrack(track);
-  };
-
-  if (!isAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F0F4F8]">
-        <div className="w-10 h-10 border-4 border-[#027FFF] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // ─── ONBOARDING MODAL ────────────────────────────────────────────────────────
-  if (!courseTrack) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#EEF2F6] via-[#E2E8F0] to-[#EEF2F6] p-4 font-sans relative overflow-hidden">
-        <div className="w-full max-w-4xl z-10">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white shadow-xl shadow-slate-200/80 border border-slate-200 p-2.5 mb-6">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-3">Welcome to PPAcademia AI</h1>
-            <p className="text-base text-slate-600 max-w-xl mx-auto font-medium">Select your personalized focus track. The AI engine will dynamically calibrate your modules and metrics.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button 
-              onClick={() => handleSelectTrack('general')}
-              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 overflow-hidden"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                <Globe2 className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">General English</h2>
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Master everyday conversational and professional English across global CEFR levels (A1 to C2).</p>
-              <div className="mt-auto px-6 py-3 rounded-full bg-slate-100 text-slate-800 font-bold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-all duration-300 shadow-sm">
-                Select General English Track →
-              </div>
-            </button>
-
-            <button 
-              onClick={() => handleSelectTrack('ielts')}
-              className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-white border border-slate-200/80 hover:border-[#027FFF] transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 overflow-hidden"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-[#027FFF] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-                <GraduationCap className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">IELTS Preparation</h2>
-              <p className="text-sm text-slate-600 mb-6 leading-relaxed">Intensive, multi-agent evaluation for Academic or General Training with examiner-calibrated band precision.</p>
-              <div className="mt-auto px-6 py-3 rounded-full bg-slate-100 text-slate-800 font-bold text-sm group-hover:bg-[#027FFF] group-hover:text-white transition-all duration-300 shadow-sm">
-                Select IELTS Track →
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── DERIVED DATA ─────────────────────────────────────────────────────────────
-  const isIELTS = courseTrack === 'ielts';
-
-  const radarData = dashData?.skill_mastery_radar?.length
-    ? dashData.skill_mastery_radar.map(s => ({
-        subject: s.skill_name.length > 14 ? s.skill_name.slice(0, 14) + '…' : s.skill_name,
-        A: Math.round(s.score * 100),
-        fullMark: 100,
-      }))
-    : (isIELTS
-        ? [
-            { subject: 'Lexical Resource', A: 0, fullMark: 100 },
-            { subject: 'Grammar', A: 0, fullMark: 100 },
-            { subject: 'Coherence', A: 0, fullMark: 100 },
-            { subject: 'Pronunciation', A: 0, fullMark: 100 },
-            { subject: 'Task Achievement', A: 0, fullMark: 100 },
-          ]
-        : [
-            { subject: 'Vocabulary', A: 0, fullMark: 100 },
-            { subject: 'Grammar', A: 0, fullMark: 100 },
-            { subject: 'Conversation', A: 0, fullMark: 100 },
-            { subject: 'Listening', A: 0, fullMark: 100 },
-            { subject: 'Reading', A: 0, fullMark: 100 },
-          ]);
-
-  const progressHistory = dashData?.enrolled_courses?.length
-    ? dashData.enrolled_courses.map((c) => ({
-        name: c.course_title.slice(0, 10),
-        score: isIELTS
-          ? +(5.0 + (c.percentage / 100) * 3.5).toFixed(1)
-          : Math.round(c.percentage),
-      }))
-    : (isIELTS
-        ? [{ name: 'Baseline', score: 5.0 }]
-        : [{ name: 'Baseline', score: 0 }]);
-
-  const completionPct = dashData?.overall_completion_percentage ?? 0;
-  const estBand = dashData ? Math.min(9, +(4.5 + (completionPct / 100) * 4.5).toFixed(1)) : null;
-  const cefrLevel = completionPct < 20 ? 'A2' : completionPct < 40 ? 'B1' : completionPct < 65 ? 'B2' : completionPct < 85 ? 'C1' : 'C2';
-  const successProbability = dashData ? Math.min(99, Math.round(50 + completionPct / 2)) : null;
-
-  const insightCards = weaknessFlags.slice(0, 3).map(f => ({
-    type: 'warning' as const,
-    title: 'Weakness Detected',
-    body: `Score ${(f.score_at_flag * 100).toFixed(0)}% — below threshold of ${(f.threshold * 100).toFixed(0)}%. Status: ${f.status}.`,
-  }));
-
-  const handleEnrollInCourse = async (crs: { id: string; title: string }) => {
-    try {
-      const res = await fetchWithAuth('/enrollments', {
-        method: 'POST',
-        body: JSON.stringify({ course_id: crs.id }),
-      });
-      if (res.ok || res.status === 409) {
-        toast.success('Enrolled Successfully! 🎉', `"${crs.title}" is now active in your dashboard.`);
-        loadAllData();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error('Enrollment Failed', err.message || 'Could not enroll in course.');
-      }
-    } catch {
-      toast.error('Network Error', 'Failed to reach server.');
-    }
-  };
-
-  const enrolledCourses = dashData?.enrolled_courses || [];
-
-  // ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
+    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
+      <DashboardSidebar />
 
-      {/* ── SIDEBAR: Rich Deep Indigo / Slate ── */}
-      <aside className="w-64 flex-shrink-0 bg-[#0F172A] text-slate-300 flex flex-col justify-between hidden md:flex h-screen overflow-y-auto shadow-xl z-20">
-        <div>
-          <div className="h-20 flex items-center px-6 border-b border-slate-800 sticky top-0 bg-[#0F172A] z-10">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-white/20 shadow-md">
-                <img 
-                  src="/logo.png" 
-                  alt="Pen & Page Academia" 
-                  className="h-8 w-auto object-contain" 
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-black text-white tracking-tight group-hover:text-[#5BC0EB] transition-colors">PPAcademia</span>
-                <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">AI Platform</span>
-              </div>
-            </Link>
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+        {/* TOP APP BAR */}
+        <header className="h-20 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-6 md:px-10 flex items-center justify-between sticky top-0 z-30 flex-shrink-0 shadow-xs">
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">Student Dashboard</h1>
+            <p className="text-xs text-slate-500 font-medium">Welcome back, {userName}! Let's make today productive.</p>
           </div>
-          
-          <nav className="p-4 space-y-1.5">
-            <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-3 px-3">Main Menu</div>
-            
-            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#027FFF] text-white font-bold shadow-md shadow-[#027FFF]/20 text-sm">
-              <LayoutDashboard className="w-4 h-4" />
-              Overview
-            </Link>
-            
-            <Link href="/dashboard/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-              <BookOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-              Course Catalog
-            </Link>
 
-            <Link href="/dashboard/adaptive" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-              <BrainCircuit className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-              Adaptive Engine
-            </Link>
-
-            {isIELTS ? (
-              <>
-                <Link href="/dashboard/mock-exam" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <BookOpen className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
-                  Mock Exam
-                </Link>
-                <Link href="/dashboard/writing" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <PenTool className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  Writing Studio
-                </Link>
-                <Link href="/dashboard/vocabulary" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <Sparkles className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                  Vocabulary (SM-2)
-                </Link>
-                <Link href="/dashboard/grammar" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <PenTool className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
-                  Grammar Drills
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/dashboard/vocabulary" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <Sparkles className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                  Vocabulary
-                </Link>
-                <Link href="/dashboard/grammar" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <PenTool className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
-                  Grammar
-                </Link>
-                <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  Conversation (AI)
-                </Link>
-                <Link href="/dashboard/mock-exam" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium transition-colors group text-sm">
-                  <Headphones className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
-                  Comprehension
-                </Link>
-              </>
-            )}
-            
-            <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3 mt-6 px-3">Live Hubs</div>
-            <Link href="/dashboard/simulator" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-emerald-400 font-medium transition-colors group text-sm">
-              <Mic className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-              AI Simulator
-            </Link>
-            <Link href="/dashboard/results" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-blue-400 font-medium transition-colors text-sm">
-              <LineChartIcon className="w-4 h-4 text-blue-400" />
-              Past Results
-            </Link>
-            <Link href="/dashboard/live" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-purple-400 font-medium transition-colors text-sm">
-              <Video className="w-4 h-4 text-purple-400" />
-              Live Classes
-            </Link>
-            <Link href="/dashboard/lesson" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-rose-400 font-medium transition-colors text-sm">
-              <BookOpen className="w-4 h-4 text-rose-400" />
-              Lesson Player
-            </Link>
-            <Link href="/instructor" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-indigo-400 font-medium transition-colors text-sm">
-              <Users className="w-4 h-4 text-indigo-400" />
-              Instructor Hub
-            </Link>
-            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/80 hover:text-amber-400 font-medium transition-colors text-sm">
-              <Settings className="w-4 h-4 text-amber-400" />
-              Admin Studio
-            </Link>
-          </nav>
-        </div>
-        
-        <div className="p-4 border-t border-slate-800">
-          <button 
-            onClick={() => { localStorage.removeItem('access_token'); localStorage.removeItem('courseTrack'); router.push('/login'); }}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN CONTENT AREA ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F0F4F8]">
-        
-        {/* TOP BAR: Clean Crisp White with Border Shadow */}
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm z-10">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Dashboard Overview</h1>
-              <p className="text-xs text-slate-500 font-semibold">{isIELTS ? 'IELTS Academic Track' : 'General English Mastery'}</p>
-            </div>
-            <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              AI Telemetry Active
-            </span>
-          </div>
-          
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowDiagnostic(true)}
-              className="text-xs font-bold text-[#027FFF] hover:text-[#026bd6] px-3 py-1.5 rounded-lg bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/60 transition-colors flex items-center gap-1.5 shadow-xs"
+            {/* Quick Practice Pill */}
+            <Link
+              href="/dashboard/ai-exam"
+              className="px-4 py-2 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer"
             >
-              <Award className="w-3.5 h-3.5" />
-              <span>{diagnosticResult ? `Diagnostic: Band ${diagnosticResult.estimatedBand}` : '5-Min Placement Test'}</span>
-            </button>
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>AI Quiz Generator</span>
+            </Link>
 
-            <button 
-              onClick={() => { localStorage.removeItem('courseTrack'); setCourseTrack(null); }}
-              className="text-xs font-bold text-slate-600 hover:text-[#027FFF] px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 transition-colors"
-            >
-              Switch Track
-            </button>
-
-            {/* 🔔 NOTIFICATION BELL */}
+            {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen(p => !p)}
-                className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors relative cursor-pointer"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-[9px] font-black text-white shadow-xs">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white" />
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-12 w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
-                    <div className="flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-[#027FFF]" />
-                      <span className="font-bold text-slate-900 text-sm">Live Notifications</span>
-                      {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">{unreadCount}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-[#027FFF] hover:underline flex items-center gap-1 font-bold">
-                          <CheckCircle2 className="w-3 h-3" /> Mark all read
-                        </button>
-                      )}
-                      <button onClick={() => setNotifOpen(false)}>
-                        <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                      </button>
-                    </div>
+                <div className="absolute right-0 top-12 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                    <span className="text-xs font-bold text-slate-900">Notifications</span>
+                    <button onClick={() => setUnreadCount(0)} className="text-[10px] text-[#027FFF] font-bold hover:underline">Mark read</button>
                   </div>
-
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                    {notifications.length === 0 ? (
-                      <div className="py-10 text-center text-slate-400 text-sm">
-                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-300" />
-                        No notifications yet
-                      </div>
-                    ) : (
-                      notifications.map(n => (
-                        <div
-                          key={n.id}
-                          onClick={() => !n.read && markNotificationRead(n.id)}
-                          className={`px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${!n.read ? 'bg-blue-50/50' : ''}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                {!n.read && <span className="w-2 h-2 rounded-full bg-[#027FFF] flex-shrink-0 mt-0.5"></span>}
-                                <p className="text-sm font-bold text-slate-900 truncate">{n.title}</p>
-                              </div>
-                              <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">{n.body}</p>
-                            </div>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5 font-medium">
-                              {new Date(n.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="px-5 py-3 border-t border-slate-100 bg-slate-50">
-                    <button onClick={() => { setNotifOpen(false); loadAllData(); }} className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-900 font-bold transition-colors">
-                      <RefreshCw className="w-3 h-3" /> Refresh Feed
-                    </button>
+                  <div className="space-y-2 text-xs text-slate-600">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <p className="font-bold text-slate-900">Python Homework Assigned</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Due tomorrow at 5:00 PM.</p>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="w-px h-6 bg-slate-200"></div>
-            
-            {/* User Profile Capsule */}
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-slate-900 leading-tight">{dashData?.student_name || userName}</p>
-                <p className="text-[11px] text-slate-500 font-semibold">{isIELTS ? 'Candidate' : 'Learner'}</p>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#027FFF] to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-sm">
-                {(dashData?.student_name || userName || 'U').charAt(0).toUpperCase()}
+            <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+
+            {/* Profile Avatar */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#027FFF] text-white font-bold text-sm flex items-center justify-center shadow-xs">
+                {userName[0]?.toUpperCase() || 'S'}
               </div>
             </div>
           </div>
         </header>
 
-        {/* SCROLLABLE DASHBOARD FEED */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+        {/* SCROLLABLE MAIN FEED */}
+        <main className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
           
-          {loading && (
-            <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
-              <div className="w-4 h-4 border-2 border-[#027FFF] border-t-transparent rounded-full animate-spin"></div>
-              Calibrating adaptive metrics…
-            </div>
-          )}
+          {/* 1. HERO BANNER: JUMP BACK IN */}
+          <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-[#027FFF] via-blue-600 to-indigo-600 text-white shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* ── REAL AI STUDY PATH & ACTIVE COURSE PROGRESS ── */}
-          <div className="bg-gradient-to-br from-[#0B1329] via-[#111C44] to-[#0A1026] border border-blue-900/40 rounded-3xl p-6 lg:p-8 text-white shadow-2xl relative overflow-hidden">
-            {/* Ambient Background Glows */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-            <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 relative z-10">
-              
-              {/* Left Column: Real Course Details */}
-              <div className="flex-1 space-y-4">
-                
-                {/* Badges Row */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5 shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    {enrolledCourses.length > 0 ? `${enrolledCourses.length} COURSE ENROLLED IN DB` : 'READY TO ENROLL'}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-blue-100 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-white/20">
+                    <Play className="w-3 h-3 fill-white" /> Continue Learning
                   </span>
-                  
-                  <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
-                    <Target className="w-3.5 h-3.5 text-blue-400" />
-                    Target: Band {targetBand}
-                  </span>
-
-                  <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center gap-1.5 font-mono shadow-xs">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    {daysToExam} Days to Official Exam
+                  <span className="text-xs text-blue-100 font-medium">
+                    {primaryCourse.completed_lessons} of {primaryCourse.total_lessons} Lessons Completed
                   </span>
                 </div>
 
-                {/* Main Heading & Recommendation */}
-                <div>
-                  <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug">
-                    {enrolledCourses.length > 0 ? (
-                      <>Active Syllabus: <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-cyan-300">{enrolledCourses[0].course_title}</span></>
-                    ) : (
-                      <>Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-cyan-300">PPAcademia AI Learning Platform</span></>
-                    )}
-                  </h2>
-                  <p className="text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed mt-1.5 font-medium">
-                    {enrolledCourses.length > 0 ? (
-                      `You are currently working through ${enrolledCourses[0].course_title}. ${enrolledCourses[0].completed_lessons} of ${enrolledCourses[0].total_lessons} lessons completed.`
-                    ) : (
-                      'Browse our curriculum catalog to enroll in examiner-curated preparation modules and activate your adaptive AI study schedule.'
-                    )}
+                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                  {primaryCourse.course_title}
+                </h2>
+
+                <div className="p-3 rounded-2xl bg-white/10 border border-white/15 max-w-xl backdrop-blur-sm">
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Next Up</span>
+                  <p className="text-sm font-bold text-white mt-0.5 flex items-center gap-2">
+                    {primaryCourse.nextLessonTitle}
+                    <span className="text-xs text-blue-200 font-normal">({primaryCourse.nextLessonDuration})</span>
                   </p>
                 </div>
 
-                {/* Checklist of Real Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  
-                  {/* Task 1: View Syllabus */}
-                  <Link 
-                    href={enrolledCourses.length > 0 ? `/courses/${enrolledCourses[0].course_id}` : '/courses'} 
-                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/80 border border-emerald-500/30 hover:bg-slate-900 hover:border-emerald-400 transition-all group backdrop-blur-md shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">Course Syllabus</p>
-                        <p className="text-[10px] text-emerald-400 font-medium">{enrolledCourses.length > 0 ? `${enrolledCourses[0].total_lessons} Lessons` : 'Browse Catalog'}</p>
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* Task 2: Active Lesson (Next Up) */}
-                  <Link 
-                    href={enrolledCourses.length > 0 ? `/courses/${enrolledCourses[0].course_id}` : '/courses'} 
-                    className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-2 border-blue-400 hover:border-cyan-300 transition-all group backdrop-blur-md shadow-lg shadow-blue-500/20 ring-2 ring-blue-400/30 relative overflow-hidden"
-                  >
-                    <div className="absolute -right-4 -bottom-4 w-12 h-12 bg-blue-400/20 rounded-full blur-lg"></div>
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-7 h-7 rounded-xl bg-blue-500 text-white flex items-center justify-center font-black text-xs shadow-md shadow-blue-500/50 shrink-0 animate-pulse">
-                        <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white group-hover:text-cyan-200 transition-colors truncate max-w-[110px]">
-                            {dashData?.next_recommended_lesson?.lesson_title || (enrolledCourses.length > 0 ? 'Curriculum' : 'Enroll Now')}
-                          </p>
-                          <span className="px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 text-[9px] font-black uppercase">Next</span>
-                        </div>
-                        <p className="text-[10px] text-blue-200 font-semibold">Ready to study</p>
-                      </div>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-blue-300 group-hover:text-white transition-colors group-hover:translate-x-0.5 group-hover:-translate-y-0.5 relative z-10" />
-                  </Link>
-
-                  {/* Task 3: Assessment */}
-                  <Link 
-                    href="/dashboard/writing" 
-                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-700/60 hover:bg-slate-900/90 hover:border-slate-600 transition-all group backdrop-blur-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center border border-slate-700 shrink-0 font-bold text-xs">
-                        <PenTool className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Writing Practice</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Examiner rubric drill</p>
-                      </div>
-                    </div>
-                  </Link>
-
-                </div>
-              </div>
-
-              {/* Right Column: Real Circular Progress Ring */}
-              <div className="shrink-0 flex flex-col items-center bg-slate-900/90 border border-blue-500/20 rounded-3xl p-5 text-center min-w-[200px] shadow-lg backdrop-blur-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
-                
-                <span className="text-[11px] text-blue-300 font-black uppercase tracking-wider mb-2">
-                  Course Completion
-                </span>
-
-                {/* Circular Gauge Graphic */}
-                <div className="relative w-24 h-24 flex items-center justify-center my-1">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-slate-800"
-                      strokeWidth="3.5"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                {/* Progress bar */}
+                <div className="max-w-md space-y-1.5 pt-1">
+                  <div className="flex justify-between text-xs font-bold text-blue-100">
+                    <span>Course Progress</span>
+                    <span>{primaryCourse.percentage}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden border border-white/20">
+                    <div 
+                      className="h-full bg-white rounded-full transition-all duration-700" 
+                      style={{ width: `${primaryCourse.percentage}%` }}
                     />
-                    <path
-                      className="text-[#027FFF]"
-                      strokeDasharray={`${Math.round(enrolledCourses[0]?.percentage || completionPct || 0)}, 100`}
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      stroke="url(#progressGradient)"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <defs>
-                      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#38BDF8" />
-                        <stop offset="100%" stopColor="#027FFF" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-xl font-black text-white leading-none">
-                      {Math.round(enrolledCourses[0]?.percentage || completionPct || 0)}%
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Progress</span>
                   </div>
                 </div>
-
-                <div className="mt-2 text-center">
-                  <span className="text-xs text-emerald-400 font-bold block">
-                    {enrolledCourses[0]?.completed_lessons || 0} of {enrolledCourses[0]?.total_lessons || 0} Lessons
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {enrolledCourses.length > 0 ? 'Active in Neon DB' : 'Not Enrolled'}
-                  </span>
-                </div>
               </div>
 
-            </div>
-          </div>
-
-          {/* ── METRICS CARDS ROW: High Polish Elevation ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            
-            {/* Metric 1: Band / Level */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-2xl bg-blue-50 text-[#027FFF] shadow-xs">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                  {completionPct > 0 ? `${completionPct.toFixed(0)}% Done` : 'New'}
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{isIELTS ? 'Estimated Band' : 'Current CEFR Level'}</h3>
-              <div className="text-4xl font-black text-slate-900 tracking-tight">
-                {isIELTS ? (estBand ?? '–') : cefrLevel}
-              </div>
-            </div>
-
-            {/* Metric 2: Target Band */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 shadow-xs">
-                  <Target className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200/60 px-2.5 py-0.5 rounded-full">
-                  Target
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{isIELTS ? 'Target Band' : 'Target Level'}</h3>
-              <div className="text-4xl font-black text-slate-900 tracking-tight">{isIELTS ? '8.0' : 'C1'}</div>
-            </div>
-
-            {/* Metric 3: Success Probability */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 shadow-xs">
-                  <BrainCircuit className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                  Live AI
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Success Probability</h3>
-              <div className="text-3xl font-black text-slate-900 tracking-tight mb-2">{successProbability ?? '–'}%</div>
-              <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000"
-                  style={{ width: `${successProbability ?? 0}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Metric 4: Active Remediations */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-2xl bg-orange-50 text-orange-600 shadow-xs">
-                  <Flame className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-bold text-orange-700 bg-orange-50 border border-orange-200/60 px-2.5 py-0.5 rounded-full">
-                  Urgent
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Remediations</h3>
-              <div className="text-4xl font-black text-slate-900 tracking-tight">{dashData?.active_remediations?.length ?? '0'}</div>
-            </div>
-
-          </div>
-
-          {/* ── EXAMINER FEEDBACK & ADAPTIVE REMEDIATION DISPATCH ── */}
-          <div className="bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 border border-purple-800/80 rounded-3xl p-6 lg:p-7 text-white shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-              
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-400/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                    <Award className="w-3 h-3 text-purple-300" /> {dashData?.active_remediations?.length ? 'Active Remediation Drill' : 'Examiner Evaluation Suite'}
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-medium font-mono">
-                    {dashData?.active_remediations?.length ? 'Escalated from Diagnostic Gap' : 'Calibrated vs Cambridge Rubrics'}
-                  </span>
-                </div>
-
-                <h3 className="text-lg font-black text-white tracking-tight">
-                  {dashData?.active_remediations?.length 
-                    ? dashData.active_remediations[0].title 
-                    : 'Certified Multi-Agent Assessment & Scoring'}
-                </h3>
-
-                <p className="text-xs text-purple-100/90 leading-relaxed font-serif bg-white/5 border border-white/10 rounded-2xl p-3.5">
-                  {dashData?.active_remediations?.length 
-                    ? `Target remediation for ${dashData.active_remediations[0].skill_name}. Complete this micro-drill to resolve examiner deduction flags and update your mastery radar.`
-                    : 'Submit an essay or speaking submission to receive examiner-calibrated scoring across Task Response (TR), Coherence & Cohesion (CC), Lexical Resource (LR), and Grammatical Range (GRA).'}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <div className="flex items-center gap-2 bg-purple-800/40 border border-purple-500/30 px-3 py-1 rounded-xl text-xs font-bold font-mono">
-                    <span className="text-purple-300">TR</span> • 
-                    <span className="text-purple-300">CC</span> • 
-                    <span className="text-purple-300">LR</span> • 
-                    <span className="text-purple-300">GRA</span>
-                  </div>
-                  <span className="text-xs text-slate-300 font-bold">
-                    Target: <strong className="text-amber-400 font-bold">Band 8.5 Proficiency Target</strong>
-                  </span>
-                </div>
-              </div>
-
-              <div className="shrink-0 flex flex-col items-center sm:items-end gap-3 w-full sm:w-auto">
-                <div className="text-center sm:text-right bg-white/10 border border-white/15 px-5 py-3 rounded-2xl w-full sm:w-auto">
-                  <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block mb-0.5">Examiner Assessment</span>
-                  <span className="text-2xl font-black text-white font-mono">
-                    {dashData?.active_remediations?.length ? 'Drill Active' : 'Ready'}
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Real-Time Evaluation</span>
-                </div>
-
+              <div className="shrink-0 flex flex-col gap-2 w-full sm:w-auto">
                 <Link
-                  href="/dashboard/writing"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white text-xs font-black transition-all shadow-md shadow-purple-500/30 flex items-center justify-center gap-2"
+                  href={`/courses/${primaryCourse.course_id}`}
+                  className="px-6 py-3.5 rounded-2xl bg-white text-[#027FFF] font-extrabold text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-blue-50 hover:scale-105"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {dashData?.active_remediations?.length ? 'Launch Assigned Recovery Drill →' : 'Start Assessment →'}
+                  <Play className="w-4 h-4 fill-[#027FFF]" /> Resume Lesson Now
+                </Link>
+                <Link
+                  href="/dashboard/courses"
+                  className="text-center text-xs font-bold text-blue-100 hover:text-white py-1 transition-colors"
+                >
+                  View All Enrolled Courses &rarr;
                 </Link>
               </div>
-
             </div>
           </div>
 
-          {/* ── MY ACTIVE ENROLLED COURSES (HERO SECTION) ── */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          {/* 2. 4 CORE METRICS */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-bold uppercase">Learning Streak</span>
+                <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                  <Flame className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-2xl font-black text-slate-900">5 Days 🔥</p>
+              <span className="text-[11px] text-emerald-600 font-bold">Consistent everyday</span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-bold uppercase">Learning Hours</span>
+                <span className="p-1.5 rounded-lg bg-blue-50 text-[#027FFF]">
+                  <Clock className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-2xl font-black text-slate-900">14.5 hrs</p>
+              <span className="text-[11px] text-slate-500 font-medium">+2.5 hrs this week</span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-bold uppercase">Quizzes Passed</span>
+                <span className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
+                  <Star className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-2xl font-black text-slate-900">18 Quizzes</p>
+              <span className="text-[11px] text-purple-600 font-bold">89.4% avg score</span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-bold uppercase">Certificates</span>
+                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <Award className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-2xl font-black text-slate-900">2 Earned</p>
+              <Link href="/dashboard/certificates" className="text-[11px] text-[#027FFF] font-bold hover:underline">
+                View &amp; download &rarr;
+              </Link>
+            </div>
+          </div>
+
+          {/* 3. ACTIVE SUBJECT COURSES */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Active Curriculum</span>
-                </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">My Enrolled Courses &amp; Learning Tracks</h2>
-                <p className="text-xs text-slate-500">Pick up where you left off or explore new modules.</p>
+                <h3 className="text-lg font-black text-slate-900">My Enrolled Subjects</h3>
+                <p className="text-xs text-slate-500">Your current courses across Computer, English, and Mathematics</p>
               </div>
               <Link 
                 href="/dashboard/courses" 
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-[#027FFF] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 w-fit shadow-2xs"
+                className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1"
               >
-                <BookOpen className="w-3.5 h-3.5" />
-                Browse Full Catalog &rarr;
+                Browse Catalog <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            {enrolledCourses.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {enrolledCourses.map((c, idx) => (
-                  <div 
-                    key={c.course_id || idx} 
-                    className="bg-gradient-to-br from-slate-50 to-blue-50/40 border border-slate-200/80 rounded-2xl p-5 shadow-2xs hover:border-[#027FFF] transition-all flex flex-col justify-between gap-4 group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#027FFF]/10 text-[#027FFF]">
-                          {isIELTS ? 'IELTS Track' : 'General Track'}
-                        </span>
-                        <span className="text-xs font-bold text-slate-600">
-                          {c.completed_lessons} / {c.total_lessons} Lessons
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-black text-slate-900 group-hover:text-[#027FFF] transition-colors line-clamp-2">
-                        {c.course_title}
-                      </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {enrolledCourses.map((c) => (
+                <div 
+                  key={c.course_id}
+                  className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md flex flex-col justify-between space-y-4 transition-all group shadow-xs"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">{c.icon}</span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+                        {c.category}
+                      </span>
                     </div>
+                    <h4 className="text-sm font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors line-clamp-2">
+                      {c.course_title}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {c.completed_lessons} of {c.total_lessons} lessons completed
+                    </p>
+                  </div>
 
-                    <div>
-                      <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden mb-2">
-                        <div 
-                          className="h-full bg-gradient-to-r from-[#027FFF] to-cyan-400 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.max(5, c.percentage)}%` }}
-                        ></div>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
-                        <span className="text-xs font-bold text-slate-500">{c.percentage.toFixed(0)}% Done</span>
-                        <Link 
-                          href={`/courses/${c.course_id}`} 
-                          className="px-3.5 py-1.5 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
-                        >
-                          View Syllabus & Lessons <ArrowUpRight className="w-3 h-3" />
-                        </Link>
-                      </div>
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#027FFF] rounded-full" 
+                        style={{ width: `${c.percentage}%` }}
+                      />
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500">{c.percentage}% Done</span>
+                      <Link 
+                        href={`/courses/${c.course_id}`}
+                        className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1"
+                      >
+                        Open Course <ArrowUpRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. TWO-COLUMN: LIVE SESSIONS & HOMEWORK TASKS */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Live Class Schedule */}
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Upcoming Live Classes</h3>
+                    <p className="text-[11px] text-slate-500">Interactive live video sessions</p>
+                  </div>
+                </div>
+                <Link href="/dashboard/live" className="text-xs font-bold text-rose-600 hover:underline">
+                  Full Schedule
+                </Link>
+              </div>
+
+              <div className="space-y-3">
+                {UPCOMING_CLASSES.map((cls) => (
+                  <div key={cls.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-rose-600 uppercase block">{cls.time}</span>
+                      <h4 className="text-xs font-bold text-slate-900 mt-0.5">{cls.title}</h4>
+                      <p className="text-[11px] text-slate-500">{cls.instructor} • {cls.subject}</p>
+                    </div>
+                    <Link 
+                      href="/dashboard/live"
+                      className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-xs flex-shrink-0"
+                    >
+                      Join Class
+                    </Link>
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="p-8 text-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50">
-                <BookOpen className="w-10 h-10 mx-auto text-slate-400 mb-2 opacity-60" />
-                <h3 className="text-sm font-bold text-slate-800 mb-1">No courses enrolled yet</h3>
-                <p className="text-xs text-slate-500 mb-4">Explore the course catalog to enroll in examiner-curated preparation modules.</p>
-                <Link href="/dashboard/courses" className="px-4 py-2 rounded-xl bg-[#027FFF] text-white text-xs font-bold">
-                  Browse Courses
+            </div>
+
+            {/* Pending Homework */}
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Pending Homework</h3>
+                    <p className="text-[11px] text-slate-500">Tasks assigned by your instructors</p>
+                  </div>
+                </div>
+                <Link href="/dashboard/assignments" className="text-xs font-bold text-[#027FFF] hover:underline">
+                  View All
                 </Link>
               </div>
-            )}
+
+              <div className="space-y-3">
+                {PENDING_HOMEWORK.map((hw) => (
+                  <div key={hw.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-amber-600 uppercase block">{hw.due}</span>
+                      <h4 className="text-xs font-bold text-slate-900 mt-0.5">{hw.title}</h4>
+                      <p className="text-[11px] text-slate-500">{hw.course}</p>
+                    </div>
+                    <Link 
+                      href="/dashboard/assignments"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs flex-shrink-0"
+                    >
+                      Submit
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
 
-          {/* ── CHARTS ROW: White Cards with Modern Shadow ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Line Chart */}
-            <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-3xl p-7 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Proficiency Trajectory</h2>
-                  <p className="text-xs text-slate-500 font-medium">Progress timeline calibrated across course milestones.</p>
-                </div>
-                <select className="bg-slate-50 border border-slate-200 text-xs text-slate-700 font-bold rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#027FFF] shadow-xs">
-                  <option>{isIELTS ? 'Overall Band' : 'Overall Score'}</option>
-                  <option>{isIELTS ? 'Reading' : 'Grammar'}</option>
-                  <option>{isIELTS ? 'Writing' : 'Vocabulary'}</option>
-                </select>
-              </div>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={progressHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dy={10} />
-                    <YAxis domain={isIELTS ? [4, 9] : [0, 100]} stroke="#94A3B8" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} dx={-10} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#0F172A', border: 'none', borderRadius: '14px', color: '#FFFFFF', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }} itemStyle={{ color: '#5BC0EB', fontWeight: 'bold' }} />
-                    <Line type="monotone" dataKey="score" stroke="#027FFF" strokeWidth={3.5} dot={{ r: 4, fill: '#FFFFFF', stroke: '#027FFF', strokeWidth: 2.5 }} activeDot={{ r: 7, fill: '#027FFF' }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+          {/* 5. QUICK AI PRACTICE CALLOUT */}
+          <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 border border-indigo-200/70 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Instant AI Exam &amp; Quiz Engine
+              </span>
+              <h3 className="text-lg font-black text-slate-900">Test Your Knowledge on Any Subject in 5 Minutes</h3>
+              <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+                Generate custom practice quizzes on Python, Grammar, Fractions, or Science with instant grading and step-by-step explanations.
+              </p>
             </div>
 
-            {/* Radar Chart */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 flex flex-col shadow-sm">
-              <div className="mb-2">
-                <h2 className="text-lg font-black text-slate-900 tracking-tight">Diagnostic Profile</h2>
-                <p className="text-xs text-slate-500 font-medium">Competency breakdown from live AI grading.</p>
-              </div>
-              <div className="flex-1 min-h-[250px] w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="#E2E8F0" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name="Candidate" dataKey="A" stroke="#027FFF" strokeWidth={2.5} fill="#027FFF" fillOpacity={0.18} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* ── BOTTOM ROW: Curriculum Exploration & AI Insights ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left 2 Cols: Explore Available Curriculum & Modules */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Discover & Self-Enroll in Available Courses */}
-              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">Explore Available Curriculum</h3>
-                    <p className="text-xs text-slate-500 font-medium">Examiner-calibrated courses published on the platform</p>
-                  </div>
-                  <Link href="/dashboard/courses" className="text-xs font-bold text-[#027FFF] hover:underline flex items-center gap-1">
-                    View Full Catalog <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { id: 'c-1', title: 'IELTS Academic Writing Masterclass', modules: 6, tag: 'Band 7.5+' },
-                    { id: 'c-2', title: 'Speaking Part 2 & 3 Fluency Bootcamp', modules: 8, tag: 'Band 8.0+' },
-                    { id: 'c-3', title: 'Advanced Lexical Collocations & GRA Inversion', modules: 4, tag: 'Band 8.5+' }
-                  ].map(crs => {
-                    const isEnrolled = enrolledCourses.some(c => c.course_id === crs.id || c.course_title === crs.title);
-                    return (
-                      <div key={crs.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between gap-3">
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#027FFF]/10 text-[#027FFF]">
-                              {crs.tag}
-                            </span>
-                            <span className="text-[11px] text-slate-500 font-semibold">{crs.modules} Modules</span>
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-900 leading-snug">{crs.title}</h4>
-                        </div>
-                        {isEnrolled ? (
-                          <Link 
-                            href="/dashboard/lesson"
-                            className="w-full py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-2xs"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Enrolled • Continue &rarr;
-                          </Link>
-                        ) : (
-                          <button 
-                            onClick={() => handleEnrollInCourse(crs)}
-                            className="w-full py-2 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all text-center shadow-xs"
-                          >
-                            + Enroll in Course
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Quick Adaptive Modules */}
-              <div>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4">Interactive Modules</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
-                  <Link href="/dashboard/simulator" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-[#027FFF] rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                        <Mic className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">AI Voice</span>
-                    </div>
-                    <h3 className="text-base font-black text-slate-900 mb-1">
-                      {isIELTS ? 'Speaking Simulator' : 'Conversation Drill'}
-                    </h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
-                      Real-time audio evaluation with IELTS examiner rubric feedback.
-                    </p>
-                    <span className="inline-flex items-center text-xs font-bold text-[#027FFF] group-hover:translate-x-1 transition-transform">
-                      Launch Simulator <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                    </span>
-                  </Link>
-
-                  <Link href="/dashboard/adaptive" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-amber-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                        <BrainCircuit className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">Adaptive</span>
-                    </div>
-                    <h3 className="text-base font-black text-slate-900 mb-1">Adaptive Engine</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
-                      Diagnose gaps and generate custom targeted recalibration drills.
-                    </p>
-                    <span className="inline-flex items-center text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-                      View Diagnostics <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                    </span>
-                  </Link>
-
-                  <Link href="/dashboard/live" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-purple-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                        <Video className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">WebRTC</span>
-                    </div>
-                    <h3 className="text-base font-black text-slate-900 mb-1">Live Classes</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
-                      Join instructor-led virtual rooms and interactive breakout groups.
-                    </p>
-                    <span className="inline-flex items-center text-xs font-bold text-purple-600 group-hover:translate-x-1 transition-transform">
-                      Join Classroom <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                    </span>
-                  </Link>
-
-                  <Link href="/dashboard/lesson" className="group bg-white hover:bg-slate-50/80 border border-slate-200/80 hover:border-rose-500 rounded-3xl p-6 transition-all shadow-sm hover:shadow-md">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-                        <BookOpen className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-black text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-full uppercase tracking-wider">Video</span>
-                    </div>
-                    <h3 className="text-base font-black text-slate-900 mb-1">Lesson Player</h3>
-                    <p className="text-xs text-slate-600 mb-4 line-clamp-2 leading-relaxed font-medium">
-                      {dashData?.next_recommended_lesson
-                        ? `Next: ${dashData.next_recommended_lesson.lesson_title}`
-                        : 'Continue your structured self-paced video courses.'}
-                    </p>
-                    <span className="inline-flex items-center text-xs font-bold text-rose-600 group-hover:translate-x-1 transition-transform">
-                      Continue Learning <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                    </span>
-                  </Link>
-
-                </div>
-              </div>
-            </div>
-
-            {/* AI Insights Feed */}
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 flex flex-col shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-[#027FFF]" />
-                  AI Insights
-                </h2>
-                <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Live
-                </span>
-              </div>
-              
-              <div className="space-y-4 flex-1">
-
-                {/* Active Remediations */}
-                {dashData?.active_remediations?.length ? (
-                  dashData.active_remediations.slice(0, 2).map((r, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-red-50 border border-red-200/70 shadow-xs">
-                      <div className="flex gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="text-sm font-bold text-red-900 mb-1">Weak Area: {r.skill_name}</h4>
-                          <p className="text-xs text-red-700 leading-relaxed mb-2 font-medium">{r.title}</p>
-                          {r.instructor_escalated && (
-                            <span className="text-[10px] font-bold text-orange-800 bg-orange-100 px-2 py-0.5 rounded-full">⚠ Escalated to instructor</span>
-                          )}
-                          <Link href="/dashboard/adaptive" className="block text-xs font-bold text-red-600 hover:underline mt-1">Fix weakness →</Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : insightCards.length ? (
-                  insightCards.map((ins, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-red-50 border border-red-200/70 shadow-xs">
-                      <div className="flex gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="text-sm font-bold text-red-900 mb-1">{ins.title}</h4>
-                          <p className="text-xs text-red-700 leading-relaxed mb-2 font-medium">{ins.body}</p>
-                          <Link href="/dashboard/adaptive" className="text-xs font-bold text-red-600 hover:underline">Fix now →</Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 shadow-xs">
-                    <div className="flex gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-emerald-900 mb-1">All Skills Healthy</h4>
-                        <p className="text-xs text-emerald-700 leading-relaxed font-medium">No critical weaknesses detected in recent assessments.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Overall Progress Insight */}
-                {completionPct > 0 && (
-                  <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200/80 shadow-xs">
-                    <div className="flex gap-3">
-                      <TrendingUp className="w-5 h-5 text-[#027FFF] shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-blue-900 mb-1">
-                          {isIELTS ? 'Band Trajectory' : 'Level Mastery'}
-                        </h4>
-                        <p className="text-xs text-blue-700 leading-relaxed font-medium">
-                          {completionPct.toFixed(0)}% course completion recorded.
-                          {dashData?.next_recommended_lesson && ` Next: ${dashData.next_recommended_lesson.lesson_title}.`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Unread notifications prompt */}
-                {unreadCount > 0 && (
-                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200/80 shadow-xs">
-                    <div className="flex gap-3">
-                      <Bell className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-indigo-900 mb-1">New Notifications</h4>
-                        <p className="text-xs text-indigo-700 leading-relaxed font-medium">You have {unreadCount} unread update{unreadCount > 1 ? 's' : ''}.</p>
-                        <button onClick={() => setNotifOpen(true)} className="text-xs font-bold text-indigo-600 hover:underline mt-1">View Notifications →</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </div>
-
+            <Link
+              href="/dashboard/ai-exam"
+              className="px-6 py-3.5 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              Generate Practice Quiz Now &rarr;
+            </Link>
           </div>
 
         </main>
       </div>
-
-      {/* 5-Min Diagnostic Level Placement Modal */}
-      <DiagnosticPlacementModal
-        isOpen={showDiagnostic}
-        onClose={() => setShowDiagnostic(false)}
-        onComplete={(res) => {
-          setDiagnosticResult(res);
-          loadAllData();
-        }}
-      />
     </div>
   );
 }

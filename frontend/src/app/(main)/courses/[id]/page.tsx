@@ -224,6 +224,36 @@ export default function CourseDetailPage() {
         </div>
       </section>
 
+      {/* AI Diagnostic Placement & Mastery Banner */}
+      <section className="max-w-6xl mx-auto px-4 pt-8">
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-6 border border-blue-500/30">
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 bg-amber-400/20 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> AI Adaptive Placement Ready
+            </span>
+            <h3 className="text-lg font-black text-white">Course Placement &amp; Weak-Spot Diagnostic</h3>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Take the AI diagnostic test for this course to evaluate your baseline knowledge and generate targeted practice drills for any weak areas.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link
+              href={`/dashboard/ai-exam?courseId=${course.id || 'cs-101'}&mode=diagnostic`}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
+            >
+              <span>Take Placement Test</span> &rarr;
+            </Link>
+            <Link
+              href={`/dashboard/ai-exam?courseId=${course.id || 'cs-101'}&mode=weak_points`}
+              className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
+            >
+              <span>🎯 Retest Weak Points</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Syllabus Breakdown */}
       <section className="max-w-6xl mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-8">

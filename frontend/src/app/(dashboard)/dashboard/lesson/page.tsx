@@ -34,104 +34,104 @@ interface Lesson {
 const INITIAL_LESSONS: Lesson[] = [
   {
     id: 'les-1',
-    title: '1. Master the Lexical Resource (Band 8+ Criteria)',
+    title: '1. Introduction to Computational Thinking & Python',
     type: 'video',
     duration: '12 mins',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     completed: true,
-    description: 'Learn the exact linguistic markers British Council & IDP examiners assess under the Lexical Resource criterion in Academic Writing and Speaking.',
+    description: 'Understand the fundamental logic behind computer programming, writing clean Python syntax, and executing your first program.',
     overviewNotes: [
-      'Avoid mechanical thesaurus replacement; prioritize natural collocations and precision.',
-      'Use topic-specific vocabulary with 100% syntactic accuracy.',
-      'Master uncommon idiomatic language without sounding artificial or informal.'
+      'Learn how variables store data in computer memory (RAM).',
+      'Understand standard data types: Integers, Floats, Strings, and Booleans.',
+      'Write and execute your first Python print statement and user inputs.'
     ],
     transcript: [
-      { time: '00:00', text: 'Welcome to Module 1. In this session, we dissect the Lexical Resource band descriptors.' },
-      { time: '01:15', text: 'Examiners look for flexibility and precision, not just long or obscure words.' },
-      { time: '03:40', text: 'Notice how high-scoring candidates employ natural academic collocations.' },
-      { time: '06:10', text: 'Let us examine three common vocabulary pitfalls and how to avoid them.' }
+      { time: '00:00', text: 'Welcome to Module 1. In this session, we introduce computational logic and Python syntax.' },
+      { time: '02:15', text: 'Variables are named containers used to store data values for later calculation.' },
+      { time: '05:40', text: 'Let us see how Python executes commands sequentially line-by-line.' },
+      { time: '09:10', text: 'Try writing your first interactive script using the input() function.' }
     ]
   },
   {
     id: 'les-2',
-    title: '2. High-Yield Academic Collocations & Idioms',
+    title: '2. Python Core Data Types & Syntax Reference Guide',
     type: 'pdf',
     duration: 'PDF Document • 8 mins',
-    pdfUrl: '/resources/lexical_guide.pdf',
+    pdfUrl: '/resources/python_guide.pdf',
     completed: false,
-    description: 'Comprehensive study guide containing 120+ examiner-approved academic collocations, phrasal combinations, and topic-specific lexical sets.',
+    description: 'Comprehensive cheat-sheet covering Python variable rules, math operators, string manipulation, and type casting.',
     overviewNotes: [
-      'Categorized by high-frequency IELTS themes: Technology, Environment, Education, and Economy.',
-      'Includes authentic Cambridge sample essays demonstrating natural contextual usage.',
-      'Features spaced-repetition memory triggers to reinforce active retention.'
+      'Visual diagrams explaining how data types behave in arithmetic operations.',
+      'Includes 15+ interactive practice mini-exercises with solution keys.',
+      'Best practices for naming variables and writing readable code comments.'
     ],
     transcript: []
   },
   {
     id: 'les-3',
-    title: '3. Phrasal Verbs & Complex Discourse Connectors',
+    title: '3. Conditional Logic & For/While Loops',
     type: 'video',
-    duration: '18 mins',
+    duration: '16 mins',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     completed: false,
-    description: 'Master advanced discourse markers and phrasal constructions that boost both Coherence & Cohesion and Grammatical Range.',
+    description: 'Master if-elif-else conditional branching and automate repetitive tasks using for and while loops.',
     overviewNotes: [
-      'Distinguish between formal academic connectors and spoken transition devices.',
-      'Learn subordination techniques to build seamless multi-clause sentences.',
-      'Practice paragraph linking mechanisms for Task 2 discursive essays.'
+      'Control program flow using boolean logic operators (and, or, not).',
+      'Iterate over sequences and numbers using the range() function.',
+      'Avoid infinite loops and learn to use the break and continue statements.'
     ],
     transcript: [
-      { time: '00:00', text: 'In this lesson, we explore how discourse markers govern paragraph progression.' },
-      { time: '02:30', text: 'Overusing words like "Moreover" and "Furthermore" can penalize cohesion.' },
-      { time: '05:45', text: 'Instead, use referential pronouns and lexical cohesion to bridge ideas.' }
+      { time: '00:00', text: 'In this lesson, we explore decision-making in code using if statements.' },
+      { time: '03:30', text: 'Loops allow computers to repeat operations millions of times without manual effort.' },
+      { time: '07:45', text: 'Let us build a simple guessing game using a while loop and random numbers.' }
     ]
   },
   {
     id: 'les-4',
-    title: '4. Module 1 Checkpoint: Vocabulary & Syntax Quiz',
+    title: '4. Module 1 Checkpoint: Python Basics & Logic Quiz',
     type: 'quiz',
     duration: '5 Questions • 10 mins',
     completed: false,
-    description: 'Interactive diagnostic quiz testing your mastery of lexical precision, collocations, and academic sentence structures.',
+    description: 'Interactive checkpoint quiz testing your understanding of Python variables, data types, and loop execution.',
     overviewNotes: [
-      'Answer all 5 questions to unlock Module 2.',
+      'Answer all questions to test your knowledge and unlock Module 2.',
       'Instant AI scoring with detailed explanation for every answer.',
-      'Scores above 80% earn the "Lexical Specialist" milestone badge.'
+      'Scores above 80% earn the "Python Novice" milestone badge.'
     ],
     transcript: [],
     quizQuestions: [
       {
-        question: 'Which of the following phrases represents the most natural academic collocation?',
+        question: 'Which of the following data types is used to store fractional decimal numbers in Python?',
         options: [
-          'Make a heavy decision',
-          'Reach a definitive consensus',
-          'Do a big improvement',
-          'Create a strong agreement'
+          'Integer (int)',
+          'Float (float)',
+          'String (str)',
+          'Boolean (bool)'
         ],
         correct: 1,
-        explanation: '"Reach a definitive consensus" is an authentic, formal academic collocation recognized in Band 8+ writing.'
+        explanation: 'Floats are used to represent decimal/fractional numbers in Python (e.g. `3.14`).'
       },
       {
-        question: 'What is the primary danger of using obscure vocabulary without contextual precision?',
+        question: 'How many times will `for x in range(4):` execute its block of code?',
         options: [
-          'It makes the essay too short.',
-          'It distorts meaning and incurs penalties under Lexical Resource and Task Response.',
-          'It violates word limit regulations.',
-          'Examiners will fail to understand simple concepts.'
+          '3 times',
+          '4 times',
+          '5 times',
+          '0 times'
         ],
         correct: 1,
-        explanation: 'Examiner criteria strictly penalize forced or inaccurate synonyms that obscure the clear development of ideas.'
+        explanation: '`range(4)` generates numbers 0, 1, 2, 3, which executes exactly 4 times.'
       },
       {
-        question: 'Select the best replacement for the informal transition "In a nutshell":',
+        question: 'What is the output of `print(10 // 3)` in Python?',
         options: [
-          'To wrap it all up',
-          'In conclusion / Ultimately',
-          'At the end of the day',
-          'All in all basically'
+          '3.333',
+          '3',
+          '1',
+          '30'
         ],
         correct: 1,
-        explanation: '"In conclusion" and "Ultimately" preserve the formal objective register required for academic tasks.'
+        explanation: 'The `//` operator performs integer (floor) division, returning 3 without the decimal remainder.'
       }
     ]
   }
