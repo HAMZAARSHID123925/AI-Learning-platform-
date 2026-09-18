@@ -16,10 +16,8 @@ interface UserSettings {
   fullName: string;
   email: string;
   avatar: string;
-  targetBand: number;
-  targetCefr: string;
-  examType: 'IELTS Academic' | 'IELTS General Training' | 'Cambridge C2 Proficiency' | 'PTE Academic';
-  examDate: string;
+  primarySubject: string;
+  targetProficiency: string;
   dailyGoalMinutes: number;
   emailNotifications: boolean;
   streakReminders: boolean;
@@ -30,10 +28,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   fullName: 'Hamza Arshid',
   email: 'student@penpage.academy',
   avatar: '👨‍🎓',
-  targetBand: 8.5,
-  targetCefr: 'C2',
-  examType: 'IELTS Academic',
-  examDate: '2026-11-20',
+  primarySubject: 'Computer Science & Python',
+  targetProficiency: 'Advanced Mastery (A+)',
   dailyGoalMinutes: 45,
   emailNotifications: true,
   streakReminders: true,
@@ -75,7 +71,7 @@ export default function SettingsPage() {
     }
     loadUserProfile();
 
-    // 2. Load persisted target band, exam countdown, and hardware settings
+    // 2. Load persisted settings
     try {
       const saved = localStorage.getItem('penpage_user_settings');
       if (saved) {
@@ -86,13 +82,9 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     try {
-      // 1. Save preferences locally for instant client responsiveness
       localStorage.setItem('penpage_user_settings', JSON.stringify(settings));
       localStorage.setItem('user_name', settings.fullName);
-      localStorage.setItem('target_band', settings.targetBand.toString());
-      localStorage.setItem('exam_date', settings.examDate);
 
-      // 2. Sync updated name with backend database
       const nameParts = settings.fullName.split(' ');
       const firstName = nameParts[0] || 'Student';
       const lastName = nameParts.slice(1).join(' ') || '';
@@ -106,7 +98,7 @@ export default function SettingsPage() {
       }).catch(() => null);
 
       setIsSaved(true);
-      toast.success('Settings Synchronized! 🎯', `Target Band ${settings.targetBand} and countdown saved.`);
+      toast.success('Settings Synchronized! 🎯', 'Your study preferences and profile have been saved.');
       setTimeout(() => setIsSaved(false), 3000);
     } catch {
       toast.error('Save Notice', 'Could not persist settings.');
@@ -172,27 +164,18 @@ export default function SettingsPage() {
       }
       setIsTestingCam(true);
       setCamStatus('success');
-      toast.success('Webcam Connected! 📹', 'Camera preview is live for Speaking Simulator.');
+      toast.success('Webcam Connected! 📹', 'Camera preview is live for virtual live classes.');
     } catch {
       setCamStatus('error');
       toast.error('Camera Access Denied', 'Please allow camera permissions in your browser.');
     }
   };
 
-  // Calculate days remaining to exam
-  const calculateDaysRemaining = (dateStr: string) => {
-    const examDate = new Date(dateStr);
-    const today = new Date();
-    const diffTime = examDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F0F4F8] text-slate-800 font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] text-slate-800 font-sans">
       <DashboardSidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 bg-[#F0F4F8]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-36 bg-[#F8FAFC]">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm">
@@ -200,10 +183,10 @@ export default function SettingsPage() {
             <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors mb-2">
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Sliders className="w-7 h-7 text-[#027FFF]" /> Candidate Target &amp; System Settings
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <Sliders className="w-7 h-7 text-[#027FFF]" /> Account &amp; Study Settings
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">Calibrate your IELTS target band, exam countdown, daily study goals, and hardware diagnostics.</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">Manage your learning track, daily study target, camera/microphone checks, and notification preferences.</p>
           </div>
 
           <button
@@ -236,7 +219,7 @@ export default function SettingsPage() {
               }`}
             >
               <Target className={`w-4 h-4 ${activeTab === 'goals' ? 'text-white' : 'text-[#027FFF]'}`} />
-              Academic Goals &amp; Exam Countdown
+              Learning Goals &amp; Track
             </button>
 
             <button
@@ -248,7 +231,7 @@ export default function SettingsPage() {
               }`}
             >
               <Mic className={`w-4 h-4 ${activeTab === 'hardware' ? 'text-white' : 'text-purple-600'}`} />
-              Hardware &amp; Simulator Diagnostics
+              Hardware &amp; Live Class Diagnostics
             </button>
 
             <button
@@ -277,81 +260,49 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Tab 1: Academic Goals & Exam Countdown */}
+        {/* Tab 1: Academic Goals & Track */}
         {activeTab === 'goals' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-200">
             
-            {/* Target Band & CEFR Card */}
+            {/* Primary Track Card */}
             <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">Target Score &amp; Track Calibration</h3>
-                  <p className="text-xs text-slate-500">Align your AI difficulty, mock scoring, and diagnostic rubrics.</p>
+                  <h3 className="text-lg font-black text-slate-900">Primary Study Subject</h3>
+                  <p className="text-xs text-slate-500">Pick your main area of study for personalized AI quizzes and lessons.</p>
                 </div>
                 <div className="px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#027FFF] text-xs font-black">
-                  Band {settings.targetBand} • {settings.targetCefr}
+                  {settings.primarySubject}
                 </div>
               </div>
 
-              {/* Target Band Slider */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-700">Target IELTS Band:</span>
-                  <span className="text-2xl font-black text-[#027FFF]">Band {settings.targetBand}</span>
-                </div>
-                <input
-                  type="range"
-                  min="5.5"
-                  max="9.0"
-                  step="0.5"
-                  value={settings.targetBand}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setSettings({
-                      ...settings,
-                      targetBand: val,
-                      targetCefr: val >= 8.5 ? 'C2' : val >= 7.0 ? 'C1' : 'B2'
-                    });
-                  }}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#027FFF]"
-                />
-                <div className="flex justify-between text-[10px] font-bold text-slate-400">
-                  <span>Band 5.5 (B2)</span>
-                  <span>Band 7.0 (C1 Proficient)</span>
-                  <span>Band 8.5 (C2 Mastery)</span>
-                  <span>Band 9.0 (Expert)</span>
-                </div>
-              </div>
-
-              {/* Exam Track Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">Active Examination Track:</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { id: 'IELTS Academic', label: 'IELTS Academic', desc: 'University admissions & professional registration' },
-                    { id: 'IELTS General Training', label: 'IELTS General Training', desc: 'Immigration (Express Entry, Canada, Australia)' },
-                    { id: 'Cambridge C2 Proficiency', label: 'Cambridge C2 (CPE)', desc: 'Highest CEFR executive mastery certification' },
-                    { id: 'PTE Academic', label: 'PTE Academic', desc: 'Pearson English computer-delivered test' }
-                  ].map((track) => (
-                    <button
-                      key={track.id}
-                      type="button"
-                      onClick={() => setSettings({ ...settings, examType: track.id as UserSettings['examType'] })}
-                      className={`p-3.5 rounded-2xl border text-left transition-all ${
-                        settings.examType === track.id
-                          ? 'bg-blue-50/80 border-[#027FFF] text-blue-950 shadow-sm'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span className="block text-xs font-black">{track.label}</span>
-                      <span className="text-[11px] text-slate-500 leading-snug mt-0.5 block">{track.desc}</span>
-                    </button>
-                  ))}
-                </div>
+              {/* Subject Selector */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { id: 'Computer Science & Python', label: '💻 Computer Science & Python', desc: 'Coding logic, algorithms, web development' },
+                  { id: 'English & Languages', label: '📖 English & Communication', desc: 'Grammar, vocabulary, speaking & writing' },
+                  { id: 'Mathematics & Calculus', label: '📐 Mathematics & Problem Solving', desc: 'Algebra, calculus, geometry, statistics' },
+                  { id: 'Science & Physics', label: '🔬 Science & Physics', desc: 'Mechanics, biology, experimental thinking' },
+                  { id: 'Business & Finance', label: '📊 Business & Finance', desc: 'Marketing, accounting, financial planning' },
+                ].map((track) => (
+                  <button
+                    key={track.id}
+                    type="button"
+                    onClick={() => setSettings({ ...settings, primarySubject: track.id })}
+                    className={`p-3.5 rounded-2xl border text-left transition-all ${
+                      settings.primarySubject === track.id
+                        ? 'bg-blue-50/80 border-[#027FFF] text-blue-950 shadow-sm'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="block text-xs font-black">{track.label}</span>
+                    <span className="text-[11px] text-slate-500 leading-snug mt-0.5 block">{track.desc}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Daily Study Commitment */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="space-y-2 pt-4 border-t border-slate-100">
                 <label className="text-xs font-bold text-slate-700 block">Daily Study Target Goal:</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[20, 30, 45, 60].map((mins) => (
@@ -372,62 +323,35 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Exam Countdown & Readiness Card */}
+            {/* Target Proficiency & Motivation Card */}
             <div className="lg:col-span-5 flex flex-col gap-6">
-              
-              {/* Countdown Tile */}
               <div className="bg-gradient-to-br from-[#0F172A] to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="px-2.5 py-1 rounded-full bg-white/10 text-cyan-300 text-[10px] font-extrabold uppercase tracking-wider">
-                      Target Exam Date
+                      Target Level
                     </span>
-                    <Calendar className="w-5 h-5 text-cyan-400" />
+                    <Award className="w-5 h-5 text-cyan-400" />
                   </div>
 
-                  <h4 className="text-base font-bold text-white mb-2">Official Test Day Countdown</h4>
+                  <h4 className="text-base font-bold text-white mb-2">Mastery Benchmark</h4>
+                  <p className="text-xs text-slate-300 mb-4">Your AI test questions will adjust dynamically to keep you challenged and progressing.</p>
                   
-                  <div className="my-4 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                    <span className="text-5xl font-black text-cyan-400 tracking-tight font-mono">
-                      {calculateDaysRemaining(settings.examDate)}
+                  <div className="my-2 p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
+                    <span className="text-2xl font-black text-cyan-400 tracking-tight">
+                      {settings.targetProficiency}
                     </span>
                     <span className="block text-xs font-bold text-slate-300 mt-1 uppercase tracking-wider">
-                      Days Remaining
+                      Current Target Standard
                     </span>
-                  </div>
-
-                  <div className="space-y-1.5 mt-4">
-                    <label className="text-xs font-semibold text-slate-300">Change Exam Date:</label>
-                    <input
-                      type="date"
-                      value={settings.examDate}
-                      onChange={(e) => setSettings({ ...settings, examDate: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-mono outline-none focus:border-cyan-400"
-                    />
                   </div>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Adaptive drills recalibrate daily based on your remaining countdown velocity.</span>
+                  <span>The platform continuously pinpoints weak topics and generates targeted quizzes.</span>
                 </div>
               </div>
-
-              {/* CEFR Readiness Badge */}
-              <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-xl shrink-0 border border-emerald-200">
-                  {settings.targetCefr}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">CEFR Target Standard</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {settings.targetCefr === 'C2' 
-                      ? 'Mastery Level: Can understand virtually everything heard or read with effortless precision.'
-                      : 'Effective Operational Proficiency: Expresses ideas fluently without obvious searching for expressions.'}
-                  </p>
-                </div>
-              </div>
-
             </div>
 
           </div>
