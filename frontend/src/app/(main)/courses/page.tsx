@@ -11,37 +11,26 @@ export default function CoursesPage() {
   const [expandedModules, setExpandedModules] = useState<number[]>([1]);
   const DEFAULT_COURSES_CATALOG = [
     {
-      id: "ielts-mastery",
+      id: "c-1",
       title: "IELTS Academic Writing & Speaking Masterclass",
-      description: "Master Cambridge Band 8.5 Task 2 essay architecture, lexical inversion, and Part 2 speaking fluency with automated rubric telemetry.",
+      description: "Master Band 8.5+ syntactic inversion, cohesive linkers, and data overview reporting.",
       module_count: 4,
       target_band: "Band 8.0+",
       category: "academic",
       rating: 4.96,
-      students_count: 1420,
+      students_count: 38,
       price: "$49.00"
     },
     {
-      id: "general-reading-listening",
-      title: "General English & Listening Precision Accelerator",
-      description: "Fast-track your comprehension speed, eliminate distractor traps, and sharpen listening nuance with examiner-curated audio transcripts.",
+      id: "c-2",
+      title: "Speaking Part 2 & 3 Fluency & Intonation Lab",
+      description: "Acoustic pacing drills, speech cadence training, and idiomatic C2 expressions.",
       module_count: 3,
       target_band: "Band 7.5+",
-      category: "general",
+      category: "academic",
       rating: 4.92,
-      students_count: 980,
+      students_count: 24,
       price: "$39.00"
-    },
-    {
-      id: "writing-task2-crash",
-      title: "Writing Task 2 Intensive Argumentation Bootcamp",
-      description: "Deep dive into position formulation, paragraph coherence, topic sentence templates, and high-scoring lexical collocation drills.",
-      module_count: 3,
-      target_band: "Band 8.0+",
-      category: "skills",
-      rating: 4.98,
-      students_count: 1850,
-      price: "$29.00"
     }
   ];
 
@@ -118,7 +107,14 @@ export default function CoursesPage() {
         }
 
         if (localCreatedCourses.length > 0) {
-          setLiveCourses([...localCreatedCourses, ...DEFAULT_COURSES_CATALOG]);
+          // Merge and deduplicate by ID and Title
+          const merged = [...localCreatedCourses];
+          DEFAULT_COURSES_CATALOG.forEach(dc => {
+            if (!merged.some(m => m.id === dc.id || m.title.trim().toLowerCase() === dc.title.trim().toLowerCase())) {
+              merged.push(dc);
+            }
+          });
+          setLiveCourses(merged);
         } else {
           setLiveCourses(DEFAULT_COURSES_CATALOG);
         }

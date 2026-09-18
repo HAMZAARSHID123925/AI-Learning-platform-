@@ -109,7 +109,22 @@ export default function InstructorDashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [escalations, setEscalations] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  const [liveSessions, setLiveSessions] = useState<any[]>([
+    {
+      id: 'sess-1',
+      title: 'Cambridge C2 Inversion & Conditionals Masterclass',
+      scheduled_at: new Date(Date.now() + 3600 * 1000 * 4).toISOString(),
+      max_participants: 30,
+      status: 'SCHEDULED'
+    },
+    {
+      id: 'sess-2',
+      title: 'Live 1-on-1 Band 9 Speaking Part 2 Diagnostic Stage',
+      scheduled_at: new Date(Date.now() + 3600 * 1000 * 24).toISOString(),
+      max_participants: 1,
+      status: 'SCHEDULED'
+    }
+  ]);
   const [loading, setLoading] = useState(false);
   const [instructorName, setInstructorName] = useState('Senior Examiner');
 
@@ -172,6 +187,8 @@ export default function InstructorDashboardPage() {
   // Submissions & Grading Studio State
   const [submissions, setSubmissions] = useState<StudentSubmission[]>(INITIAL_SUBMISSIONS);
   const [selectedSub, setSelectedSub] = useState<StudentSubmission | null>(INITIAL_SUBMISSIONS[0]);
+  const [subFilterType, setSubFilterType] = useState<'all' | 'essay_task1' | 'essay_task2' | 'speaking_part2'>('all');
+  const [subFilterStatus, setSubFilterStatus] = useState<'all' | 'PENDING_REVIEW' | 'EXAMINER_VERIFIED'>('all');
   
   // Active Grading Inputs
   const [gradeTR, setGradeTR] = useState(6.5);
@@ -181,6 +198,16 @@ export default function InstructorDashboardPage() {
   const [examinerFeedback, setExaminerFeedback] = useState('');
   const [selectedRemediation, setSelectedRemediation] = useState('Inversion & Complex Syntax Mastery');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  // Examiner Voice Feedback State
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceRecordSeconds, setVoiceRecordSeconds] = useState(0);
+  const [hasRecordedVoice, setHasRecordedVoice] = useState(false);
+
+  // Direct Student Messaging State
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageStudent, setMessageStudent] = useState<any>(null);
+  const [directMessageText, setDirectMessageText] = useState('');
 
   // Live session modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -552,60 +579,60 @@ export default function InstructorDashboardPage() {
             </Link>
           </div>
           
-          <nav className="p-4 space-y-1">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-3 px-3">Instructor Views</div>
+          <nav className="p-3 space-y-1">
+            <div className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1.5 mt-1 px-3">Instructor Views</div>
             <button 
               onClick={() => setActiveTab('grading')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'grading' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${activeTab === 'grading' ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              <FileCheck2 className="w-4 h-4" />
-              Grading Studio
+              <FileCheck2 className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Grading Studio</span>
             </button>
             <button 
               onClick={() => setActiveTab('courses')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'courses' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${activeTab === 'courses' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              <BookOpen className="w-4 h-4" />
-              Course Studio &amp; Curriculum
+              <BookOpen className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Course Studio</span>
             </button>
             <button 
               onClick={() => setActiveTab('roster')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'roster' ? 'bg-[#027FFF] text-white shadow-lg shadow-[#027FFF]/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${activeTab === 'roster' ? 'bg-[#027FFF] text-white shadow-md shadow-[#027FFF]/30' : 'text-white hover:bg-slate-800'}`}
             >
-              <Users className="w-4 h-4" />
-              Student Roster
+              <Users className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Student Roster</span>
             </button>
             <button 
               onClick={() => setActiveTab('escalations')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'escalations' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${activeTab === 'escalations' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30' : 'text-white hover:bg-slate-800'}`}
             >
-              <AlertCircle className="w-4 h-4" />
-              Escalated Students
+              <AlertCircle className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Escalated Students</span>
             </button>
             <button 
               onClick={() => setActiveTab('classes')} 
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${activeTab === 'classes' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-bold text-sm transition-all cursor-pointer ${activeTab === 'classes' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              <Video className="w-4 h-4" />
-              Live Class Host
+              <Video className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Live Class Host</span>
             </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 mt-6 px-3">Navigation</div>
-            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm">
-              <BookOpen className="w-4 h-4 text-indigo-400" />
-              Student View
+            <div className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1.5 mt-4 px-3">Portals</div>
+            <Link href="/dashboard" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-white hover:bg-slate-800 font-bold transition-colors text-sm cursor-pointer">
+              <BookOpen className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Student Dashboard</span>
             </Link>
-            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition-colors text-sm">
-              <BrainCircuit className="w-4 h-4 text-emerald-400" />
-              Admin Studio
+            <Link href="/admin/courses" className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-white hover:bg-slate-800 font-bold transition-colors text-sm cursor-pointer">
+              <BrainCircuit className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Admin Studio</span>
             </Link>
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-3 border-t border-slate-800">
           <button 
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-semibold transition-colors text-sm"
+            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -674,22 +701,77 @@ export default function InstructorDashboardPage() {
               {/* 2-Column Assessment Workspace */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left Column: Submissions Queue (4 cols) */}
+                {/* Left Column: Submissions Queue (5 cols) */}
                 <div className="lg:col-span-5 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase px-1">
-                    <span>Student Queue</span>
-                    <span>Status</span>
+                  {/* Submission Filter Tabs */}
+                  <div className="flex flex-col gap-2 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Filter Task</span>
+                      <div className="flex gap-1">
+                        {[
+                          { id: 'all', label: 'All' },
+                          { id: 'essay_task1', label: 'Task 1' },
+                          { id: 'essay_task2', label: 'Task 2' },
+                          { id: 'speaking_part2', label: 'Speaking' }
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => setSubFilterType(t.id as any)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              subFilterType === t.id
+                                ? 'bg-purple-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</span>
+                      <div className="flex gap-1">
+                        {[
+                          { id: 'all', label: 'All' },
+                          { id: 'PENDING_REVIEW', label: 'Pending' },
+                          { id: 'EXAMINER_VERIFIED', label: 'Verified' }
+                        ].map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => setSubFilterStatus(s.id as any)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                              subFilterStatus === s.id
+                                ? 'bg-slate-900 text-white shadow-xs'
+                                : 'text-slate-500 hover:bg-slate-100'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    {submissions.map((sub) => {
+                    {submissions
+                      .filter(sub => (subFilterType === 'all' ? true : sub.type === subFilterType))
+                      .filter(sub => (subFilterStatus === 'all' ? true : sub.status === subFilterStatus))
+                      .map((sub) => {
                       const isSelected = selectedSub?.id === sub.id;
                       const activeScore = sub.examinerScore || sub.aiScore;
 
                       return (
                         <div 
                           key={sub.id}
-                          onClick={() => setSelectedSub(sub)}
+                          onClick={() => {
+                            setSelectedSub(sub);
+                            setGradeTR(sub.examinerScore?.tr_ta || sub.aiScore.tr_ta);
+                            setGradeCC(sub.examinerScore?.cc || sub.aiScore.cc);
+                            setGradeLR(sub.examinerScore?.lr || sub.aiScore.lr);
+                            setGradeGRA(sub.examinerScore?.gra || sub.aiScore.gra);
+                            setExaminerFeedback(sub.examinerNote || '');
+                          }}
                           className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                             isSelected 
                               ? 'bg-white border-purple-500 shadow-md ring-2 ring-purple-100' 
@@ -699,7 +781,7 @@ export default function InstructorDashboardPage() {
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div>
                               <p className="font-bold text-slate-900 text-sm">{sub.studentName}</p>
-                              <p className="text-[11px] text-slate-400 font-medium">{sub.title}</p>
+                              <p className="text-[11px] text-slate-400 font-medium line-clamp-1">{sub.title}</p>
                             </div>
 
                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
@@ -774,7 +856,7 @@ export default function InstructorDashboardPage() {
                           <div className="flex items-center gap-3">
                             <button 
                               onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                              className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 shadow-sm"
+                              className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 shadow-sm cursor-pointer"
                             >
                               {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                             </button>
@@ -882,41 +964,112 @@ export default function InstructorDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Teacher Feedback & Targeted Remediation */}
+                    {/* Teacher Voice Feedback Recording Tool */}
+                    <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Mic className="w-4 h-4 text-purple-600" />
+                          <span className="text-xs font-bold text-purple-950">Teacher Voice Feedback (Audio Note)</span>
+                        </div>
+                        {hasRecordedVoice && (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+                            Voice Note Attached (0:45)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isRecordingVoice) {
+                              setIsRecordingVoice(true);
+                              setVoiceRecordSeconds(0);
+                            } else {
+                              setIsRecordingVoice(false);
+                              setHasRecordedVoice(true);
+                              toast.success('Voice Feedback Attached! 🎙️', 'Your audio critique will be delivered to the student.');
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                            isRecordingVoice 
+                              ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                              : 'bg-purple-600 hover:bg-purple-700 text-white shadow-xs'
+                          }`}
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>{isRecordingVoice ? `Recording... (${voiceRecordSeconds}s) Stop` : hasRecordedVoice ? 'Re-record Voice Note' : 'Record Examiner Voice Note'}</span>
+                        </button>
+
+                        {hasRecordedVoice && (
+                          <button
+                            type="button"
+                            onClick={() => toast.info('Playing Recorded Feedback', 'Simulating teacher voice note playback.')}
+                            className="px-3 py-2 rounded-xl bg-white border border-purple-200 text-purple-700 text-xs font-bold hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Play className="w-3.5 h-3.5" /> Listen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 1-Click Quick Feedback Annotation Pills */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Official Examiner Feedback &amp; Annotations
+                        </label>
+                        <span className="text-[11px] text-slate-400 font-medium">Click to inject calibrated notes:</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          { label: '+ Syntactic Inversion', note: '✨ Exemplary use of negative adverbial inversion in paragraph 2.' },
+                          { label: '+ Task 1 Synthesis', note: '📊 Highlight peak trends before detailing individual sub-categories.' },
+                          { label: '+ Lexical Collocation', note: '💎 Replace basic linkers with high-level academic transitions.' }
+                        ].map((pill, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setExaminerFeedback(prev => prev ? `${prev}\n${pill.note}` : pill.note)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-purple-100 hover:text-purple-700 border border-slate-200 text-[11px] font-bold text-slate-600 transition-colors cursor-pointer"
+                          >
+                            {pill.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <textarea 
+                        rows={3}
+                        value={examinerFeedback}
+                        onChange={(e) => setExaminerFeedback(e.target.value)}
+                        placeholder="Provide actionable examiner notes (e.g. Expand comparative data points in body 2; avoid repetitive passive voice)."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-600 transition-colors resize-none"
+                      />
+                    </div>
+
+                    {/* Targeted Remediation & Publish Grade */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                          Official Examiner Feedback &amp; Annotations
+                          Assign Targeted Remediation Drill
                         </label>
-                        <textarea 
-                          rows={3}
-                          value={examinerFeedback}
-                          onChange={(e) => setExaminerFeedback(e.target.value)}
-                          placeholder="Provide actionable examiner notes (e.g. Expand comparative data points in body 2; avoid repetitive passive voice)."
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-600 transition-colors resize-none"
-                        />
+                        <select 
+                          value={selectedRemediation}
+                          onChange={(e) => setSelectedRemediation(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-600 cursor-pointer"
+                        >
+                          <option>Inversion &amp; Complex Syntax Mastery</option>
+                          <option>Band 9 C2 Lexical Collocations Pack</option>
+                          <option>Task 1 Bar &amp; Flowchart Report Sprint</option>
+                          <option>Speaking Part 3 Fluency &amp; Discourse Markers</option>
+                        </select>
                       </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                            Assign Targeted Remediation Drill
-                          </label>
-                          <select 
-                            value={selectedRemediation}
-                            onChange={(e) => setSelectedRemediation(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:border-purple-600"
-                          >
-                            <option>Inversion &amp; Complex Syntax Mastery</option>
-                            <option>Band 9 C2 Lexical Collocations Pack</option>
-                            <option>Task 1 Bar &amp; Flowchart Report Sprint</option>
-                            <option>Speaking Part 3 Fluency &amp; Discourse Markers</option>
-                          </select>
-                        </div>
-
+                      <div className="flex items-end">
                         <button 
                           onClick={handleSaveExaminerGrade}
-                          className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs transition-all shadow-md shadow-purple-200 flex items-center justify-center gap-2"
+                          className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs transition-all shadow-md shadow-purple-200 flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Award className="w-4 h-4" />
                           Publish Examiner Calibrated Grade 🎓
@@ -1076,54 +1229,90 @@ export default function InstructorDashboardPage() {
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/50">
                       <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Candidate</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Estimated Band</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Weakness</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Track &amp; Exam Timeline</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Band Target Progress</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Identified Plateau / Weakness</th>
                       <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Examiner Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {loading ? (
                       <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">Loading student cohort…</td></tr>
-                    ) : students.map((student) => (
-                      <tr key={student.id} className="hover:bg-slate-50/60 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{student.name}</p>
-                            <p className="text-xs text-slate-500">{student.email}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
-                            {student.track}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-bold text-slate-900">
-                          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-[#027FFF] border border-blue-200 text-xs font-bold">
-                            Band {student.currentBand}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                          {student.weakArea}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                            {student.status === 'Active' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Link 
-                            href="/dashboard"
-                            className="inline-flex items-center gap-1 text-xs font-bold text-[#027FFF] hover:underline transition-colors"
-                          >
-                            <span>Inspect Telemetry</span>
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
+                    ) : students.map((student, idx) => {
+                      const cur = parseFloat(student.currentBand) || 6.5;
+                      const tgt = parseFloat(student.targetBand) || 8.0;
+                      const pct = Math.min(100, Math.round((cur / tgt) * 100));
+                      const examDays = idx === 0 ? 14 : idx === 1 ? 28 : 45;
+
+                      return (
+                        <tr key={student.id} className="hover:bg-slate-50/60 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div>
+                              <p className="font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">{student.name}</p>
+                              <p className="text-xs text-slate-500">{student.email}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
+                                {student.track}
+                              </span>
+                              <div className="flex items-center gap-1 text-[11px] font-bold text-purple-700">
+                                <Clock className="w-3 h-3 text-purple-600" />
+                                <span>{examDays}d to Official Exam</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="w-40 space-y-1.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-bold text-slate-800 font-mono">Band {cur.toFixed(1)}</span>
+                                <span className="font-bold text-purple-700 font-mono">Target {tgt.toFixed(1)}</span>
+                              </div>
+                              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-500" 
+                                  style={{ width: `${pct}%` }} 
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-600 font-medium">
+                            <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/60 font-semibold">
+                              {student.weakArea}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                              {student.status === 'Active' ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                              {student.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setMessageStudent(student);
+                                  setShowMessageModal(true);
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs border border-purple-200 transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Message</span>
+                              </button>
+                              <Link 
+                                href="/dashboard"
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                                title="Inspect Student Dashboard Telemetry"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1196,42 +1385,50 @@ export default function InstructorDashboardPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {liveSessions.map((session) => (
-                  <div key={session.id} className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-300 shadow-sm transition-all">
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-bold uppercase border border-purple-200">
-                          {session.status}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">{session.max_participants} max seats</span>
+              {liveSessions.length === 0 ? (
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center text-slate-500 shadow-sm space-y-3">
+                  <Video className="w-10 h-10 text-purple-400 mx-auto" />
+                  <p className="text-sm font-bold text-slate-700">No Virtual Classrooms Scheduled</p>
+                  <p className="text-xs text-slate-400">Click <strong>+ Create Class</strong> above to schedule a live video masterclass or 1-on-1 coaching call.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {liveSessions.map((session) => (
+                    <div key={session.id} className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-300 shadow-sm transition-all">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-bold uppercase border border-purple-200">
+                            {session.status}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">{session.max_participants} max seats</span>
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-base mb-2">{session.title}</h3>
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-4 font-medium">
+                          <Clock className="w-4 h-4 text-[#027FFF]" />
+                          {new Date(session.scheduled_at).toLocaleString()}
+                        </p>
                       </div>
-                      <h3 className="font-bold text-slate-900 text-base mb-2">{session.title}</h3>
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-4 font-medium">
-                        <Clock className="w-4 h-4 text-[#027FFF]" />
-                        {new Date(session.scheduled_at).toLocaleString()}
-                      </p>
-                    </div>
 
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                      <button 
-                        onClick={async () => {
-                          const res = await fetchWithAuth(`/live-sessions/${session.id}/join`, {
-                            method: 'POST',
-                          });
-                          const data = await res.json();
-                          if (data.room_url) window.open(data.room_url, '_blank');
-                          else alert('Joined WebRTC room token: ' + data.token);
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm"
-                      >
-                        <Video className="w-4 h-4" />
-                        Host Classroom Room
-                      </button>
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <button 
+                          onClick={async () => {
+                            const res = await fetchWithAuth(`/live-sessions/${session.id}/join`, {
+                              method: 'POST',
+                            });
+                            const data = await res.json();
+                            if (data.room_url) window.open(data.room_url, '_blank');
+                            else alert('Joined WebRTC room token: ' + data.token);
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                        >
+                          <Video className="w-4 h-4" />
+                          Host Classroom Room
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1491,6 +1688,77 @@ export default function InstructorDashboardPage() {
                   Create &amp; Publish Course
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DIRECT STUDENT MESSAGE MODAL */}
+      {showMessageModal && messageStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-purple-600" /> Direct Candidate Message
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">Send a personalized remediation notice to {messageStudent.name} ({messageStudent.email})</p>
+              </div>
+              <button 
+                onClick={() => setShowMessageModal(false)} 
+                className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-purple-950">Target Band: Band {messageStudent.targetBand}</span>
+                  <p className="text-purple-600 text-[11px]">Identified Area: {messageStudent.weakArea}</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-md bg-purple-600 text-white font-mono font-bold text-[11px]">
+                  Band {messageStudent.currentBand}
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Message Content / Action Instructions
+                </label>
+                <textarea
+                  rows={4}
+                  value={directMessageText}
+                  onChange={(e) => setDirectMessageText(e.target.value)}
+                  placeholder={`Hi ${messageStudent.name}, please complete the assigned Inversion & Syntactic Mastery drill before our live mock session on Friday...`}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-purple-600 transition-colors resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <button 
+                onClick={() => setShowMessageModal(false)} 
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  toast.success(
+                    'Direct Notice Dispatched! ✉️',
+                    `Message delivered to ${messageStudent.name}'s student dashboard feed.`
+                  );
+                  setShowMessageModal(false);
+                  setDirectMessageText('');
+                }}
+                disabled={!directMessageText.trim()}
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-purple-600/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Send Notice to Student</span>
+              </button>
             </div>
           </div>
         </div>

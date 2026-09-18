@@ -315,8 +315,42 @@ function AdminCoursesContent() {
   const [dailyBudgetCap, setDailyBudgetCap] = useState(50);
   const [autoFallback, setAutoFallback] = useState(true);
 
-  // At-Risk Candidate State
-  const [atRiskList, setAtRiskList] = useState<AtRiskStudent[]>([]);
+  // At-Risk Candidate State with proactive early-detection radar
+  const [atRiskList, setAtRiskList] = useState<AtRiskStudent[]>([
+    {
+      id: 'stu-risk-1',
+      name: 'Tariq Al-Fassi',
+      email: 'tariq.fassi@example.com',
+      targetBand: 'Band 7.5+',
+      currentBand: 5.5,
+      examDate: 'Oct 04, 2026',
+      daysRemaining: 16,
+      trigger: 'Score Dropped',
+      urgency: 'critical',
+    },
+    {
+      id: 'stu-risk-2',
+      name: 'Elena Rostova',
+      email: 'elena.rostova@berlin.de',
+      targetBand: 'Band 8.0+',
+      currentBand: 6.5,
+      examDate: 'Oct 12, 2026',
+      daysRemaining: 24,
+      trigger: 'Urgent Test Date',
+      urgency: 'high',
+    },
+    {
+      id: 'stu-risk-3',
+      name: 'Chen Wei',
+      email: 'chen.wei@shanghai.cn',
+      targetBand: 'Band 7.0+',
+      currentBand: 6.0,
+      examDate: 'Nov 02, 2026',
+      daysRemaining: 45,
+      trigger: 'Inactive > 7d',
+      urgency: 'medium',
+    }
+  ]);
 
   // AI Exam Generator State
   const [genModule, setGenModule] = useState<'task1' | 'task2' | 'reading' | 'speaking'>('task1');
@@ -449,65 +483,81 @@ function AdminCoursesContent() {
   const fetchCourses = useCallback(async () => {
     try {
       setIsLoading(true);
-      let loadedCourses: any[] = [];
+      let remoteCourses: any[] = [];
 
       try {
         const res = await fetchWithAuth('/courses?page_size=100');
         if (res.ok) {
           const data = await res.json();
-          loadedCourses = Array.isArray(data) ? data : (data.items || []);
+          remoteCourses = Array.isArray(data) ? data : (data.items || []);
         }
       } catch (err) {
         console.warn("Could not fetch remote courses:", err);
       }
 
-      // If empty or offline, check localStorage and fallback defaults
-      if (loadedCourses.length === 0 && typeof window !== 'undefined') {
+      let localSaved: any[] = [];
+      if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('admin_courses');
         if (saved) {
-          try { loadedCourses = JSON.parse(saved); } catch {}
+          try { 
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) localSaved = parsed;
+          } catch {}
         }
       }
 
-      if (loadedCourses.length === 0) {
-        loadedCourses = [
-          {
-            id: 'c-1',
-            title: 'IELTS Academic Writing & Speaking Masterclass',
-            category: 'IELTS Academic',
-            description: 'Master Band 8.5+ syntactic inversion, cohesive linkers, and data overview reporting.',
-            module_count: 4,
-            students: 38,
-            status: 'published',
-            price: '$49.00',
-            target_band: 'Band 8.0+'
-          },
-          {
-            id: 'c-2',
-            title: 'Speaking Part 2 & 3 Fluency & Intonation Lab',
-            category: 'IELTS Academic',
-            description: 'Acoustic pacing drills, speech cadence training, and idiomatic C2 expressions.',
-            module_count: 3,
-            students: 24,
-            status: 'published',
-            price: '$39.00',
-            target_band: 'Band 7.5+'
-          },
-          {
-            id: 'c-3',
-            title: 'C2 Grammar Inversion & Advanced Conditional Transformations',
-            category: 'General English',
-            description: 'Draft curriculum focusing on subjunctive conditionals and nominalization drills.',
-            module_count: 2,
-            students: 0,
-            status: 'draft',
-            price: '$49.00',
-            target_band: 'C2 Expert'
-          }
-        ];
-      }
+      const defaultThree = [
+        {
+          id: 'c-1',
+          title: 'IELTS Academic Writing & Speaking Masterclass',
+          category: 'IELTS Academic',
+          description: 'Master Band 8.5+ syntactic inversion, cohesive linkers, and data overview reporting.',
+          module_count: 4,
+          students: 38,
+          status: 'published',
+          price: '$49.00',
+          target_band: 'Band 8.0+'
+        },
+        {
+          id: 'c-2',
+          title: 'Speaking Part 2 & 3 Fluency & Intonation Lab',
+          category: 'IELTS Academic',
+          description: 'Acoustic pacing drills, speech cadence training, and idiomatic C2 expressions.',
+          module_count: 3,
+          students: 24,
+          status: 'published',
+          price: '$39.00',
+          target_band: 'Band 7.5+'
+        },
+        {
+          id: 'c-3',
+          title: 'C2 Grammar Inversion & Advanced Conditional Transformations',
+          category: 'General English',
+          description: 'Draft curriculum focusing on subjunctive conditionals and nominalization drills.',
+          module_count: 2,
+          students: 0,
+          status: 'draft',
+          price: '$49.00',
+          target_band: 'C2 Expert'
+        }
+      ];
 
-      setCourses(loadedCourses);
+      // Merge: Local user created courses + remote DB items + base default courses
+      const mergedList = [...localSaved];
+      
+      remoteCourses.forEach((rc: any) => {
+        if (!mergedList.some(m => m.id === rc.id || m.title === rc.title)) {
+          mergedList.push(rc);
+        }
+      });
+
+      defaultThree.forEach((df: any) => {
+        if (!mergedList.some(m => m.id === df.id || m.title === df.title)) {
+          mergedList.push(df);
+        }
+      });
+
+      setCourses(mergedList);
     } catch (error) {
       console.error('Failed to fetch courses:', error);
       setCourses([]);
@@ -731,10 +781,30 @@ function AdminCoursesContent() {
         `"${newTitle}" is permanently stored in PostgreSQL.`
       );
 
-      // 3. Clear any legacy localStorage courses
+      // 3. Save new course to persistent shared catalog
+      const newCourseObj = {
+        id: createdCourse?.id || 'c_' + Date.now(),
+        title: newTitle.trim(),
+        description: newDescription.trim() || 'Examiner-curated course syllabus with interactive quizzes and AI assessments.',
+        category: newCategory,
+        target_band: newTargetBand,
+        price: newPrice,
+        status: finalStatus,
+        module_count: 0,
+        students: 0,
+        students_count: 0,
+        rating: 5.0,
+      };
+
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('admin_courses');
+        try {
+          const currentLocal = courses.filter(c => c.id !== newCourseObj.id);
+          const updatedAll = [newCourseObj, ...currentLocal];
+          localStorage.setItem('admin_courses', JSON.stringify(updatedAll));
+        } catch {}
       }
+
+      setCourses(prev => [newCourseObj, ...prev.filter(c => c.id !== newCourseObj.id)]);
 
       // 4. Reload list from database
       await fetchCourses();
@@ -788,84 +858,95 @@ function AdminCoursesContent() {
             </Link>
           </div>
           
-          <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-140px)]">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-1 px-3">Curriculum &amp; AI</div>
+          <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+            <div className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1.5 mt-1 px-3">Curriculum &amp; AI</div>
             <button 
               onClick={() => handleSelectTab('published')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${['published', 'drafts'].includes(activeTab) ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              Courses &amp; Content
+              <BookOpen className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Courses &amp; Content</span>
             </button>
             <button 
               onClick={() => handleSelectTab('generator')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'generator' ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'generator' ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              AI Exam Generator
+              <Wand2 className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>AI Exam Generator</span>
             </button>
             <button 
               onClick={() => handleSelectTab('prompts')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'prompts' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'prompts' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              AI Prompt Tuning
+              <Sliders className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>AI Prompt Tuning</span>
             </button>
             <button 
               onClick={() => handleSelectTab('cost')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'cost' ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'cost' ? 'bg-teal-600 text-white shadow-md shadow-teal-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              AI Cost &amp; Tokens
+              <Coins className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>AI Cost &amp; Tokens</span>
             </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-2.5 px-3">Student Operations</div>
+            <div className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1.5 mt-3 px-3">Student Operations</div>
             <button 
               onClick={() => handleSelectTab('at-risk')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'at-risk' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'at-risk' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              At-Risk Radar
+              <ShieldAlert className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>At-Risk Radar</span>
             </button>
             <button 
               onClick={() => handleSelectTab('broadcast')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'broadcast' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'broadcast' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              Announcements
+              <Megaphone className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Announcements</span>
             </button>
             <button 
               onClick={() => handleSelectTab('users')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              User Directory
+              <Users className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>User Directory</span>
             </button>
 
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-2.5 px-3">System &amp; Business</div>
+            <div className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-1.5 mt-3 px-3">System &amp; Business</div>
             <button 
               onClick={() => handleSelectTab('revenue')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'revenue' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              Revenue &amp; Plans
+              <TrendingUp className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Revenue &amp; Plans</span>
             </button>
             <button 
               onClick={() => handleSelectTab('health')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'health' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'health' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-white hover:bg-slate-800'}`}
             >
-              Health &amp; Exporters
+              <Activity className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Health &amp; Exporters</span>
             </button>
             <button 
               onClick={() => handleSelectTab('flags')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'flags' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'flags' ? 'bg-slate-700 text-white shadow-md' : 'text-white hover:bg-slate-800'}`}
             >
-              Feature Flags
+              <ToggleLeft className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Feature Flags</span>
             </button>
             <button 
               onClick={() => handleSelectTab('audit')} 
-              className={`w-full text-left px-3.5 py-1.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'audit' ? 'bg-red-700 text-white shadow-md shadow-red-700/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              className={`w-full text-left px-3.5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-3 cursor-pointer ${activeTab === 'audit' ? 'bg-red-700 text-white shadow-md shadow-red-700/30' : 'text-white hover:bg-slate-800'}`}
             >
-              Audit Trail
+              <ShieldCheck className="w-[18px] h-[18px] shrink-0 text-white" />
+              <span>Audit Trail</span>
             </button>
           </nav>
         </div>
         <div className="p-3 border-t border-slate-800">
           <button 
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm"
+            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 font-bold transition-colors text-sm cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

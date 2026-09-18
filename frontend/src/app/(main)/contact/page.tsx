@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from '@/components/ToastProvider';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -9,12 +10,42 @@ export default function Contact() {
     type: 'technical',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    alert('Message sent successfully!');
-    setFormData({ name: '', email: '', type: 'technical', message: '' });
+    setIsSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setFeedback({
+          type: 'success',
+          text: data.message || 'Thank you! Your message has been sent successfully.',
+        });
+        toast.success('Message Sent! 📬', 'Our team has received your message and will get back to you shortly.');
+        setFormData({ name: '', email: '', type: 'technical', message: '' });
+      } else {
+        const errorMsg = data.message || 'Failed to send message. Please try again later.';
+        setFeedback({ type: 'error', text: errorMsg });
+        toast.error('Submission Failed', errorMsg);
+      }
+    } catch (err: unknown) {
+      const errorMsg = (err as Error).message || 'Network error. Please try again.';
+      setFeedback({ type: 'error', text: errorMsg });
+      toast.error('Network Error', errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -153,9 +184,35 @@ export default function Contact() {
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="mt-space-md w-full px-space-2xl py-5 rounded-xl bg-secondary text-white font-label-md text-[18px] font-bold hover:bg-secondary-container transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-space-sm group">
-                    <span>Send Message securely</span>
-                    <span className="material-symbols-outlined text-[24px] group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">send</span>
+                  {feedback && (
+                    <div className={`p-4 rounded-xl text-sm font-medium flex items-center gap-3 ${
+                      feedback.type === 'success' 
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    }`}>
+                      <span className="material-symbols-outlined text-[20px]">
+                        {feedback.type === 'success' ? 'check_circle' : 'error'}
+                      </span>
+                      <span>{feedback.text}</span>
+                    </div>
+                  )}
+
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="mt-space-md w-full px-space-2xl py-5 rounded-xl bg-secondary text-white font-label-md text-[18px] font-bold hover:bg-secondary-container transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-space-sm group disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Sending message...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Message securely</span>
+                        <span className="material-symbols-outlined text-[24px] group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">send</span>
+                      </>
+                    )}
                   </button>
                </form>
             </div>
