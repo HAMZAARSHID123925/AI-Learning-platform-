@@ -35,29 +35,33 @@ export default function Home() {
             
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <Link 
-                href="/login" 
+                href="/diagnostic" 
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-secondary text-white font-label-md text-[16px] font-bold hover:bg-secondary-container transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 group"
               >
-                <span>Enter Dashboard</span>
+                <span>Take Free Diagnostic Test</span>
                 <span className="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </Link>
               <Link 
-                href="/how-it-works" 
+                href="/courses" 
                 className="w-full sm:w-auto px-8 py-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 text-on-surface font-label-md text-[16px] font-bold hover:bg-surface-container transition-all duration-300 flex items-center justify-center gap-2"
               >
-                <span className="material-symbols-outlined text-[20px]">play_circle</span>
-                <span>See How it Works</span>
+                <span className="material-symbols-outlined text-[20px] text-secondary">school</span>
+                <span>Explore Courses</span>
               </Link>
             </div>
             
-            <div className="flex items-center gap-4 mt-8 font-caption text-[13px] text-on-surface-variant font-medium">
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
-                <span>Real-time Grading</span>
+            <div className="flex flex-wrap items-center gap-5 mt-8 font-caption text-[13px] text-on-surface-variant font-medium">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-secondary">timer</span>
+                <span>15-Minute Benchmark</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px] text-secondary">check_circle</span>
-                <span>Adaptive Quizzes</span>
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-secondary">verified</span>
+                <span>Real-Time Band Prediction</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-secondary">psychology</span>
+                <span>AI Remediation Plan</span>
               </div>
             </div>
           </div>
@@ -153,7 +157,65 @@ export default function Home() {
         </div>
       </section>
 
-    
+      {/* 3. DEDICATED DIAGNOSTIC CTA SHOWCASE BANNER */}
+      <section className="w-full max-w-[80rem] mx-auto px-4 py-16">
+        <div className="relative rounded-3xl bg-gradient-to-br from-[#001F3F] via-[#002B5B] to-[#027FFF] text-white p-8 md:p-14 shadow-2xl overflow-hidden border border-white/10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+            <div className="lg:col-span-8 flex flex-col items-start gap-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 font-label-sm text-xs font-bold uppercase tracking-wider">
+                <span className="material-symbols-outlined text-sm">bolt</span>
+                <span>Zero Cost • Instant Result</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+                Discover Your True IELTS &amp; CEFR Band in 15 Minutes
+              </h2>
+              <p className="text-white/80 text-base md:text-lg max-w-2xl leading-relaxed">
+                Take our calibrated diagnostic benchmark across Grammar, Lexical Precision, and Reading comprehension. Receive an instant examiner score breakdown and a custom-tailored study roadmap.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <Link
+                  href="/diagnostic"
+                  className="px-8 py-4 rounded-xl bg-white text-[#001F3F] hover:bg-slate-100 font-bold text-base transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 flex items-center gap-2 group"
+                >
+                  <span>Start Free Diagnostic Benchmark</span>
+                  <span className="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </Link>
+                <span className="text-xs text-white/60 font-medium">No credit card or download required</span>
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/15 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-white/15 pb-3">
+                <span className="text-xs uppercase font-bold text-white/70">Estimated Band</span>
+                <span className="px-2.5 py-1 rounded-md bg-emerald-400/20 text-emerald-300 text-xs font-bold border border-emerald-400/30">Calibrated</span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-extrabold text-white">Band 7.5</span>
+                <span className="text-xs text-white/70">Target: Band 8.0</span>
+              </div>
+              <div className="space-y-2 pt-2 text-xs">
+                <div className="flex justify-between text-white/80">
+                  <span>Grammar &amp; Range</span>
+                  <span className="font-bold text-white">88%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-white/20">
+                  <div className="h-full bg-emerald-400 rounded-full" style={{ width: '88%' }}></div>
+                </div>
+                <div className="flex justify-between text-white/80 pt-1">
+                  <span>Lexical Precision</span>
+                  <span className="font-bold text-white">74%</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-white/20">
+                  <div className="h-full bg-amber-400 rounded-full" style={{ width: '74%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
 {/* SECTION 4: FEATURED COURSES (Side-by-Side Cards) */}
 <section className="w-full bg-surface-container-low py-space-3xl">
 <div className="max-w-[80rem] mx-auto px-3">
