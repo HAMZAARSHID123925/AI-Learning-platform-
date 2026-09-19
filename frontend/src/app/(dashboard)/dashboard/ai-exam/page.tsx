@@ -9,6 +9,7 @@ import {
   Clock, BarChart2, Star, Zap, Target, ArrowLeft
 } from 'lucide-react';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import { fetchWithAuth } from '@/lib/api';
 
 interface Question {
   id: number;
@@ -289,20 +290,33 @@ export default function AIExamGeneratorPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
 
-  // Load course weak points from localStorage
+  // Load course weak points from backend / localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    async function loadWeakSpots() {
       try {
-        const storedHistory = localStorage.getItem(`course_ai_history_${selectedCourseId}`);
-        if (storedHistory) {
-          const parsed = JSON.parse(storedHistory);
-          setWeakTopics(parsed.weakTopics || []);
-          setPastScores(parsed.scores || []);
+        const res = await fetchWithAuth(`/assessments/weak-topics?course_id=${selectedCourseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.weak_topics && data.weak_topics.length > 0) {
+            setWeakTopics(data.weak_topics.map((w: any) => w.topic));
+            return;
+          }
         }
-      } catch {
-        // ignore
+      } catch {}
+
+      // Local fallback
+      if (typeof window !== 'undefined') {
+        try {
+          const storedHistory = localStorage.getItem(`course_ai_history_${selectedCourseId}`);
+          if (storedHistory) {
+            const parsed = JSON.parse(storedHistory);
+            setWeakTopics(parsed.weakTopics || []);
+            setPastScores(parsed.scores || []);
+          }
+        } catch {}
       }
     }
+    loadWeakSpots();
   }, [selectedCourseId]);
 
   // Auto-trigger if coming with mode=diagnostic or mode=weak_points
@@ -312,16 +326,56 @@ export default function AIExamGeneratorPage() {
     }
   }, []);
 
-  const handleGenerateExam = (customMode?: 'diagnostic' | 'weak_points' | 'standard') => {
+  const handleGenerateExam = async (customMode?: 'diagnostic' | 'weak_points' | 'standard') => {
     const targetMode = customMode || examMode;
     setIsGenerating(true);
 
+    try {
+      const bank = COURSE_EXAM_BANKS[selectedCourseId] || COURSE_EXAM_BANKS["cs-101"];
+      const res = await fetchWithAuth('/assessments/ai-quiz', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject: bank.subject,
+          topic: bank.courseTitle,
+          difficulty: 'intermediate',
+          num_questions: 5,
+          course_id: selectedCourseId,
+          target_weak_points: targetMode === 'weak_points',
+          weak_topics: weakTopics
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.questions && data.questions.length > 0) {
+          const mappedQuestions: Question[] = data.questions.map((q: any) => ({
+            id: q.id,
+            topicTag: q.topic,
+            question: q.prompt,
+            options: q.options.map((o: any) => o.text),
+            correctAnswer: q.options.findIndex((o: any) => o.id === q.correctOptionId) >= 0 
+              ? q.options.findIndex((o: any) => o.id === q.correctOptionId) 
+              : 0,
+            explanation: q.explanation
+          }));
+
+          setQuestions(mappedQuestions);
+          setSelectedAnswers({});
+          setCurrentQIndex(0);
+          setExamActive(true);
+          setSubmitted(false);
+          setIsGenerating(false);
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback to local pool
     setTimeout(() => {
       let pool: Question[] = [];
       const bank = COURSE_EXAM_BANKS[selectedCourseId] || COURSE_EXAM_BANKS["cs-101"];
 
       if (targetMode === 'weak_points' && weakTopics.length > 0) {
-        // Build quiz targeting detected weak spots
         weakTopics.forEach(topic => {
           if (bank.weakAreaPool[topic]) {
             pool.push(...bank.weakAreaPool[topic]);
@@ -331,7 +385,6 @@ export default function AIExamGeneratorPage() {
           pool = bank.diagnosticQuestions;
         }
       } else {
-        // Standard or initial diagnostic test
         pool = bank.diagnosticQuestions;
       }
 
@@ -341,7 +394,7 @@ export default function AIExamGeneratorPage() {
       setExamActive(true);
       setSubmitted(false);
       setIsGenerating(false);
-    }, 600);
+    }, 400);
   };
 
   const handleSelectOption = (optionIndex: number) => {
