@@ -154,6 +154,88 @@ const DEFAULT_ASSESSMENTS: AssessmentRecord[] = [
       { title: "C2 Sentence Transformation Mastery", type: "Grammar Engine", duration: "20 min" },
       { title: "Speaking Simulator 2-Minute Drill", type: "Audio Telemetry Drill", duration: "15 min" }
     ]
+  },
+  {
+    id: "cs-algo-assessment",
+    title: "Computer Science & Python Algorithmic Assessment",
+    testType: "Algorithmic Complexity & Data Structures",
+    date: "Completed 2 Days Ago",
+    duration: "18m 45s",
+    overallBand: 9.0,
+    cefrLevel: "Advanced Specialist (Tier 1)",
+    skillBreakdown: [
+      { subject: 'Big-O Analysis', A: 95, fullMark: 100 },
+      { subject: 'Binary Trees', A: 90, fullMark: 100 },
+      { subject: 'Python 3.12', A: 92, fullMark: 100 },
+      { subject: 'ACID Systems', A: 88, fullMark: 100 },
+      { subject: 'Memory Stacks', A: 85, fullMark: 100 },
+    ],
+    fourSkills: { listening: 9.0, reading: 9.0, writing: 8.5, speaking: 8.5 },
+    greatestStrength: {
+      title: "Algorithmic Asymptotics & Tree Traversals",
+      desc: "Instant identification of O(log n) vs O(n) worst-case branching and optimal recursive generators."
+    },
+    primaryWeakness: {
+      title: "Database Isolation Concurrency",
+      desc: "Review serializable transaction isolation locks under heavy concurrent write loads."
+    },
+    feedback: {
+      paragraph1: "Exemplary understanding of computational thinking, data structure invariants, and idiomatic Python comprehensions.",
+      highlighted1: "O(log n) Tree Traversal Mastery",
+      paragraph2: "Deepen exploration into distributed consensus algorithms (Raft/Paxos) and memory buffer pools.",
+      highlighted2: "Distributed Systems Architecture"
+    },
+    pieBreakdown: [
+      { name: 'Algorithms', value: 35, color: '#027FFF' },
+      { name: 'Data Structures', value: 30, color: '#06B6D4' },
+      { name: 'Python Core', value: 20, color: '#10B981' },
+      { name: 'Databases', value: 15, color: '#8B5CF6' }
+    ],
+    remediation: [
+      { title: "Distributed Database Isolation Sprint", type: "Interactive Code Lab", duration: "20 min" },
+      { title: "AVL & Red-Black Tree Rebalancing", type: "Algorithm Sandbox", duration: "25 min" }
+    ]
+  },
+  {
+    id: "math-calculus-exam",
+    title: "Higher Mathematics & Analytical Calculus Test",
+    testType: "Derivatives, Integrals & Linear Matrices",
+    date: "Completed 3 Days Ago",
+    duration: "24m 10s",
+    overallBand: 8.5,
+    cefrLevel: "Advanced Mathematics (Tier 1)",
+    skillBreakdown: [
+      { subject: 'Differentiation', A: 95, fullMark: 100 },
+      { subject: 'Matrix Algebra', A: 85, fullMark: 100 },
+      { subject: 'Integrals', A: 90, fullMark: 100 },
+      { subject: 'Quadratic Roots', A: 92, fullMark: 100 },
+      { subject: 'Probability', A: 80, fullMark: 100 },
+    ],
+    fourSkills: { listening: 8.5, reading: 9.0, writing: 8.5, speaking: 8.0 },
+    greatestStrength: {
+      title: "Polynomial Power Rule & Definite Integrals",
+      desc: "Flawless computation of antiderivatives and multi-step definite integrals."
+    },
+    primaryWeakness: {
+      title: "Matrix Determinant Area Scaling",
+      desc: "Revisit geometric interpretation of higher-dimensional non-invertible transformations."
+    },
+    feedback: {
+      paragraph1: "High precision across differential calculus proofs and quadratic root factorization.",
+      highlighted1: "Fundamental Theorem of Calculus",
+      paragraph2: "Focus on multivariable vector gradient fields and combinatorial probability permutations.",
+      highlighted2: "Multivariable Vector Analysis"
+    },
+    pieBreakdown: [
+      { name: 'Calculus', value: 40, color: '#F59E0B' },
+      { name: 'Linear Algebra', value: 25, color: '#EF4444' },
+      { name: 'Algebra', value: 20, color: '#8B5CF6' },
+      { name: 'Probability', value: 15, color: '#027FFF' }
+    ],
+    remediation: [
+      { title: "Matrix Determinants & Spatial Transformations", type: "Proof Canvas", duration: "18 min" },
+      { title: "Definite Integral Applications in Physics", type: "Calculus Drill", duration: "22 min" }
+    ]
   }
 ];
 

@@ -282,10 +282,10 @@ export default function DashboardCoursesPage() {
                   <div className="pt-2">
                     {isEnrolled ? (
                       <Link
-                        href={`/courses/${course.id}`}
+                        href={`/dashboard/lesson?courseId=${course.id}`}
                         className="w-full py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-all shadow-xs"
                       >
-                        <Check className="w-4 h-4" /> Enrolled • Open Course
+                        <Check className="w-4 h-4" /> Enrolled • Open Studio
                       </Link>
                     ) : (
                       <button

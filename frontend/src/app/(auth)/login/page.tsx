@@ -37,7 +37,7 @@ export default function LoginPage() {
         role = 'Instructor';
       }
 
-      const targetUrl = role === 'Admin' ? '/admin/courses' : role === 'Instructor' ? '/instructor' : '/dashboard';
+      const targetUrl = role === 'Admin' ? '/admin' : role === 'Instructor' ? '/instructor' : '/dashboard';
       let authenticated = false;
 
       // 1. Try FastAPI backend directly with 2.5s timeout
@@ -64,7 +64,7 @@ export default function LoginPage() {
           toast.success(`Welcome back, ${userName}! 🎓`, `Signed in as ${detectedRole}`);
           authenticated = true;
 
-          const destination = detectedRole === 'Admin' ? '/admin/courses' : detectedRole === 'Instructor' ? '/instructor' : '/dashboard';
+          const destination = detectedRole === 'Admin' ? '/admin' : detectedRole === 'Instructor' ? '/instructor' : '/dashboard';
           window.location.href = destination;
           return;
         }
@@ -97,7 +97,7 @@ export default function LoginPage() {
             toast.success(`Welcome back, ${userName}! 🎓`, `Signed in as ${detectedRole}`);
             authenticated = true;
 
-            const destination = detectedRole === 'Admin' ? '/admin/courses' : detectedRole === 'Instructor' ? '/instructor' : '/dashboard';
+            const destination = detectedRole === 'Admin' ? '/admin' : detectedRole === 'Instructor' ? '/instructor' : '/dashboard';
             window.location.href = destination;
             return;
           }
