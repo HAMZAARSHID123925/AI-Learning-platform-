@@ -156,13 +156,112 @@ function LessonPlayerContent() {
   const [dbLessonBody, setDbLessonBody] = useState<string | null>(null);
   const [mediaAssetUrl, setMediaAssetUrl] = useState<string | null>(null);
 
-  const [courseTitle, setCourseTitle] = useState<string>('Academic Preparation Track');
-  const [moduleTitle, setModuleTitle] = useState<string>('Advanced Vocabulary & Structure');
+  const [courseTitle, setCourseTitle] = useState<string>('Full-Stack Computer Science & Python Mastery');
+  const [moduleTitle, setModuleTitle] = useState<string>('Module 1: Computational Logic & Python Foundations');
 
   // Dynamic backend loading: Fetch course syllabus and requested lesson
   useEffect(() => {
     async function loadDynamicCourseAndLesson() {
-      // 1. If courseId is passed, fetch full syllabus and all modules/lessons
+      // Preset multi-subject syllabi
+      if (requestedCourseId === 'eng-201' || requestedCourseId === 'eng-academic') {
+        setCourseTitle('English Grammar, Academic Writing & Fluency');
+        setModuleTitle('Module 1: Advanced Grammar & Syntactic Range');
+        setLessons([
+          {
+            id: 'les-eng-1',
+            title: '1. Complex Clause Construction & Coordination',
+            type: 'video',
+            duration: '14 mins',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            completed: false,
+            description: 'Master dependent clauses, coordinating conjunctions, and sentence variety for clear academic writing.',
+            overviewNotes: [
+              'Understand independent vs dependent clause boundaries.',
+              'Use transitional phrases with accurate comma placement.',
+              'Avoid run-on sentences and comma splices in academic essays.'
+            ],
+            transcript: [
+              { time: '00:00', text: 'Welcome to English Grammar Mastery. In this unit, we explore complex clauses.' },
+              { time: '04:10', text: 'Subordinating conjunctions establish logical relationships between ideas.' },
+              { time: '08:30', text: 'Let us analyze high-scoring sample sentences and correct common errors.' }
+            ]
+          },
+          {
+            id: 'les-eng-2',
+            title: '2. Academic Collocations & Vocabulary Reference Sheet',
+            type: 'pdf',
+            duration: 'PDF Document • 10 mins',
+            pdfUrl: '/logo.png',
+            completed: false,
+            description: 'Curated reference list of formal academic vocabulary, linking words, and high-frequency collocations.',
+            overviewNotes: [
+              '100+ formal academic collocations with example sentences.',
+              'Guidelines on avoiding conversational slang in formal writing.',
+              'Practice sentence transformation exercises.'
+            ],
+            transcript: []
+          },
+          {
+            id: 'les-eng-3',
+            title: '3. Grammar & Clause Structure Checkpoint Quiz',
+            type: 'quiz',
+            duration: '5 Questions • 10 mins',
+            completed: false,
+            description: 'Evaluate your ability to identify clause types and punctuation rules.',
+            overviewNotes: [
+              'Complete all questions to unlock the next module.',
+              'Instant AI score breakdown with detailed explanations.'
+            ],
+            transcript: [],
+            quizQuestions: [
+              {
+                question: 'Which of the following is a complex sentence?',
+                options: [
+                  'Although the experiment failed, the researchers gained valuable data.',
+                  'The experiment failed and the researchers stopped.',
+                  'The experiment failed.',
+                  'The researchers tested the sample in the laboratory.'
+                ],
+                correct: 0,
+                explanation: 'A complex sentence contains an independent clause and at least one dependent clause (beginning with "Although").'
+              }
+            ]
+          }
+        ]);
+        setActiveLessonId('les-eng-1');
+        return;
+      } else if (requestedCourseId === 'math-301' || requestedCourseId === 'math-algebra') {
+        setCourseTitle('Algebra & Problem Solving Masterclass');
+        setModuleTitle('Module 1: Linear Equations & Systems');
+        setLessons([
+          {
+            id: 'les-math-1',
+            title: '1. Solving Multi-Step Linear Equations',
+            type: 'video',
+            duration: '16 mins',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            completed: false,
+            description: 'Step-by-step methodology for isolating variables across equality balance lines.',
+            overviewNotes: [
+              'Apply inverse operations symmetrically to both sides of an equation.',
+              'Clear fractions and decimals using the least common denominator.',
+              'Verify solutions through direct substitution.'
+            ],
+            transcript: [
+              { time: '00:00', text: 'Welcome to Algebra Masterclass. Today we solve multi-step linear equations.' },
+              { time: '05:00', text: 'Think of an algebraic equation as a balanced scale.' },
+              { time: '10:15', text: 'Let us solve 3x + 7 = 22 step-by-step.' }
+            ]
+          }
+        ]);
+        setActiveLessonId('les-math-1');
+        return;
+      } else {
+        setCourseTitle('Full-Stack Computer Science & Python Mastery');
+        setModuleTitle('Module 1: Computational Logic & Python Foundations');
+      }
+
+      // 1. If backend courseId is passed, attempt live fetch
       if (requestedCourseId) {
         try {
           const res = await fetch(`http://localhost:8000/api/v1/courses/${requestedCourseId}`);
@@ -541,121 +640,90 @@ function LessonPlayerContent() {
 
         {/* Interactive Media Stage */}
         {activeLesson.type === 'video' ? (
-          <div className="w-full bg-[#0B1221] relative flex flex-col items-center justify-center group overflow-hidden">
-            {/* HTML5 Video Element */}
-            <video 
-              ref={videoRef}
-              src={activeLesson.videoUrl}
-              className="w-full max-h-[460px] aspect-video object-contain"
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onClick={togglePlay}
-            />
-
-            {/* Floating Central Play Overlay when paused */}
-            {!isPlaying && (
-              <div 
-                onClick={togglePlay} 
-                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xs cursor-pointer"
-              >
-                <div className="w-16 h-16 rounded-full bg-[#027FFF] text-white flex items-center justify-center hover:scale-110 transition-transform shadow-xl shadow-[#027FFF]/40">
-                  <Play className="w-7 h-7 fill-white ml-1" />
-                </div>
-                <p className="text-white font-bold text-sm mt-3 drop-shadow">Click to Play Lesson Video</p>
-                <p className="text-white/70 text-xs mt-0.5">Duration: {activeLesson.duration}</p>
-              </div>
-            )}
-
-            {/* Custom Bottom Video Controller Bar */}
-            <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 flex flex-col gap-2 z-10">
-              {/* Progress Slider */}
-              <input 
-                type="range" 
-                min={0} 
-                max={duration || 100} 
-                value={currentTime} 
-                onChange={handleSeek}
-                className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#027FFF]"
+          <div className="w-full bg-[#0B1221] border-b border-slate-800 flex items-center justify-center p-0 md:p-6 lg:p-8">
+            {/* Embedded Responsive 16:9 Video Player */}
+            <div className="w-full max-w-4xl aspect-video rounded-none md:rounded-3xl overflow-hidden shadow-2xl bg-black relative border border-slate-800">
+              <iframe
+                src={activeLesson.videoUrl?.includes('youtube') 
+                  ? activeLesson.videoUrl 
+                  : (requestedCourseId?.includes('eng') 
+                      ? "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+                      : requestedCourseId?.includes('math')
+                      ? "https://www.youtube-nocookie.com/embed/NybHckSEQBI?autoplay=0&rel=0"
+                      : "https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=0&rel=0"
+                    )}
+                title={activeLesson.title}
+                className="w-full h-full object-cover"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
               />
-
-              <div className="flex items-center justify-between text-white text-xs">
-                <div className="flex items-center gap-3">
-                  <button onClick={togglePlay} className="hover:text-[#5BC0EB] transition-colors">
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-white" />}
-                  </button>
-                  <button onClick={toggleMute} className="hover:text-[#5BC0EB] transition-colors">
-                    {isMuted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5" />}
-                  </button>
-                  <span className="font-mono text-[11px] text-white/80">
-                    {formatTime(currentTime)} / {formatTime(duration || 720)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={changeSpeed}
-                    className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 font-bold text-[11px] transition-colors"
-                  >
-                    {playbackRate}x Speed
-                  </button>
-                  <button 
-                    onClick={() => {
-                      if (videoRef.current?.requestFullscreen) videoRef.current.requestFullscreen();
-                    }} 
-                    className="hover:text-[#5BC0EB] transition-colors"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         ) : activeLesson.type === 'pdf' ? (
-          /* PDF / Document Reader Stage */
-          <div className="w-full bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-12 text-white flex flex-col justify-between min-h-[360px] relative overflow-hidden">
-            <div className="max-w-2xl relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold mb-4">
+          /* PDF / Interactive Document Reader Stage */
+          <div className="w-full bg-slate-900 border-b border-slate-800 p-6 md:p-8 text-white min-h-[420px] flex flex-col justify-between relative overflow-hidden">
+            <div className="max-w-3xl space-y-4 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold">
                 <FileText className="w-3.5 h-3.5" />
-                <span>Examiner Verified PDF Guide</span>
+                <span>Interactive Study Document &amp; Reference Guide</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-3">
-                {activeLesson.title}
-              </h2>
-              <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                Download the complete companion reference document containing curated academic collocations, sample Task 2 sentences, and vocabulary drills.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
+
+              <div>
+                <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+                  {activeLesson.title}
+                </h2>
+                <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+                  {activeLesson.description}
+                </p>
+              </div>
+
+              {/* In-Browser Document Preview Sheet */}
+              <div className="p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-xs text-slate-200 space-y-2.5 max-w-2xl font-mono">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2 text-[11px] text-cyan-300 font-bold">
+                  <span>📄 DOCUMENT SYNOPSIS</span>
+                  <span>VERIFIED FACULTY GUIDE</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  {activeLesson.overviewNotes.map((note, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-emerald-400 font-bold">▶</span>
+                      <span>{note}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <a 
                   href="/logo.png" 
-                  download="Lexical_Guide.pdf"
-                  className="px-5 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+                  download="Reference_Guide.pdf"
+                  className="px-5 py-3 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
                 >
                   <Download className="w-4 h-4" />
-                  Download Complete PDF (2.4 MB)
+                  Download Reference PDF
                 </a>
                 <button 
                   onClick={handleToggleComplete}
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors"
+                  className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
                 >
                   {activeLesson.completed ? '✓ Read & Completed' : 'Mark as Read'}
                 </button>
               </div>
             </div>
-            <div className="absolute right-6 bottom-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
           </div>
         ) : (
           /* Interactive Quiz Stage */
           <div className="w-full bg-gradient-to-br from-purple-950 via-slate-900 to-slate-900 p-8 md:p-10 text-white flex flex-col justify-between min-h-[340px] relative">
-            <div className="max-w-2xl z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold mb-4">
+            <div className="max-w-2xl z-10 space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold">
                 <Award className="w-3.5 h-3.5" />
                 <span>Interactive Knowledge Checkpoint</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                 {activeLesson.title}
               </h2>
-              <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-4">
-                Complete this 5-minute checkpoint to validate your retention and update your adaptive diagnostic model.
+              <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
+                Complete this checkpoint to test your mastery and update your adaptive diagnostic model.
               </p>
               <button 
                 onClick={() => setActiveTab('quiz')}
@@ -773,7 +841,7 @@ function LessonPlayerContent() {
                   <h3 className="text-sm font-bold text-slate-900 mb-3">Lesson Resources &amp; Downloads</h3>
                   <a 
                     href="/logo.png" 
-                    download="Lexical_Guide.pdf"
+                    download="Lesson_Reference_Guide.pdf"
                     className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white hover:border-[#027FFF] transition-all shadow-2xs group max-w-md"
                   >
                     <div className="flex items-center gap-3">
@@ -782,9 +850,11 @@ function LessonPlayerContent() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">
-                          Lexical_Resource_Mastery_Guide.pdf
+                          {courseTitle.includes('Python') ? 'Python_Core_CheatSheet_Guide.pdf' :
+                           courseTitle.includes('English') ? 'Academic_Writing_Syntax_Guide.pdf' :
+                           'Mathematics_Equations_Workbook.pdf'}
                         </p>
-                        <p className="text-[11px] text-slate-400">2.4 MB • Cambridge Rubric Reference</p>
+                        <p className="text-[11px] text-slate-400">2.4 MB • Official Faculty Lesson Companion</p>
                       </div>
                     </div>
                     <Download className="w-4 h-4 text-slate-400 group-hover:text-[#027FFF] transition-colors" />

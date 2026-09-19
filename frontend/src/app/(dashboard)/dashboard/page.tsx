@@ -305,7 +305,7 @@ export default function DashboardOverviewPage() {
               {/* Action Column */}
               <div className="shrink-0 flex flex-col gap-3 w-full lg:w-64">
                 <Link
-                  href={`/courses/${primaryCourse.course_id}`}
+                  href={`/dashboard/lesson?courseId=${primaryCourse.course_id}`}
                   className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#027FFF] to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black text-sm shadow-lg flex items-center justify-center gap-2.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <Play className="w-4 h-4 fill-white" /> Resume Lesson Now
@@ -467,7 +467,7 @@ export default function DashboardOverviewPage() {
                       />
                     </div>
                     <Link 
-                      href={`/courses/${c.course_id}`}
+                      href={`/dashboard/lesson?courseId=${c.course_id}`}
                       className="w-full py-2.5 mt-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all group-hover:bg-[#027FFF] group-hover:text-white group-hover:border-[#027FFF]"
                     >
                       <span>Continue Subject</span>

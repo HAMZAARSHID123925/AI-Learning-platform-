@@ -36,203 +36,15 @@ interface SubjectTrack {
 
 const SUBJECT_TRACKS: SubjectTrack[] = [
   {
-    id: "ielts_academic",
-    title: "IELTS & Academic English",
-    shortDesc: "Cambridge Band 9.0 grammar inversion, lexical resource collocations, and T/F/NG deduction.",
-    badge: "Official Cambridge Criteria",
-    iconName: "GraduationCap",
+    id: "computer_science",
+    title: "Computer Science & Python",
+    shortDesc: "Computational logic, algorithmic time complexity (Big-O), data structures, and Python programming fundamentals.",
+    badge: "CS & Software Engineering",
+    iconName: "Code2",
     color: "from-blue-600 to-indigo-700",
-    durationMinutes: 10,
-    questionCount: 6,
-    skills: ["Syntactic Inversion", "Academic Collocations", "Reading Deduction", "Subordinate Clauses"],
-    questions: [
-      {
-        id: 1,
-        category: "Grammar (GRA)",
-        prompt: "Choose the grammatically advanced (Band 8.5+) inversion structure to complete the sentence:",
-        context: "________ the gravity of environmental degradation, governments would implement compulsory solar subsidies.",
-        options: [
-          "If citizens understood",
-          "Were citizens to recognize",
-          "Should citizens understood",
-          "Citizens recognizing"
-        ],
-        correctAnswer: "Were citizens to recognize",
-        impactMetric: "Syntactic Inversion & Conditional Subjunctive Mastery",
-        explanation: "Conditional inversion with 'Were [subject] to [verb]' is a definitive marker of Band 8.5+ Grammatical Range and Accuracy (GRA)."
-      },
-      {
-        id: 2,
-        category: "Academic Collocations",
-        prompt: "Which high-register phrase best replaces 'has a very bad effect on' in IELTS Academic Writing Task 2?",
-        context: "Unregulated urbanization ________ local biodiversity and ecosystem equilibrium.",
-        options: [
-          "makes big trouble for",
-          "exerts a severely detrimental influence upon",
-          "creates huge bad damage to",
-          "brings poor results against"
-        ],
-        correctAnswer: "exerts a severely detrimental influence upon",
-        impactMetric: "C2 Academic Collocation Register",
-        explanation: "'Exerts a severely detrimental influence upon' elevates the lexical score to Band 8.5+ compared to basic phrasing."
-      },
-      {
-        id: 3,
-        category: "Reading Coherence",
-        prompt: "Identify the correct True / False / Not Given deduction:",
-        context: "Passage extract: 'While initial archaeological hypotheses suggested Mesopotamian origin, contemporary radiocarbon dating confirms Egyptian hieroglyphs developed independently around 3200 BCE.'\n\nStatement: 'Mesopotamian merchants introduced writing techniques to early Egyptian dynasties.'",
-        options: [
-          "TRUE",
-          "FALSE",
-          "NOT GIVEN"
-        ],
-        correctAnswer: "FALSE",
-        impactMetric: "Reading Inference & Deduction (T/F/NG)",
-        explanation: "The passage confirms Egyptian hieroglyphs developed 'independently', directly contradicting the statement that Mesopotamian merchants introduced it (FALSE)."
-      },
-      {
-        id: 4,
-        category: "Lexical Resource",
-        prompt: "Select the most precise academic synonym for 'present everywhere':",
-        context: "Portable digital devices have become ________ in 21st-century educational environments.",
-        options: [
-          "ubiquitous",
-          "preponderance",
-          "momentous",
-          "proponents"
-        ],
-        correctAnswer: "ubiquitous",
-        impactMetric: "Band 8.5 Lexicon Precision",
-        explanation: "'Ubiquitous' specifically denotes existing or being encountered everywhere simultaneously."
-      },
-      {
-        id: 5,
-        category: "Grammar (GRA)",
-        prompt: "Select the sentence with impeccable punctuation and cohesive coordination:",
-        options: [
-          "Although international tourism generates substantial economic revenue; it frequently leads to environmental degradation.",
-          "International tourism generates substantial revenue, however, it damages local flora.",
-          "While international tourism generates substantial revenue, it frequently precipitates ecological degradation.",
-          "International tourism generates revenue, because of this local flora is damaged."
-        ],
-        correctAnswer: "While international tourism generates substantial revenue, it frequently precipitates ecological degradation.",
-        impactMetric: "Complex Subordinate Clause Coordination",
-        explanation: "The dependent clause beginning with 'While' followed cleanly by a comma and independent clause represents correct Cambridge academic syntax."
-      },
-      {
-        id: 6,
-        category: "Cohesion & Transition",
-        prompt: "Choose the optimal discourse linker to introduce a counter-perspective in Task 2:",
-        context: "Many argue that online education lacks social immersion. ________, empirical surveys reveal high student engagement.",
-        options: [
-          "Conversly / On the other side",
-          "Notwithstanding this assertion",
-          "At the end of the day",
-          "As a matter of fact"
-        ],
-        correctAnswer: "Notwithstanding this assertion",
-        impactMetric: "Advanced Discourse Linkers (Coherence & Cohesion)",
-        explanation: "'Notwithstanding this assertion' is an exemplary Band 8.5+ transitional phrase that substantiates nuanced argumentation."
-      }
-    ]
-  },
-  {
-    id: "general_english",
-    title: "General English & Fluency",
-    shortDesc: "Everyday communication, CEFR grammar, situational idioms, and spoken sentence flow.",
-    badge: "CEFR A1–C2 Standard",
-    iconName: "Globe",
-    color: "from-emerald-600 to-teal-700",
     durationMinutes: 8,
     questionCount: 5,
-    skills: ["Verb Tenses & Conditionals", "Phrasal Verbs", "Prepositional Nuance", "Idiomatic Accuracy"],
-    questions: [
-      {
-        id: 1,
-        category: "Tenses & Aspect",
-        prompt: "Select the most natural and grammatically correct option:",
-        context: "By the time we arrive at the conference hall tomorrow morning, the keynote speaker ________ his presentation.",
-        options: [
-          "will have already begun",
-          "will already begin",
-          "already begins",
-          "had already begun"
-        ],
-        correctAnswer: "will have already begun",
-        impactMetric: "Future Perfect Aspect (C1 Mastery)",
-        explanation: "The Future Perfect ('will have already begun') indicates an action that will be completed before a specified future time point."
-      },
-      {
-        id: 2,
-        category: "Phrasal Verbs",
-        prompt: "Choose the phrasal verb that means 'to tolerate or endure a difficult situation':",
-        context: "I really cannot ________ this continuous noise while trying to study for exams.",
-        options: [
-          "put up with",
-          "give in to",
-          "run out of",
-          "look down on"
-        ],
-        correctAnswer: "put up with",
-        impactMetric: "Idiomatic Phrasal Mastery",
-        explanation: "'Put up with' means to tolerate or endure someone or something unpleasant."
-      },
-      {
-        id: 3,
-        category: "Conditionals",
-        prompt: "Complete the third conditional sentence correctly:",
-        context: "If she ________ about the traffic congestion, she would have taken the metro instead.",
-        options: [
-          "had known",
-          "knew",
-          "would know",
-          "has known"
-        ],
-        correctAnswer: "had known",
-        impactMetric: "Past Unreal Hypotheticals",
-        explanation: "The third conditional takes 'had + past participle' in the if-clause and 'would have + past participle' in the main clause."
-      },
-      {
-        id: 4,
-        category: "Vocabulary & Register",
-        prompt: "Select the phrase that is most appropriate for a professional workplace email:",
-        options: [
-          "I am writing to inquire regarding the project timeline update.",
-          "Hey, tell me what is going on with the project.",
-          "I want you to send me the project dates now.",
-          "What is the status ASAP please?"
-        ],
-        correctAnswer: "I am writing to inquire regarding the project timeline update.",
-        impactMetric: "Formal Business Register (B2/C1)",
-        explanation: "'I am writing to inquire regarding...' provides the ideal polite, formal register for corporate communication."
-      },
-      {
-        id: 5,
-        category: "Prepositional Usage",
-        prompt: "Choose the correct preposition to complete the sentence:",
-        context: "She has been proficient ________ software engineering and data analysis since her undergraduate studies.",
-        options: [
-          "in",
-          "at",
-          "with",
-          "for"
-        ],
-        correctAnswer: "in",
-        impactMetric: "Collocational Prepositions",
-        explanation: "'Proficient in' is the standard English collocation when referring to a skill, subject, or language."
-      }
-    ]
-  },
-  {
-    id: "computer_science",
-    title: "Computer Science & Programming",
-    shortDesc: "Data structures, algorithmic complexity, Python syntax, and core software engineering concepts.",
-    badge: "CS & Tech Diagnostic",
-    iconName: "Code2",
-    color: "from-purple-600 to-indigo-900",
-    durationMinutes: 10,
-    questionCount: 5,
-    skills: ["Big-O Complexity", "Data Structures", "Python & JS Syntax", "System Fundamentals"],
+    skills: ["Big-O Complexity", "Recursive Trees & Stacks", "Python Comprehensions", "REST API Semantics", "ACID Transactions"],
     questions: [
       {
         id: 1,
@@ -292,86 +104,270 @@ const SUBJECT_TRACKS: SubjectTrack[] = [
       },
       {
         id: 5,
-        category: "Concurrency & Memory",
-        prompt: "In relational databases, what does the 'I' in the ACID transaction acronym stand for?",
+        category: "Database Engineering",
+        prompt: "In relational database transactions, what does the 'I' in the ACID acronym guarantee?",
         options: [
-          "Isolation",
-          "Integrity",
-          "Indexing",
-          "Idempotency"
+          "Isolation (Concurrent transactions execute without interference)",
+          "Integrity (Data types match schema constraints)",
+          "Indexing (B-Tree lookups are automatically generated)",
+          "Idempotency (Queries can be retried without duplicate writes)"
         ],
-        correctAnswer: "Isolation",
-        impactMetric: "Database ACID Compliance",
-        explanation: "ACID stands for Atomicity, Consistency, Isolation, and Durability."
+        correctAnswer: "Isolation (Concurrent transactions execute without interference)",
+        impactMetric: "ACID Concurrency Compliance",
+        explanation: "Isolation ensures concurrent transactions execute in a manner that leaves the database in the same state as if they had executed serially."
       }
     ]
   },
   {
-    id: "business_english",
-    title: "Business & Executive Communication",
-    shortDesc: "Executive reporting, client negotiations, diplomatic phrasing, and email etiquette.",
-    badge: "Executive Workplace",
-    iconName: "MessageSquare",
+    id: "mathematics",
+    title: "Higher Mathematics & Calculus",
+    shortDesc: "Differential calculus, linear transformations, quadratic equations, and geometric problem solving.",
+    badge: "STEM & Applied Mathematics",
+    iconName: "BrainCircuit",
     color: "from-amber-600 to-orange-700",
     durationMinutes: 8,
-    questionCount: 4,
-    skills: ["Diplomatic Tone", "Stakeholder Negotiation", "Executive Summaries", "Email Register"],
+    questionCount: 5,
+    skills: ["Derivatives & Rates of Change", "Matrix Algebra", "Quadratic Roots", "Definite Integrals", "Vector Operations"],
     questions: [
       {
         id: 1,
-        category: "Diplomatic Language",
-        prompt: "Which sentence conveys constructive disagreement with maximum diplomatic tact?",
+        category: "Calculus",
+        prompt: "What is the derivative of f(x) = 3x³ - 5x² + 7 with respect to x?",
         options: [
-          "While I appreciate your perspective, we might consider exploring alternative contingency options.",
-          "Your proposal will definitely not work in this quarter.",
-          "I disagree completely because your budget calculations are flawed.",
-          "We cannot do what you said."
+          "f'(x) = 9x² - 10x",
+          "f'(x) = 9x³ - 10x² + 7",
+          "f'(x) = 6x² - 5x",
+          "f'(x) = 3x² - 5x + 7"
         ],
-        correctAnswer: "While I appreciate your perspective, we might consider exploring alternative contingency options.",
-        impactMetric: "Softened Assertions & Diplomatic Register",
-        explanation: "Using modal softening ('might consider', 'while I appreciate') prevents defensiveness while steering strategy."
+        correctAnswer: "f'(x) = 9x² - 10x",
+        impactMetric: "Polynomial Power Rule Differentiation",
+        explanation: "Applying the power rule d/dx[xⁿ] = n·xⁿ⁻¹ gives 3·3x² - 5·2x + 0 = 9x² - 10x."
       },
       {
         id: 2,
-        category: "Executive Precision",
-        prompt: "Choose the most concise executive summary phrase to replace 'due to the fact that':",
+        category: "Algebra",
+        prompt: "What are the roots of the quadratic equation x² - 7x + 12 = 0?",
         options: [
-          "Because / As",
-          "In light of the reality that",
-          "Owing to the circumstance where",
-          "Taking into true consideration that"
+          "x = 3 and x = 4",
+          "x = -3 and x = -4",
+          "x = 2 and x = 6",
+          "x = -2 and x = -6"
         ],
-        correctAnswer: "Because / As",
-        impactMetric: "Concision & Clutter Elimination",
-        explanation: "Executive business writing prioritizes brevity; 'because' or 'as' directly replaces bloated 5-word phrases."
+        correctAnswer: "x = 3 and x = 4",
+        impactMetric: "Quadratic Factorization & Root Finding",
+        explanation: "Factoring (x - 3)(x - 4) = 0 gives solutions x = 3 and x = 4."
       },
       {
         id: 3,
-        category: "Negotiation Terms",
-        prompt: "In commercial contracting, what does a 'Force Majeure' clause protect against?",
+        category: "Linear Algebra",
+        prompt: "What does the determinant of a 2x2 transformation matrix geometrically represent?",
         options: [
-          "Unforeseeable external catastrophes (acts of God) preventing contract fulfillment",
-          "Minor billing delays caused by currency fluctuations",
-          "Staff resignations during peak delivery periods",
-          "Marketing budget overspending"
+          "The scale factor by which the transformation alters area",
+          "The perimeter of the transformed unit circle",
+          "The exact angle of 2D rotation",
+          "The number of eigenvalues in the vector space"
         ],
-        correctAnswer: "Unforeseeable external catastrophes (acts of God) preventing contract fulfillment",
-        impactMetric: "Contractual Vocabulary",
-        explanation: "Force Majeure relieves parties from liability upon the occurrence of extraordinary events beyond reasonable control."
+        correctAnswer: "The scale factor by which the transformation alters area",
+        impactMetric: "Geometric Matrix Transformation",
+        explanation: "The determinant of a 2x2 matrix measures the factor by which area expands or contracts under that linear mapping."
       },
       {
         id: 4,
-        category: "Client Relationship",
-        prompt: "What is the best way to open an email acknowledging a customer complaint?",
+        category: "Integral Calculus",
+        prompt: "Evaluate the definite integral ∫ from 0 to 2 of (2x) dx:",
         options: [
-          "Thank you for bringing this issue to our attention. We are actively investigating...",
-          "We received your complaint and will see if it is our fault.",
-          "You should have contacted us earlier about this mistake.",
-          "Why did this problem happen on your end?"
+          "4",
+          "2",
+          "8",
+          "6"
         ],
-        correctAnswer: "Thank you for bringing this issue to our attention. We are actively investigating...",
-        impactMetric: "Client Service Empathy & Assurance",
-        explanation: "Opening with appreciation and immediate ownership establishes credibility and de-escalates tension."
+        correctAnswer: "4",
+        impactMetric: "Fundamental Theorem of Calculus",
+        explanation: "The antiderivative is x². Evaluating from 0 to 2 gives 2² - 0² = 4."
+      },
+      {
+        id: 5,
+        category: "Probability",
+        prompt: "If two fair 6-sided dice are rolled simultaneously, what is the probability of rolling a sum of 7?",
+        options: [
+          "6/36 (1/6)",
+          "5/36",
+          "7/36",
+          "1/12"
+        ],
+        correctAnswer: "6/36 (1/6)",
+        impactMetric: "Combinatorial Sample Space",
+        explanation: "The combinations yielding 7 are (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) totaling 6 outcomes out of 36 (1/6)."
+      }
+    ]
+  },
+  {
+    id: "academic_english",
+    title: "Academic English & Rhetoric",
+    shortDesc: "Cambridge Band 8.5+ syntactic inversion, academic vocabulary collocations, and logical argumentation.",
+    badge: "Linguistics & Advanced Writing",
+    iconName: "GraduationCap",
+    color: "from-emerald-600 to-teal-700",
+    durationMinutes: 8,
+    questionCount: 5,
+    skills: ["Syntactic Inversion", "Academic Collocations", "Reading Deduction", "Subordinate Coordination", "Discourse Linkers"],
+    questions: [
+      {
+        id: 1,
+        category: "Grammar & Syntax",
+        prompt: "Choose the grammatically advanced inversion structure to complete the sentence:",
+        context: "________ the gravity of environmental degradation, governments would implement compulsory solar subsidies.",
+        options: [
+          "Were citizens to recognize",
+          "If citizens understood",
+          "Should citizens understood",
+          "Citizens recognizing"
+        ],
+        correctAnswer: "Were citizens to recognize",
+        impactMetric: "Conditional Subjunctive Inversion",
+        explanation: "Conditional inversion with 'Were [subject] to [verb]' is a definitive marker of advanced Grammatical Range."
+      },
+      {
+        id: 2,
+        category: "Academic Collocations",
+        prompt: "Which high-register phrase best replaces 'has a very bad effect on' in formal essays?",
+        context: "Unregulated urbanization ________ local biodiversity and ecosystem equilibrium.",
+        options: [
+          "exerts a severely detrimental influence upon",
+          "makes big trouble for",
+          "creates huge bad damage to",
+          "brings poor results against"
+        ],
+        correctAnswer: "exerts a severely detrimental influence upon",
+        impactMetric: "C2 Academic Collocation Register",
+        explanation: "'Exerts a severely detrimental influence upon' elevates the lexical score compared to basic conversational phrasing."
+      },
+      {
+        id: 3,
+        category: "Vocabulary Precision",
+        prompt: "Select the most precise academic synonym for 'present everywhere simultaneously':",
+        context: "Portable digital devices have become ________ in 21st-century educational environments.",
+        options: [
+          "ubiquitous",
+          "preponderance",
+          "momentous",
+          "proponents"
+        ],
+        correctAnswer: "ubiquitous",
+        impactMetric: "Lexicon Precision (C2 Register)",
+        explanation: "'Ubiquitous' specifically denotes existing or being encountered everywhere simultaneously."
+      },
+      {
+        id: 4,
+        category: "Complex Coordination",
+        prompt: "Select the sentence with impeccable punctuation and cohesive coordination:",
+        options: [
+          "While international tourism generates substantial revenue, it frequently precipitates ecological degradation.",
+          "Although international tourism generates substantial economic revenue; it frequently leads to environmental degradation.",
+          "International tourism generates substantial revenue, however, it damages local flora.",
+          "International tourism generates revenue, because of this local flora is damaged."
+        ],
+        correctAnswer: "While international tourism generates substantial revenue, it frequently precipitates ecological degradation.",
+        impactMetric: "Subordinate Clause Coordination",
+        explanation: "The dependent clause beginning with 'While' followed cleanly by a comma and independent clause represents correct academic syntax."
+      },
+      {
+        id: 5,
+        category: "Discourse Linkers",
+        prompt: "Choose the optimal discourse linker to introduce a counter-perspective:",
+        context: "Many argue that online education lacks social immersion. ________, empirical surveys reveal high student engagement.",
+        options: [
+          "Notwithstanding this assertion",
+          "Conversly / On the other side",
+          "At the end of the day",
+          "As a matter of fact"
+        ],
+        correctAnswer: "Notwithstanding this assertion",
+        impactMetric: "Advanced Discourse Nuance",
+        explanation: "'Notwithstanding this assertion' is an exemplary transitional phrase that substantiates nuanced argumentation."
+      }
+    ]
+  },
+  {
+    id: "applied_science",
+    title: "Applied Science & Physics",
+    shortDesc: "Newtonian mechanics, gravitational orbits, energy thermodynamics, and empirical inquiry.",
+    badge: "Physical Sciences & Research",
+    iconName: "Globe",
+    color: "from-purple-600 to-pink-700",
+    durationMinutes: 8,
+    questionCount: 5,
+    skills: ["Kinematics & Gravity", "Thermodynamics", "Electromagnetism", "Scientific Method", "Orbital Mechanics"],
+    questions: [
+      {
+        id: 1,
+        category: "Classical Mechanics",
+        prompt: "According to Newton's Second Law of Motion, if net force F is doubled while mass m remains constant, what happens to acceleration a?",
+        options: [
+          "Acceleration doubles (a' = 2a)",
+          "Acceleration is halved (a' = a/2)",
+          "Acceleration quadruples (a' = 4a)",
+          "Acceleration remains unchanged"
+        ],
+        correctAnswer: "Acceleration doubles (a' = 2a)",
+        impactMetric: "Newtonian Force Proportionality",
+        explanation: "F = ma ➔ a = F/m. Doubling force F directly doubles acceleration a."
+      },
+      {
+        id: 2,
+        category: "Astrophysics & Gravity",
+        prompt: "How does the gravitational force between two planets change if the distance between their centers is tripled?",
+        options: [
+          "It decreases to 1/9 of its original strength",
+          "It decreases to 1/3 of its original strength",
+          "It increases by 3 times",
+          "It decreases to 1/6 of its original strength"
+        ],
+        correctAnswer: "It decreases to 1/9 of its original strength",
+        impactMetric: "Inverse-Square Law Formulation",
+        explanation: "Newton's law of universal gravitation follows an inverse-square relationship F ∝ 1/r². Tripling r scales force by 1/3² = 1/9."
+      },
+      {
+        id: 3,
+        category: "Thermodynamics",
+        prompt: "What fundamental physical principle states that total energy in an isolated system remains constant over time?",
+        options: [
+          "First Law of Thermodynamics (Conservation of Energy)",
+          "Second Law of Thermodynamics (Entropy Increase)",
+          "Bernoulli's Principle",
+          "Heisenberg Uncertainty Principle"
+        ],
+        correctAnswer: "First Law of Thermodynamics (Conservation of Energy)",
+        impactMetric: "Thermodynamic Energy Conservation",
+        explanation: "The First Law of Thermodynamics establishes that energy cannot be created or destroyed, only converted from one form to another."
+      },
+      {
+        id: 4,
+        category: "Optics & Waves",
+        prompt: "What wave phenomenon describes the change in observed frequency when a wave source moves relative to an observer?",
+        options: [
+          "Doppler Effect",
+          "Refraction",
+          "Diffraction",
+          "Photoelectric Effect"
+        ],
+        correctAnswer: "Doppler Effect",
+        impactMetric: "Wave Mechanics & Frequency Shift",
+        explanation: "The Doppler Effect causes a higher pitch/frequency as a source approaches and lower frequency as it recedes."
+      },
+      {
+        id: 5,
+        category: "Electromagnetism",
+        prompt: "Which particle carries the fundamental negative electric charge in atomic structures?",
+        options: [
+          "Electron",
+          "Proton",
+          "Neutron",
+          "Positron"
+        ],
+        correctAnswer: "Electron",
+        impactMetric: "Atomic & Particle Physics",
+        explanation: "Electrons carry a fundamental negative electrical charge (-1.602 × 10⁻¹⁹ C) orbiting the atomic nucleus."
       }
     ]
   }
@@ -380,7 +376,7 @@ const SUBJECT_TRACKS: SubjectTrack[] = [
 export default function DiagnosticPlacementPage() {
   const router = useRouter();
 
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("ielts_academic");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("computer_science");
   const [currentStep, setCurrentStep] = useState<"choose_subject" | "test" | "results">("choose_subject");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -427,117 +423,121 @@ export default function DiagnosticPlacementPage() {
 
   const accuracyPct = Math.round((correctCount / questions.length) * 100);
 
-  // Subject-specific score interpretations
+  // Subject-specific score interpretations & recommended course routing
   let estimatedLevel = "Intermediate (B2)";
-  let scoreBadge = "Band 7.0";
-  let recommendedTrack = "Targeted Mastery Sprint";
+  let scoreBadge = "92% (A)";
+  let recommendedTrack = "Full-Stack Computer Science & Python Mastery";
+  let recommendedCourseId = "cs-101";
 
-  if (activeSubject.id === "ielts_academic") {
-    if (correctCount === 6) {
+  if (activeSubject.id === "computer_science") {
+    recommendedCourseId = "cs-101";
+    if (correctCount >= 4) {
+      scoreBadge = "98% (A+)";
+      estimatedLevel = "Advanced CS Specialist";
+      recommendedTrack = "Full-Stack Computer Science & Python Mastery (Module 3 & 4 Acceleration)";
+    } else if (correctCount >= 2) {
+      scoreBadge = "84% (B+)";
+      estimatedLevel = "Intermediate Programmer";
+      recommendedTrack = "Full-Stack Computer Science & Python Mastery (Core Data Structures)";
+    } else {
+      scoreBadge = "68% (C)";
+      estimatedLevel = "Foundational Learner";
+      recommendedTrack = "Full-Stack Computer Science & Python Mastery (Syntax & Logic Sprint)";
+    }
+  } else if (activeSubject.id === "mathematics") {
+    recommendedCourseId = "math-301";
+    if (correctCount >= 4) {
+      scoreBadge = "96% (A+)";
+      estimatedLevel = "Advanced Calculus & Linear Algebra Mastery";
+      recommendedTrack = "Advanced Mathematics, Calculus & Linear Algebra (Multivariable Track)";
+    } else if (correctCount >= 2) {
+      scoreBadge = "82% (B+)";
+      estimatedLevel = "Intermediate Mathematics";
+      recommendedTrack = "Advanced Mathematics, Calculus & Linear Algebra (Differential Equations)";
+    } else {
+      scoreBadge = "65% (C)";
+      estimatedLevel = "Algebraic Foundation";
+      recommendedTrack = "Advanced Mathematics, Calculus & Linear Algebra (Core Algebra)";
+    }
+  } else if (activeSubject.id === "academic_english") {
+    recommendedCourseId = "eng-201";
+    if (correctCount >= 4) {
       scoreBadge = "Band 8.5+";
-      estimatedLevel = "C2 (Mastery)";
-      recommendedTrack = "IELTS Band 8.5+ Inversion & Syntactic Mastery Course";
-    } else if (correctCount >= 4) {
+      estimatedLevel = "C2 Academic Mastery";
+      recommendedTrack = "Academic English, Rhetoric & Advanced Writing (Syntactic Inversion)";
+    } else if (correctCount >= 2) {
       scoreBadge = "Band 7.5";
-      estimatedLevel = "C1 (Operational Proficiency)";
-      recommendedTrack = "Academic Writing Task 2 & Speaking Fluency Track";
-    } else if (correctCount >= 2) {
-      scoreBadge = "Band 6.5";
-      estimatedLevel = "B2+ (Upper Intermediate)";
-      recommendedTrack = "Grammatical Range & Academic Collocations Sprint";
+      estimatedLevel = "C1 Operational Proficiency";
+      recommendedTrack = "Academic English, Rhetoric & Advanced Writing (Essay Cohesion)";
     } else {
-      scoreBadge = "Band 5.5";
-      estimatedLevel = "B1 (Intermediate)";
-      recommendedTrack = "Core IELTS Foundation & Vocabulary Accelerator";
-    }
-  } else if (activeSubject.id === "general_english") {
-    if (correctCount >= 4) {
-      scoreBadge = "C1 / C2";
-      estimatedLevel = "Advanced Fluent";
-      recommendedTrack = "Nuanced Idiomatic English & Spoken Precision";
-    } else if (correctCount >= 2) {
-      scoreBadge = "B2";
-      estimatedLevel = "Upper Intermediate";
-      recommendedTrack = "Complex Tenses & Professional Speaking Mastery";
-    } else {
-      scoreBadge = "B1";
-      estimatedLevel = "Intermediate";
-      recommendedTrack = "English Grammar & Everyday Conversational Basics";
-    }
-  } else if (activeSubject.id === "computer_science") {
-    if (correctCount >= 4) {
-      scoreBadge = "Senior / Advanced";
-      estimatedLevel = "Tier 1 CS Specialist";
-      recommendedTrack = "Full-Stack System Design & Advanced Algorithms";
-    } else if (correctCount >= 2) {
-      scoreBadge = "Mid-Level";
-      estimatedLevel = "Practicing Developer";
-      recommendedTrack = "Data Structures, Python Optimization & API Architecture";
-    } else {
-      scoreBadge = "Junior / Foundation";
-      estimatedLevel = "Tech Novice";
-      recommendedTrack = "Python & Web Development Fundamentals";
+      scoreBadge = "Band 6.0";
+      estimatedLevel = "B2 Upper Intermediate";
+      recommendedTrack = "Academic English, Rhetoric & Advanced Writing (Foundations)";
     }
   } else {
-    // Business English
-    if (correctCount >= 3) {
-      scoreBadge = "Executive Level";
-      estimatedLevel = "C1 Corporate Register";
-      recommendedTrack = "Executive Pitching & Stakeholder Negotiation Masterclass";
+    // Applied Science
+    recommendedCourseId = "sci-401";
+    if (correctCount >= 4) {
+      scoreBadge = "95% (A+)";
+      estimatedLevel = "Advanced Physical Sciences";
+      recommendedTrack = "Applied Physics, Mechanics & Space Exploration (Orbital Mechanics)";
+    } else if (correctCount >= 2) {
+      scoreBadge = "80% (B+)";
+      estimatedLevel = "Intermediate Physics";
+      recommendedTrack = "Applied Physics, Mechanics & Space Exploration (Newtonian Dynamics)";
     } else {
-      scoreBadge = "Associate Level";
-      estimatedLevel = "B2 Business Communication";
-      recommendedTrack = "Professional Workplace Email & Meeting Etiquette";
+      scoreBadge = "62% (C)";
+      estimatedLevel = "General Science Basics";
+      recommendedTrack = "Applied Physics, Mechanics & Space Exploration (Core Principles)";
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] text-slate-800 font-sans pt-28 pb-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Navigation & Brand Header */}
-        <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-200">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-[#027FFF] text-white flex items-center justify-center font-bold text-sm shadow-sm">
-              PP
-            </span>
-            <span className="font-extrabold text-base tracking-tight text-slate-900">
-              PPAcademia <span className="text-[#027FFF]">Diagnostic Hub</span>
-            </span>
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans pt-20 pb-20">
+      
+      {/* 1. Header Banner */}
+      <section className="relative w-full bg-[#001F3F] text-white pt-12 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#027FFF]/20 via-transparent to-transparent pointer-events-none"></div>
+        <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-2 text-xs font-bold text-white/60 hover:text-white transition-colors mb-3">
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
+            </Link>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-amber-400 font-label-sm text-xs font-bold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" /> Zero-Cost Multi-Discipline Benchmark
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Academy Diagnostic Placement
+            </h1>
+            <p className="text-sm text-white/80 mt-1 max-w-xl">
+              Calibrated baseline tests to evaluate your exact level across Computer Science, Higher Mathematics, Academic English, and Physical Sciences in under 8 minutes.
+            </p>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-[#027FFF] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Multi-Subject Engine</span>
+          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/15 text-xs text-white/90">
+            <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white">Instant AI Verification</p>
+              <p className="text-[11px] text-white/70">Personalized course pathway</p>
+            </div>
           </div>
         </div>
+      </section>
 
+      {/* 2. Main Stage Content (Floating Card Container) */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
+        
         {/* STEP 1: CHOOSE SUBJECT TRACK */}
         {currentStep === "choose_subject" && (
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
-            <div className="text-center max-w-2xl mx-auto space-y-3">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[#027FFF] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                Customized Assessment Matrix
-              </span>
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                Select Your Diagnostic Subject
-              </h1>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Choose a domain to benchmark your current skills. Our adaptive diagnostic testing engine evaluates your baseline proficiency in under 10 minutes.
-              </p>
-            </div>
-
-            {/* Subject Grid */}
+            
+            {/* Subject Selection Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {SUBJECT_TRACKS.map((subject) => {
                 return (
                   <div
                     key={subject.id}
-                    className="bg-white rounded-3xl p-7 border-2 border-slate-200/80 hover:border-[#027FFF] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white rounded-3xl p-7 border border-slate-200 shadow-sm hover:border-[#027FFF] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -578,9 +578,9 @@ export default function DiagnosticPlacementPage() {
                       </span>
                       <button
                         onClick={() => handleStartTest(subject.id)}
-                        className="px-5 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-[#027FFF]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+                        className="px-5 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-[#027FFF]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <span>Start Test</span>
+                        <span>Start Diagnostic</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -590,18 +590,18 @@ export default function DiagnosticPlacementPage() {
             </div>
 
             {/* Bottom Proof Strip */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 flex flex-wrap items-center justify-around gap-6 text-center text-xs text-slate-600">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-wrap items-center justify-around gap-6 text-center text-xs text-slate-600">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Examiner-calibrated question bank</span>
+                <span>Faculty-calibrated assessment battery</span>
               </div>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" />
-                <span>Instant score &amp; telemetry breakdown</span>
+                <span>Instant skill scoring &amp; telemetry breakdown</span>
               </div>
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-blue-600" />
-                <span>Automatic personalized course matching</span>
+                <span>Direct personalized curriculum recommendations</span>
               </div>
             </div>
           </div>
@@ -609,7 +609,7 @@ export default function DiagnosticPlacementPage() {
 
         {/* STEP 2: ACTIVE QUESTION TEST BATTERY */}
         {currentStep === "test" && (
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 lg:p-10 shadow-sm space-y-6 max-w-2xl mx-auto animate-in fade-in duration-300">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 lg:p-10 shadow-xl space-y-6 max-w-2xl mx-auto animate-in fade-in duration-300">
             
             {/* Header & Progress */}
             <div>
@@ -617,9 +617,9 @@ export default function DiagnosticPlacementPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setCurrentStep("choose_subject")}
-                    className="text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors flex items-center gap-1"
+                    className="text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Switch Subject
+                    <ArrowLeft className="w-3.5 h-3.5" /> Switch Track
                   </button>
                   <span className="text-slate-300">•</span>
                   <span className="text-xs font-extrabold uppercase text-[#027FFF] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
@@ -661,7 +661,7 @@ export default function DiagnosticPlacementPage() {
                   <button
                     key={opt}
                     onClick={() => handleSelectOption(opt)}
-                    className={`w-full p-4 rounded-2xl border text-sm font-semibold text-left transition-all flex items-center justify-between ${
+                    className={`w-full p-4 rounded-2xl border text-sm font-semibold text-left transition-all flex items-center justify-between cursor-pointer ${
                       isSelected
                         ? "bg-blue-50 border-[#027FFF] text-[#027FFF] font-bold shadow-sm ring-1 ring-[#027FFF]"
                         : "bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:bg-slate-50"
@@ -683,12 +683,12 @@ export default function DiagnosticPlacementPage() {
               <button
                 onClick={handleNext}
                 disabled={!userSelected || isSubmitting}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-sm shadow-lg shadow-[#027FFF]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#027FFF] hover:bg-blue-600 disabled:opacity-40 text-white font-bold text-sm shadow-lg shadow-[#027FFF]/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Evaluating Submissions...</span>
+                    <span>Analyzing Results...</span>
                   </>
                 ) : currentIndex < questions.length - 1 ? (
                   <>
@@ -709,7 +709,7 @@ export default function DiagnosticPlacementPage() {
 
         {/* STEP 3: RESULTS & SCORECARD */}
         {currentStep === "results" && (
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-8 lg:p-12 shadow-xl space-y-8 max-w-3xl mx-auto animate-in zoom-in-95 duration-300">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 lg:p-12 shadow-xl space-y-8 max-w-3xl mx-auto animate-in zoom-in-95 duration-300">
             
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-100">
               <div className="flex items-center gap-4">
@@ -748,7 +748,7 @@ export default function DiagnosticPlacementPage() {
               <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-1">
                 <span className="text-[10px] font-extrabold uppercase text-emerald-700 tracking-wider">Recommended Curriculum</span>
                 <p className="text-base font-black text-emerald-950">{recommendedTrack}</p>
-                <p className="text-xs text-emerald-700">Curated modules designed to accelerate your competency.</p>
+                <p className="text-xs text-emerald-700">Directly matched to your baseline performance.</p>
               </div>
             </div>
 
@@ -783,22 +783,21 @@ export default function DiagnosticPlacementPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons with 1-Click Course Enrollment */}
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 onClick={() => setCurrentStep("choose_subject")}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Test Another Subject
+                <RefreshCw className="w-3.5 h-3.5" /> Test Another Discipline
               </button>
 
-              <button
-                onClick={() => router.push("/courses")}
+              <Link
+                href={`/courses/${recommendedCourseId}`}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-lg shadow-[#027FFF]/25 transition-all flex items-center justify-center gap-2"
               >
-                <span>View Recommended Courses</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                <span>Enroll in Recommended Course &rarr;</span>
+              </Link>
             </div>
 
           </div>
