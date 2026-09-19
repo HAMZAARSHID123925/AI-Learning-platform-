@@ -11,25 +11,75 @@ export default function CoursesPage() {
   const [expandedModules, setExpandedModules] = useState<number[]>([1]);
   const DEFAULT_COURSES_CATALOG = [
     {
-      id: "c-1",
-      title: "IELTS Academic Writing & Speaking Masterclass",
-      description: "Master Band 8.5+ syntactic inversion, cohesive linkers, and data overview reporting.",
+      id: "cs-101",
+      title: "Full-Stack Computer Science & Python Mastery",
+      description: "Master computational logic, Python algorithms, asymptotic Big-O optimization, and full-stack software architecture with interactive coding labs.",
       module_count: 4,
-      target_band: "Band 8.0+",
-      category: "academic",
-      rating: 4.96,
-      students_count: 38,
+      target_band: "All Skill Levels",
+      category: "computer-science",
+      subject: "Computer Science",
+      rating: 4.98,
+      students_count: 42,
       price: "$49.00"
     },
     {
-      id: "c-2",
-      title: "Speaking Part 2 & 3 Fluency & Intonation Lab",
-      description: "Acoustic pacing drills, speech cadence training, and idiomatic C2 expressions.",
+      id: "math-301",
+      title: "Advanced Mathematics, Calculus & Linear Algebra",
+      description: "Rigorous problem-solving covering differential equations, multidimensional matrix algebra, and vector calculus with step-by-step visual proofs.",
+      module_count: 4,
+      target_band: "Intermediate to Advanced",
+      category: "mathematics",
+      subject: "Mathematics",
+      rating: 4.95,
+      students_count: 36,
+      price: "$45.00"
+    },
+    {
+      id: "eng-201",
+      title: "Academic English, Rhetoric & Advanced Writing",
+      description: "Cultivate academic writing register, rhetorical argumentation, high-level vocabulary collocations, and speech fluency with real-time AI rubric grading.",
+      module_count: 4,
+      target_band: "Band 8.0+ Target",
+      category: "english",
+      subject: "English & Languages",
+      rating: 4.96,
+      students_count: 38,
+      price: "$39.00"
+    },
+    {
+      id: "sci-401",
+      title: "Applied Physics, Mechanics & Space Exploration",
+      description: "Explore Newtonian dynamics, electromagnetism, planetary orbits, and modern astrophysical simulations with visual interactive labs.",
       module_count: 3,
-      target_band: "Band 7.5+",
-      category: "academic",
+      target_band: "General Science",
+      category: "science",
+      subject: "General Science",
       rating: 4.92,
-      students_count: 24,
+      students_count: 29,
+      price: "$42.00"
+    },
+    {
+      id: "cs-102",
+      title: "Web Development & Cloud Software Architecture",
+      description: "Build robust REST APIs, modern web user interfaces, and deploy microservices with continuous integration and security best practices.",
+      module_count: 4,
+      target_band: "Full-Stack Track",
+      category: "computer-science",
+      subject: "Computer Science",
+      rating: 4.94,
+      students_count: 31,
+      price: "$49.00"
+    },
+    {
+      id: "math-302",
+      title: "Discrete Mathematics, Probability & Statistics",
+      description: "Foundations of logic, combinatorics, Bayesian probability, and statistical data modeling for machine learning and scientific computing.",
+      module_count: 3,
+      target_band: "Core Mathematics",
+      category: "mathematics",
+      subject: "Mathematics",
+      rating: 4.91,
+      students_count: 27,
       price: "$39.00"
     }
   ];
@@ -90,7 +140,7 @@ export default function CoursesPage() {
         const timeoutId = setTimeout(() => controller.abort(), 2000);
         
         try {
-          const res = await fetch('http://localhost:8000/api/v1/courses?page_size=50', {
+          const res = await fetch('http://localhost:8000/api/v1/courses?page_size=6', {
             signal: controller.signal
           });
           clearTimeout(timeoutId);
@@ -98,7 +148,7 @@ export default function CoursesPage() {
             const data = await res.json();
             const dbItems = data.items || [];
             if (dbItems.length > 0) {
-              setLiveCourses(dbItems);
+              setLiveCourses(dbItems.slice(0, 6));
               return;
             }
           }
@@ -107,19 +157,19 @@ export default function CoursesPage() {
         }
 
         if (localCreatedCourses.length > 0) {
-          // Merge and deduplicate by ID and Title
+          // Merge and deduplicate by ID and Title up to 6 courses
           const merged = [...localCreatedCourses];
           DEFAULT_COURSES_CATALOG.forEach(dc => {
             if (!merged.some(m => m.id === dc.id || m.title.trim().toLowerCase() === dc.title.trim().toLowerCase())) {
               merged.push(dc);
             }
           });
-          setLiveCourses(merged);
+          setLiveCourses(merged.slice(0, 6));
         } else {
-          setLiveCourses(DEFAULT_COURSES_CATALOG);
+          setLiveCourses(DEFAULT_COURSES_CATALOG.slice(0, 6));
         }
       } catch (err) {
-        setLiveCourses(DEFAULT_COURSES_CATALOG);
+        setLiveCourses(DEFAULT_COURSES_CATALOG.slice(0, 6));
       } finally {
         setLoading(false);
       }
@@ -144,6 +194,12 @@ export default function CoursesPage() {
     }
   };
 
+  // Limit to at most 6 courses on public site
+  const filteredCourses = liveCourses.filter(c => {
+    if (activeFilter === 'all') return true;
+    return c.category === activeFilter;
+  }).slice(0, 6);
+
   return (
     <div className="w-full pt-20 bg-surface">
 
@@ -157,32 +213,32 @@ export default function CoursesPage() {
       <div className="flex items-center gap-2 text-white/60 mb-2">
         <span className="font-caption text-[12px] uppercase tracking-wider text-amber-400 font-bold">Catalog</span>
         <span className="font-caption text-[12px] opacity-50">/</span>
-        <span className="font-caption text-[12px] font-medium">Structured Preparation Programs</span>
+        <span className="font-caption text-[12px] font-medium">Structured Academic Programs</span>
       </div>
       
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 w-fit backdrop-blur-md">
         <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-        <span className="font-label-sm text-[12px] text-white font-bold tracking-wide uppercase">Examiner-Curated Curriculum</span>
+        <span className="font-label-sm text-[12px] text-white font-bold tracking-wide uppercase">Multi-Discipline Academy Curriculum</span>
       </div>
       
       <h1 className="font-display-lg text-[40px] md:text-[56px] leading-[1.1] font-bold tracking-tight text-white">
-        Explore Our English & Test Prep Courses
+        Explore Universal Academy Courses
       </h1>
       <p className="font-body-lg text-[18px] md:text-[20px] text-white/80 max-w-2xl leading-relaxed">
-        Curriculum designed by former British Council & IDP English Language examiners, powered by adaptive AI diagnostic testing and real-time rubric telemetry.
+        Comprehensive academic and professional tracks across Computer Science, Mathematics, Linguistics, and Sciences, powered by adaptive AI tutors and live coding sandboxes.
       </p>
     </div>
 
     {/* Metric pill cluster */}
     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 self-start lg:self-auto animate-fade-in-up delay-100">
       <div className="flex -space-x-3 overflow-hidden">
-        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-blue-600 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">MV</div>
-        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-amber-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">EL</div>
-        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-emerald-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">JC</div>
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-blue-600 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">CS</div>
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-amber-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">MA</div>
+        <div className="inline-block h-10 w-10 rounded-full ring-2 ring-[#001F3F] bg-emerald-500 flex items-center justify-center font-caption text-[12px] font-bold text-white shadow-lg">EN</div>
       </div>
       <div className="flex flex-col">
-        <span className="font-label-md text-[14px] text-white font-bold">Senior Board Evaluators</span>
-        <span className="font-caption text-[12px] text-white/60">Calibrated to 2026 Band Specifications</span>
+        <span className="font-label-md text-[14px] text-white font-bold">Accredited Academy Faculty</span>
+        <span className="font-caption text-[12px] text-white/60">Multi-Subject Adaptive Curriculum</span>
       </div>
     </div>
   </div>
@@ -195,17 +251,17 @@ export default function CoursesPage() {
       {/* Search input */}
       <div className="lg:col-span-8 relative flex items-center">
         <span className="material-symbols-outlined absolute left-4 text-on-surface-variant pointer-events-none text-[24px]">search</span>
-        <input className="w-full pl-12 pr-4 py-4 rounded-xl bg-surface border-2 border-outline-variant/30 text-on-surface font-body-md placeholder:text-outline focus:outline-none focus:border-secondary focus:bg-white transition-all" id="course-search-input" placeholder="Search topics, skills, or tasks (e.g. Writing Task 2, Speaking Fluency, Band 8.0 Collocations)..." type="text" />
+        <input className="w-full pl-12 pr-4 py-4 rounded-xl bg-surface border-2 border-outline-variant/30 text-on-surface font-body-md placeholder:text-outline focus:outline-none focus:border-secondary focus:bg-white transition-all" id="course-search-input" placeholder="Search courses, skills, or subjects (e.g. Python, Calculus, Academic Writing, Physics)..." type="text" />
       </div>
       {/* Sort dropdown selector */}
       <div className="lg:col-span-4 flex items-center justify-end gap-3">
         <label className="font-label-sm text-[14px] font-bold text-on-surface-variant uppercase tracking-wider whitespace-nowrap" htmlFor="sort-dropdown">Sort by:</label>
         <div className="relative w-full">
-          <select className="w-full appearance-none pl-4 pr-12 py-4 rounded-xl border-2 border-outline-variant/30 bg-surface text-on-surface font-label-md text-[14px] font-bold cursor-pointer focus:outline-none focus:border-secondary transition-all" id="sort-dropdown" defaultValue="Recommended for Band 7.5+">
-            <option value="Recommended for Band 7.5+">Recommended for Band 7.5+</option>
+          <select className="w-full appearance-none pl-4 pr-12 py-4 rounded-xl border-2 border-outline-variant/30 bg-surface text-on-surface font-label-md text-[14px] font-bold cursor-pointer focus:outline-none focus:border-secondary transition-all" id="sort-dropdown" defaultValue="Recommended by AI">
+            <option value="Recommended by AI">Recommended by AI</option>
             <option value="Highest Rated">Highest Rated (4.95+)</option>
-            <option value="Fastest Target Completion">Fastest Target Completion</option>
-            <option value="Most Intensive Diagnostic Load">Most Intensive Diagnostic Load</option>
+            <option value="Most Popular">Most Popular</option>
+            <option value="Beginner Friendly">Beginner Friendly</option>
           </select>
           <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
         </div>
@@ -214,20 +270,20 @@ export default function CoursesPage() {
     {/* Filter category tabs */}
     <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-2 no-scrollbar" id="filter-tabs-container">
       <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap flex items-center gap-2 ${activeFilter === 'all' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('all')}>
-        <span>All Courses</span>
-        <span className={`px-2 py-0.5 rounded-full font-caption text-[12px] ${activeFilter === 'all' ? 'bg-white/20' : 'bg-surface-container-high'}`}>6</span>
+        <span>All Subjects</span>
+        <span className={`px-2 py-0.5 rounded-full font-caption text-[12px] ${activeFilter === 'all' ? 'bg-white/20' : 'bg-surface-container-high'}`}>{liveCourses.length}</span>
       </button>
-      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'academic' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('academic')}>
-        Academic English & IELTS Prep
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'computer-science' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('computer-science')}>
+        💻 Computer Science
       </button>
-      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'general' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('general')}>
-        General English & Test Prep
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'mathematics' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('mathematics')}>
+        📐 Mathematics
       </button>
-      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'skills' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('skills')}>
-        Skill Crash Courses
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'english' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('english')}>
+        📖 English &amp; Languages
       </button>
-      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'advanced' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('advanced')}>
-        Band 8.0+ Advanced
+      <button className={`filter-btn px-5 py-3 rounded-xl font-label-md text-[14px] font-bold transition-all whitespace-nowrap ${activeFilter === 'science' ? 'bg-[#027FFF] text-white shadow-md' : 'bg-surface text-on-surface-variant border border-outline-variant/30 hover:text-on-surface hover:bg-surface-container-high hover:border-outline-variant/50'}`} onClick={() => setActiveFilter('science')}>
+        🔬 Science &amp; Physics
       </button>
     </div>
   </div>
@@ -238,43 +294,45 @@ export default function CoursesPage() {
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
 
 {/* Course Cards Grid */}
-{liveCourses.length === 0 ? (
+{filteredCourses.length === 0 ? (
   <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs p-8">
     <span className="material-symbols-outlined text-slate-400 text-5xl mb-3">school</span>
-    <h3 className="text-lg font-bold text-slate-800">No Published Courses Yet</h3>
+    <h3 className="text-lg font-bold text-slate-800">No Courses Found in this Category</h3>
     <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">
-      There are currently no courses published in the database. Log into the Admin Studio to create and publish your first course.
+      There are currently no courses matching this subject filter. Select &ldquo;All Subjects&rdquo; to view the complete academy catalog.
     </p>
-    <Link href="/login" className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-[#027FFF] text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm">
-      Go to Admin Studio &rarr;
-    </Link>
+    <button onClick={() => setActiveFilter('all')} className="inline-block mt-4 px-5 py-2.5 rounded-xl bg-[#027FFF] text-white text-xs font-bold hover:bg-blue-600 transition-all shadow-sm">
+      View All Academy Courses &rarr;
+    </button>
   </div>
 ) : (
-  liveCourses.map((course) => (
-    <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border-2 border-[#027FFF]/30">
-      <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
+  filteredCourses.map((course) => (
+    <div key={course.id} className="flex flex-col bg-surface-container-lowest rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border border-slate-200/80">
+      <div className="relative h-48 w-full overflow-hidden bg-gradient-to-tr from-[#001F3F] to-[#027FFF] flex items-center justify-center p-6 text-center">
         <div className="flex flex-col items-center">
-          <span className="material-symbols-outlined text-white text-[48px] mb-2">school</span>
-          <span className="text-white font-bold text-lg line-clamp-2">{course.title}</span>
+          <span className="material-symbols-outlined text-white text-[44px] mb-2">
+            {course.category === 'computer-science' ? 'terminal' : course.category === 'mathematics' ? 'calculate' : course.category === 'science' ? 'science' : 'school'}
+          </span>
+          <span className="text-white font-bold text-base line-clamp-2">{course.title}</span>
         </div>
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-          <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-xs shadow-sm">
-            Live in DB
+          <span className="px-2.5 py-1 rounded-md bg-emerald-500 text-white font-bold text-[11px] shadow-sm">
+            {course.subject || 'Academy Core'}
           </span>
-          <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-xs backdrop-blur-sm">
-            {course.module_count || 0} Modules
+          <span className="px-2.5 py-1 rounded-md bg-black/40 text-white font-bold text-[11px] backdrop-blur-sm">
+            {course.module_count || 4} Modules
           </span>
         </div>
       </div>
       <div className="flex flex-col flex-1 p-6 justify-between gap-4">
         <div>
           <Link href={`/courses/${course.id}`}>
-            <h2 className="text-lg font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors hover:underline cursor-pointer">{course.title}</h2>
+            <h2 className="text-base font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors hover:underline cursor-pointer">{course.title}</h2>
           </Link>
-          <p className="text-xs text-slate-600 mt-1 line-clamp-3">{course.description || 'Full examiner-curated syllabus with interactive lessons, practice tests, and AI assessments.'}</p>
+          <p className="text-xs text-slate-600 mt-2 line-clamp-3">{course.description || 'Full academy syllabus with interactive lessons, practice checkpoints, and AI assessments.'}</p>
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          <span className="text-lg font-extrabold text-slate-900">$49.00</span>
+          <span className="text-base font-extrabold text-slate-900">{course.price || '$49.00'}</span>
           <div className="flex items-center gap-2">
             <Link
               href={`/courses/${course.id}`}
@@ -284,7 +342,7 @@ export default function CoursesPage() {
             </Link>
             <button 
               onClick={() => handleEnroll(course.title, course.id)} 
-              className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs"
+              className="px-4 py-2 rounded-lg bg-[#027FFF] hover:bg-blue-600 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Enroll &rarr;
             </button>
@@ -305,25 +363,25 @@ export default function CoursesPage() {
 <div className="flex flex-col gap-space-xxs">
 <div className="flex items-center gap-space-xs">
 <span className="px-space-xs py-0.5 rounded bg-secondary text-on-secondary font-caption text-caption font-semibold">Live Syllabus Inspection</span>
-<span className="font-caption text-caption text-on-surface-variant">Self-Paced or Accelerated Cohort</span>
+<span className="font-caption text-caption text-on-surface-variant">Universal Academy Curriculum</span>
 </div>
 <h2 className="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">
-              Syllabus Preview: Academic English & Test Prep Masterclass
+              Syllabus Preview: Full-Stack Computer Science &amp; Python Mastery
             </h2>
 <div className="flex flex-wrap items-center gap-x-space-md gap-y-space-xxs text-on-surface-variant font-body-sm text-body-sm pt-space-xxs">
 <span className="flex items-center gap-1">
 <span className="material-symbols-outlined text-[18px] text-secondary">verified_user</span>
-                Curated by Dr. Marcus Vance, Ex-Senior Language Examiner
+                Curated by Dr. Alex Vance, Senior Faculty Lecturer
               </span>
 <span>•</span>
 <span className="flex items-center gap-1">
 <span className="material-symbols-outlined text-[18px] text-secondary">schedule</span>
-                Approx. 36 Total Learning Hours
+                Approx. 40 Total Learning Hours
               </span>
 <span>•</span>
 <span className="flex items-center gap-1">
 <span className="material-symbols-outlined text-[18px] text-secondary">psychology</span>
-                Adaptive AI Engine Integrated
+                Adaptive AI Engine &amp; Code Sandbox Integrated
               </span>
 </div>
 </div>

@@ -27,6 +27,7 @@ interface PeerPartner {
 
 interface CueCard {
   id: number;
+  subject: string;
   topic: string;
   title: string;
   bulletPoints: string[];
@@ -62,7 +63,7 @@ interface ForumPost {
   authorRole: string;
   avatarBg: string;
   timeAgo: string;
-  channel: 'Speaking' | 'Writing' | 'Reading' | 'Vocabulary';
+  channel: 'Computer Science' | 'English & Writing' | 'Mathematics' | 'General Science' | 'Speaking' | 'Writing' | 'Reading' | 'Vocabulary';
   title: string;
   content: string;
   upvotes: number;
@@ -76,54 +77,57 @@ export default function CommunityHubPage() {
   const [activeTab, setActiveTab] = useState<'peer-matcher' | 'leaderboard' | 'discussions'>('peer-matcher');
   const [userName, setUserName] = useState('Hamza');
   
-  // Dynamic Cue Cards
+  // Dynamic Multi-Subject Cue Cards / Discussion Topics
   const cueCards: CueCard[] = [
     {
       id: 1,
-      topic: "Urban & Environmental Policy",
-      title: "Describe an environmental law or policy in your country that had a significant impact.",
+      subject: "Computer Science",
+      topic: "Software Architecture & Logic",
+      title: "Explain the difference between Time Complexity O(n) and O(log n) with real examples.",
       bulletPoints: [
-        "What the policy is and when it was introduced",
-        "Which problem it intended to resolve",
-        "How the public responded to the policy",
-        "And explain whether you believe it was ultimately successful"
+        "Define what Big-O notation measures in algorithm performance",
+        "Describe a standard linear search vs binary search",
+        "Explain when an engineer must optimize from O(n^2) to O(n log n)",
+        "Provide a real-world coding scenario where performance bottlenecks occurred"
       ]
     },
     {
       id: 2,
-      topic: "Technology & Society",
-      title: "Describe a piece of technology you find difficult to imagine living without.",
+      subject: "Mathematics",
+      topic: "Algebra & Applied Calculus",
+      title: "Describe the fundamental theorem of calculus or how quadratic formulas model real motion.",
       bulletPoints: [
-        "What the device or system is",
-        "How frequently you rely on it daily",
-        "How your life would differ without its functionality",
-        "And explain why it is irreplaceable to modern society"
+        "Explain the geometric intuition behind derivatives vs integrals",
+        "How quadratic equations calculate projectile trajectories",
+        "Common mistakes students make when factoring polynomial roots",
+        "Why algebraic foundations are essential for modern machine learning"
       ]
     },
     {
       id: 3,
-      topic: "Education & Mentorship",
-      title: "Describe an inspiring teacher or mentor who influenced your academic journey.",
+      subject: "English & Languages",
+      topic: "Academic Discourse & Rhetoric",
+      title: "Describe an environmental or economic policy in your country that had a significant impact.",
       bulletPoints: [
-        "Who this person is and what subject they taught",
-        "What specific teaching methodology or attitude they used",
-        "How their advice altered your perspective or goals",
-        "And explain why their guidance was so memorable"
+        "What the policy is and when it was introduced",
+        "Which problem it intended to resolve with statistical evidence",
+        "How public opinion was divided over the regulatory framework",
+        "And explain whether you believe it was ultimately successful"
       ]
     },
     {
       id: 4,
-      topic: "Travel & Globalization",
-      title: "Describe a foreign culture or custom that fascinated you.",
+      subject: "General Science",
+      topic: "Physics & Orbital Mechanics",
+      title: "Explain how gravitational forces determine orbital decay and escape velocity.",
       bulletPoints: [
-        "Where this culture originated and when you discovered it",
-        "What makes this custom unique or unconventional",
-        "How local citizens preserve and practice this tradition",
-        "And explain what other societies can learn from it"
+        "How Newton's law of gravitation compares to Einstein's curved spacetime",
+        "What factors govern satellite orbital altitudes",
+        "The mathematical formula for escape velocity from Earth",
+        "Real-world space exploration missions applying these physics principles"
       ]
     }
   ];
-
   const [selectedCueIndex, setSelectedCueIndex] = useState(0);
 
   // Peer Matcher State
@@ -151,13 +155,13 @@ export default function CommunityHubPage() {
   const [onlinePeers, setOnlinePeers] = useState<PeerPartner[]>([
     {
       id: '1',
-      name: "Elena Rostova",
+      name: "Dr. Alex Vance",
       country: "Germany",
       flag: "🇩🇪",
-      targetBand: "Band 8.0",
-      currentStreak: 12,
+      targetBand: "CS Senior Lecturer",
+      currentStreak: 32,
       nativeLanguage: "German",
-      topicInterest: "Speaking Part 3 (Technology & Society)",
+      topicInterest: "Algorithms & Python Data Structures",
       status: 'online',
       avatarBg: 'bg-emerald-600'
     },
@@ -166,10 +170,10 @@ export default function CommunityHubPage() {
       name: "Kenji Sato",
       country: "Japan",
       flag: "🇯🇵",
-      targetBand: "Band 7.5",
-      currentStreak: 8,
+      targetBand: "Math Lead",
+      currentStreak: 18,
       nativeLanguage: "Japanese",
-      topicInterest: "Writing Task 2 Academic Structure",
+      topicInterest: "Algebraic Factorization & Calculus",
       status: 'online',
       avatarBg: 'bg-blue-600'
     },
@@ -178,10 +182,10 @@ export default function CommunityHubPage() {
       name: "Priya Sharma",
       country: "India",
       flag: "🇮🇳",
-      targetBand: "Band 8.5",
-      currentStreak: 21,
+      targetBand: "Band 8.5 Scholar",
+      currentStreak: 25,
       nativeLanguage: "Hindi",
-      topicInterest: "Cue Card Drill: Memorable Journeys",
+      topicInterest: "Academic Writing & Essay Synthesis",
       status: 'online',
       avatarBg: 'bg-purple-600'
     },
@@ -190,10 +194,10 @@ export default function CommunityHubPage() {
       name: "Lucas Silva",
       country: "Brazil",
       flag: "🇧🇷",
-      targetBand: "Band 7.5",
-      currentStreak: 5,
+      targetBand: "Science Fellow",
+      currentStreak: 14,
       nativeLanguage: "Portuguese",
-      topicInterest: "Speaking Part 2 Preparation",
+      topicInterest: "Newtonian Mechanics & Astrophysics",
       status: 'online',
       avatarBg: 'bg-amber-600'
     }
@@ -209,78 +213,79 @@ export default function CommunityHubPage() {
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostChannel, setNewPostChannel] = useState<'Speaking' | 'Writing' | 'Reading' | 'Vocabulary'>('Speaking');
+  const [newPostChannel, setNewPostChannel] = useState<'Computer Science' | 'English & Writing' | 'Mathematics' | 'General Science'>('Computer Science');
 
-  // Default Seed Posts
+  // Multi-Subject Seed Posts
   const defaultPosts: ForumPost[] = [
     {
       id: 1,
-      author: "Sarah Jenkins (IELTS Lead)",
+      author: "Dr. Alex Vance (CS Faculty Lead)",
       authorRole: "Instructor Verified",
       avatarBg: "bg-indigo-600",
-      timeAgo: "2 hours ago",
-      channel: "Speaking",
-      title: "Top 5 Idiomatic Collocations to securely hit Band 8.5 in Part 3",
-      content: "When examiners ask abstract speculative questions, avoid basic transitionals. Instead of 'I think that in the future...', utilize 'It is widely anticipated that...' or 'Skeptics might argue conversely...'. These signal high-level syntactic agility.",
-      upvotes: 42,
+      timeAgo: "1 hour ago",
+      channel: "Computer Science",
+      title: "Optimizing Recursive Algorithms: When to Memoize vs Tabulate in Python",
+      content: "When solving dynamic programming problems like Fibonacci or Knapsack, naive recursion hits O(2^n). Using Python's @functools.lru_cache reduces call overhead instantly to O(n) with linear space.",
+      upvotes: 48,
       hasUpvoted: false,
       isInstructorVerified: true,
-      tags: ["Part 3", "Band 8.5", "Collocations"],
+      tags: ["Python", "Dynamic Programming", "Big-O"],
       replies: [
         {
           id: 101,
           author: "Priya Sharma",
-          authorRole: "Student • Band 8.5 Target",
+          authorRole: "Student",
           avatarBg: "bg-purple-600",
-          timeAgo: "1 hour ago",
-          content: "Thank you Sarah! Would you also recommend 'From a pragmatic standpoint' for economy-related prompts?"
+          timeAgo: "40 mins ago",
+          content: "Is lru_cache thread-safe in production multi-threaded async workers?"
         },
         {
           id: 102,
-          author: "Sarah Jenkins (IELTS Lead)",
+          author: "Dr. Alex Vance (CS Faculty Lead)",
           authorRole: "Instructor Verified",
           avatarBg: "bg-indigo-600",
-          timeAgo: "45 mins ago",
-          content: "Absolutely Priya! 'From a pragmatic standpoint' is a top-tier C2 opening phrase.",
+          timeAgo: "25 mins ago",
+          content: "Great question! Standard lru_cache is C-implemented and thread-safe for reads, but for async workers aiocache or Redis is preferred.",
           isInstructor: true
         }
       ]
     },
     {
       id: 2,
-      author: "Priya Sharma",
-      authorRole: "Student • Band 8.5 Target",
-      avatarBg: "bg-purple-600",
-      timeAgo: "4 hours ago",
-      channel: "Writing",
-      title: "How I outline Task 2 Agree/Disagree essays in under 3 minutes",
-      content: "I always use the 2-claim counter-balance framework. Body 1 acknowledges the prevailing argument with empirical justification, while Body 2 introduces the nuanced refutation with real-world examples.",
-      upvotes: 28,
+      author: "Sarah Jenkins (Linguistics Lead)",
+      authorRole: "Instructor Verified",
+      avatarBg: "bg-emerald-600",
+      timeAgo: "3 hours ago",
+      channel: "English & Writing",
+      title: "Top 5 Syntactic Structures to Secure Band 8.5+ in Academic Essays",
+      content: "Examiners evaluate grammatical range and accuracy. Incorporate inverted conditionals ('Had the government intervened...') and fronted adverbials ('In stark contrast to...').",
+      upvotes: 39,
       hasUpvoted: false,
-      tags: ["Task 2", "Time Management", "Essay Structure"],
+      isInstructorVerified: true,
+      tags: ["Grammar", "Academic Essay", "Band 8.5"],
       replies: [
         {
           id: 201,
           author: "Lucas Silva",
-          authorRole: "Student • Band 7.5 Target",
+          authorRole: "Student",
           avatarBg: "bg-amber-600",
-          timeAgo: "2 hours ago",
-          content: "How many words do you typically allocate for the refutation paragraph?"
+          timeAgo: "1 hour ago",
+          content: "Inverted conditionals really made my introductions pop! Thank you Sarah."
         }
       ]
     },
     {
       id: 3,
-      author: "Alexander Wright",
-      authorRole: "Student • Band 8.0 Target",
+      author: "Prof. David Kumar (Math Dept)",
+      authorRole: "Instructor Verified",
       avatarBg: "bg-blue-600",
-      timeAgo: "Yesterday",
-      channel: "Reading",
-      title: "True / False / Not Given: The definitive heuristic against traps",
-      content: "If the passage discusses a condition that might happen, but the question statement claims it definitely happens, the answer is FALSE, not NOT GIVEN. Watch out for absolute determiners like 'always', 'invariably', and 'proven'!",
-      upvotes: 35,
+      timeAgo: "5 hours ago",
+      channel: "Mathematics",
+      title: "Visualizing Matrix Multiplication & Linear Transformations",
+      content: "Remember that multiplying matrix A by vector x represents a spatial transformation (rotation, scaling, shear) of coordinate space. Eigenvalues simply represent vectors whose direction remains unchanged!",
+      upvotes: 34,
       hasUpvoted: true,
-      tags: ["Reading", "T/F/NG", "Tactics"],
+      tags: ["Linear Algebra", "Calculus", "Proofs"],
       replies: []
     }
   ];

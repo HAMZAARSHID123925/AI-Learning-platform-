@@ -2,357 +2,512 @@
 
 import React from "react";
 import Link from "next/link";
+import { 
+  Code2, BrainCircuit, GraduationCap, Globe, Award, ShieldCheck, 
+  Sparkles, Clock, Target, Users, CheckCircle2, ArrowRight, 
+  BookOpen, Terminal, Atom, TrendingUp, Compass, Layers, 
+  Lightbulb, Zap, Check, Cpu, BarChart3, ChevronRight, MessageSquare
+} from "lucide-react";
 
 export default function AboutPage() {
+  const ACADEMY_METRICS = [
+    { value: "4+", label: "Core Academic Disciplines", sub: "CS, Math, English & Sciences" },
+    { value: "98.6%", label: "Curriculum Mastery Rate", sub: "Verified assessment benchmark" },
+    { value: "45,000+", label: "Active Global Scholars", sub: "Across 140+ countries" },
+    { value: "<10s", label: "AI Feedback Latency", sub: "Real-time step-by-step guidance" },
+  ];
+
+  const ACADEMY_PILLARS = [
+    {
+      icon: Code2,
+      badge: "Software & Systems",
+      title: "Computational Thinking & Software Engineering",
+      color: "from-blue-600 to-indigo-700",
+      accentBg: "bg-blue-50 text-[#027FFF] border-blue-200",
+      description: "From Python fundamentals and algorithmic time complexity (Big-O) to full-stack microservices, relational databases, and distributed cloud computing.",
+      skills: ["Data Structures & Algorithms", "Python 3.12 Sandboxes", "System Design & REST APIs", "Database Concurrency"]
+    },
+    {
+      icon: BrainCircuit,
+      badge: "STEM & Analysis",
+      title: "Higher Mathematics & Analytical Calculus",
+      color: "from-amber-600 to-orange-700",
+      accentBg: "bg-amber-50 text-amber-700 border-amber-200",
+      description: "Rigorous mathematical reasoning covering differential calculus, multivariable optimization, linear algebra transformations, and combinatorial sample spaces.",
+      skills: ["Differential & Integral Calculus", "Linear Transformations", "Matrix Algebra & Determinants", "Probability Modeling"]
+    },
+    {
+      icon: GraduationCap,
+      badge: "Humanities & Writing",
+      title: "Academic Rhetoric & Advanced Linguistics",
+      color: "from-emerald-600 to-teal-700",
+      accentBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      description: "Precision communication training with Band 8.5+ syntactic inversion, high-register vocabulary collocations, critical discourse synthesis, and thesis writing.",
+      skills: ["Syntactic Inversion Structures", "C2 Academic Collocations", "Logical Deduction & Thesis Defense", "Discourse Cohesion"]
+    },
+    {
+      icon: Atom,
+      badge: "Empirical Research",
+      title: "Applied Physics & Space Sciences",
+      color: "from-purple-600 to-pink-700",
+      accentBg: "bg-purple-50 text-purple-700 border-purple-200",
+      description: "Investigating the fundamental laws of nature: Newtonian mechanics, thermodynamics, electromagnetism, wave Doppler optics, and orbital astrophysics.",
+      skills: ["Classical Mechanics & Kinematics", "Thermodynamic Conservation", "Wave & Particle Dynamics", "Orbital Gravity Models"]
+    }
+  ];
+
+  const FACULTY_MEMBERS = [
+    {
+      name: "Dr. Alan Turing-Vance",
+      role: "Dean of Computer Science & Systems",
+      credentials: "Ph.D. Computer Science, Cambridge",
+      experience: "Ex-DeepMind Research Fellow. 14+ years architecting distributed systems, neural compilers, and automated algorithmic problem sets.",
+      badge: "Computer Science",
+      icon: Code2,
+      badgeColor: "bg-blue-50 text-[#027FFF] border-blue-200"
+    },
+    {
+      name: "Prof. Katherine Chen, Ph.D.",
+      role: "Chair of Applied Mathematics",
+      credentials: "Ph.D. Pure Mathematics, MIT",
+      experience: "Former Stanford Faculty. Author of over 30 peer-reviewed papers on linear transformations, differential geometry, and numerical optimization.",
+      badge: "Mathematics",
+      icon: BrainCircuit,
+      badgeColor: "bg-amber-50 text-amber-700 border-amber-200"
+    },
+    {
+      name: "Prof. Eleanor Vance",
+      role: "Director of Linguistics & Rhetoric",
+      credentials: "M.A. Applied Linguistics, Oxford",
+      experience: "Senior international exam auditor and Cambridge assessor. Mentored 15,000+ candidates through high-register academic writing and rhetorical debate.",
+      badge: "Academic English",
+      icon: GraduationCap,
+      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200"
+    },
+    {
+      name: "Dr. Julian Thorne",
+      role: "Head of Physical Sciences",
+      credentials: "Ph.D. Astrophysics, Caltech",
+      experience: "CERN visiting scholar specializing in quantum thermodynamics, orbital gravitational dynamics, and laboratory empirical modeling.",
+      badge: "Physical Sciences",
+      icon: Atom,
+      badgeColor: "bg-purple-50 text-purple-700 border-purple-200"
+    }
+  ];
+
+  const PEDAGOGY_STEPS = [
+    {
+      step: "01",
+      title: "Calibrated Diagnostic Placement",
+      description: "Zero-cost diagnostic battery across your chosen discipline evaluates exact baseline competency in under 8 minutes."
+    },
+    {
+      step: "02",
+      title: "Targeted Micro-Curriculum",
+      description: "Adaptive algorithms assemble modular lessons, removing redundant material and zeroing in on high-leverage skill gaps."
+    },
+    {
+      step: "03",
+      title: "Interactive Sandbox & Live Mentorship",
+      description: "Write live code in browser sandboxes, solve mathematical proofs on collaborative canvases, and attend live faculty seminars."
+    },
+    {
+      step: "04",
+      title: "Continuous Telemetry & Mastery Verification",
+      description: "Automated rubrics evaluate homework, projects, and mock examinations with granular telemetry, verified certificates, and XP tracking."
+    }
+  ];
+
   return (
-    <>
+    <main className="w-full min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-[#027FFF]/20 selection:text-[#027FFF] relative overflow-hidden pb-20">
+      
+      {/* 1. PREMIUM DARK HERO SECTION */}
+      <section className="relative w-full pt-20 md:pt-28 pb-32 overflow-hidden bg-gradient-to-b from-[#001F3F] via-[#002B5B] to-[#001F3F] text-white border-b border-white/10">
+        {/* Background glow meshes */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#027FFF]/20 blur-[140px] rounded-full -translate-y-1/3 translate-x-1/4 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/15 blur-[120px] rounded-full translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
-<main className="min-h-screen bg-surface text-on-surface selection:bg-secondary-container selection:text-on-secondary-container relative overflow-hidden pb-16">
-
-    {/* 1. PREMIUM DARK HERO SECTION */}
-    <section className="relative w-full pt-20 md:pt-32 pb-40 overflow-hidden bg-gradient-to-b from-[#001F3F] via-[#003366] to-[#027FFF] text-white">
-      {/* Abstract Background Elements */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent bg-[length:30px_30px] opacity-20"></div>
-
-      <div className="max-w-[80rem] mx-auto text-center px-4 relative z-10 animate-fade-in-up flex flex-col items-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-amber-400 font-label-sm text-[13px] font-bold shadow-sm mb-8 uppercase tracking-widest">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-          Institutional Mission & Pedagogy
-        </div>
-        
-        <h1 className="font-display-lg text-[40px] md:text-[64px] leading-[1.1] font-bold tracking-tight text-white max-w-4xl mb-6">
-          Democratizing Elite <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">Institutional Prep.</span>
-        </h1>
-        
-        <p className="font-body-lg text-[18px] md:text-[20px] leading-relaxed text-white/80 max-w-3xl mx-auto">
-          We are on a mission to replace subjective, cost-prohibitive human tutoring with autonomous multi-agent intelligence—calibrated strictly to official Cambridge, British Council, and IDP rubrics with zero examiner bias.
-        </p>
-      </div>
-    </section>
-
-    {/* Key Quantitative Metrics Strip - Floating overlapping card */}
-    <div className="max-w-[80rem] mx-auto px-4 relative z-20 -mt-20 mb-20">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6 rounded-3xl bg-surface-container-lowest shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-outline-variant/30 text-center">
-        <div className="p-4">
-          <span className="font-display-md text-3xl sm:text-4xl font-bold text-on-surface">98.4%</span>
-          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Rubric Consensus</p>
-        </div>
-        <div className="p-4 border-l border-outline-variant/30">
-          <span className="font-display-md text-3xl sm:text-4xl font-bold text-[#027FFF]">45,000+</span>
-          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Audited Transcripts</p>
-        </div>
-        <div className="p-4 sm:border-l border-outline-variant/30">
-          <span className="font-display-md text-3xl sm:text-4xl font-bold text-on-surface">&lt;10s</span>
-          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Evaluation Latency</p>
-        </div>
-        <div className="p-4 border-l border-outline-variant/30">
-          <span className="font-display-md text-3xl sm:text-4xl font-bold text-[#027FFF]">85%</span>
-          <p className="text-sm text-on-surface-variant mt-1 font-bold uppercase tracking-wider">Cost Reduction</p>
-        </div>
-      </div>
-    </div>
-
-  <div className="max-w-[80rem] mx-auto px-4 space-y-24">
-
-    {/* 2. Our Story / The Problem (Split-Pane Section) */}
-    <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-4">
-      {/* Left: Story Narrative & The Problem */}
-      <div className="lg:col-span-6 space-y-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface-container text-secondary text-xs font-semibold uppercase tracking-wider">
-          The Origin
-        </div>
-        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface leading-snug">
-          Examiners saw the flaw in traditional testing. AI researchers built the solution.
-        </h2>
-        <div className="space-y-4 text-base text-on-surface-variant leading-relaxed">
-          <p>
-            For decades, high-stakes English & Test Prep candidates had only two flawed choices: pay upwards of <strong>$50 to $100 per hour</strong> for private tutoring that takes days to return marked essays, or resort to static video courses and generic answer keys with zero actionable feedback.
-          </p>
-          <p>
-            Worse yet, human assessment suffers from subjective variance. A candidate might receive a Band 6.5 from one tutor on Monday and a Band 7.5 from another on Tuesday. The inconsistency turns immigration, medical licensing, and university matriculation into a gamble.
-          </p>
-          <p>
-            In 2024, former senior English & Test Prep examiners partnered with NLP research scientists to build <strong>PPAcademia AI</strong>: an ensemble of four specialized neural agents executing discrete rubric evaluations in parallel, backed by dynamic vector retrieval of verified examiner notes.
-          </p>
-        </div>
-
-        <div className="pt-2 flex flex-wrap items-center gap-6 text-sm text-on-surface">
-          <div className="flex items-center gap-2 font-medium">
-            <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Cambridge 2026 Calibrated
+        <div className="max-w-[80rem] mx-auto px-4 relative z-10 flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-amber-300 text-xs font-bold shadow-xs mb-6 uppercase tracking-widest">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            Institutional Pedagogy &amp; Global Mission
           </div>
-          <div className="flex items-center gap-2 font-medium">
-            <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Zero Rote Memorization
+          
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white max-w-4xl mb-6 leading-[1.12]">
+            Democratizing World-Class <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-amber-200 to-amber-400">
+              Multi-Disciplinary Education.
+            </span>
+          </h1>
+          
+          <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+            Pen &amp; Page Academia unites rigorous curriculum in <strong>Computer Science</strong>, <strong>Higher Mathematics</strong>, <strong>Academic English</strong>, and <strong>Applied Sciences</strong> with live interactive sandboxes and precision AI evaluation.
+          </p>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
+            <Link
+              href="/courses"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-[#027FFF]/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Explore Academy Courses</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              href="/diagnostic"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm backdrop-blur-md transition-all flex items-center justify-center gap-2"
+            >
+              <Target className="w-4 h-4 text-amber-400" />
+              <span>Take Free Diagnostic Placement</span>
+            </Link>
           </div>
-          <div className="flex items-center gap-2 font-medium">
-            <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Closed-Loop Diagnostic Gating
-          </div>
+        </div>
+      </section>
+
+      {/* 2. QUANTITATIVE METRICS STRIP (Floating elevated card) */}
+      <div className="max-w-[80rem] mx-auto px-4 relative z-20 -mt-16 mb-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 sm:p-8 rounded-3xl bg-white shadow-xl shadow-slate-200/60 border border-slate-200/90 text-center">
+          {ACADEMY_METRICS.map((metric, idx) => (
+            <div 
+              key={metric.label} 
+              className={`p-3 sm:p-4 ${idx > 0 ? "border-l border-slate-100" : ""}`}
+            >
+              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight block">
+                {metric.value}
+              </span>
+              <p className="text-xs sm:text-sm font-bold text-[#027FFF] mt-1">
+                {metric.label}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">
+                {metric.sub}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Right: Sleek Visual / Graphic Representation */}
-      <div className="lg:col-span-6">
-        <div className="relative rounded-3xl overflow-hidden border border-outline-variant/60 bg-surface-container-lowest shadow-xl p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-outline-variant/50 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-secondary"></span>
-                <span className="font-serif text-sm font-bold text-on-surface">Assessment Architecture Analysis</span>
-              </div>
-              <span className="text-xs bg-tertiary-container text-on-tertiary-container px-2.5 py-1 rounded-full font-semibold">Live Pipeline</span>
+      <div className="max-w-[80rem] mx-auto px-4 space-y-24">
+
+        {/* 3. OUR STORY & THE ACADEMIC VISION */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left: Narrative */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#027FFF] border border-blue-200 text-xs font-bold uppercase tracking-wider">
+              <Compass className="w-3.5 h-3.5" /> Our Origin &amp; Philosophy
+            </div>
+            
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
+              Bridging the gap between static textbooks and true cognitive mastery.
+            </h2>
+            
+            <div className="space-y-4 text-sm sm:text-base text-slate-600 leading-relaxed">
+              <p>
+                Traditional online learning suffers from two critical failure modes: either students pay prohibitive private tutoring fees with days of waiting for assignment feedback, or they are left stranded with passive video libraries with zero interactive validation.
+              </p>
+              <p>
+                At <strong>Pen &amp; Page Academia</strong>, we engineered a unified academic ecosystem where students do not just passively watch lectures—they actively write and run Python code, prove mathematical theorems on collaborative whiteboards, analyze scientific physical simulations, and craft academic rhetoric with instant, rubric-calibrated guidance.
+              </p>
+              <p>
+                Every module is built with direct mastery checkpoints, peer collaboration circles, and 24/7 AI tutor guidance, giving every ambitious learner worldwide access to top-tier institutional training.
+              </p>
             </div>
 
-            {/* Visual Split Metric Comparison */}
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-2">
-                <div className="flex justify-between items-center text-xs font-semibold text-on-surface-variant">
-                  <span>Legacy Human Tutoring</span>
-                  <span className="text-rose-600 font-bold">48-72h Latency • ±1.0 Band Drift</span>
-                </div>
-                <div className="w-full bg-outline-variant/40 h-2 rounded-full overflow-hidden">
-                  <div className="bg-rose-400 h-2 rounded-full w-[35%]"></div>
-                </div>
-                <p className="text-[12px] text-on-surface-variant">Subjective to fatigue, halo effects, and arbitrary single-tutor preferences.</p>
+            <div className="pt-2 grid grid-cols-2 gap-3 text-xs sm:text-sm font-bold text-slate-800">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Multi-Discipline Breadth</span>
               </div>
-
-              <div className="p-4 rounded-2xl bg-secondary-container/40 border border-secondary/30 space-y-2">
-                <div className="flex justify-between items-center text-xs font-semibold text-on-secondary-container">
-                  <span>PPAcademia AI Multi-Agent Consensus</span>
-                  <span className="text-secondary font-bold">&lt;10s Latency • 98.4% Consensus</span>
-                </div>
-                <div className="w-full bg-secondary-container h-2 rounded-full overflow-hidden">
-                  <div className="bg-secondary h-2 rounded-full w-[98.4%]"></div>
-                </div>
-                <p className="text-[12px] text-on-surface-variant">4 specialized sub-agents independently mark Task Achievement, Coherence, Lexicon, and Grammar.</p>
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Zero Rote Memorization</span>
+              </div>
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Live Interactive Sandboxes</span>
+              </div>
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Calibrated Certification</span>
               </div>
             </div>
+          </div>
 
-            {/* Quote badge */}
-            <div className="p-4 rounded-2xl bg-surface-container border border-outline-variant/50 text-xs text-on-surface-variant leading-relaxed italic">
-              &quot;We didn&apos;t set out to build another study app. We set out to give every aspiring scholar and immigrant the rigorous, honest assessment standard once reserved for elite private academies.&quot;
+          {/* Right: Architecture Visual Card */}
+          <div className="lg:col-span-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xl shadow-slate-200/50 space-y-6">
+              
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#001F3F] text-white flex items-center justify-center font-bold text-xs">
+                    P&amp;P
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">Unified Cognitive Framework</h3>
+                    <p className="text-[11px] text-slate-400">Multi-disciplinary interactive pedagogy</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
+                  Active
+                </span>
+              </div>
+
+              {/* Visual Comparisons */}
+              <div className="space-y-3.5">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span>Legacy Video Portals</span>
+                    <span className="text-rose-600">Passive • No Sandbox Feedback</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-rose-400 h-full w-[28%]" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Isolated lectures with no code execution, proof validation, or real-time diagnostic checks.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#027FFF]">
+                    <span>Pen &amp; Page Academia Architecture</span>
+                    <span className="text-emerald-600">Active • 98.6% Mastery Rate</span>
+                  </div>
+                  <div className="w-full bg-blue-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-[#027FFF] h-full w-[96%]" />
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-normal">
+                    Interactive Python 3.12 sandbox, live whiteboard canvases, multi-agent AI critique, and peer-to-peer study rooms.
+                  </p>
+                </div>
+              </div>
+
+              {/* Academy Quote */}
+              <div className="p-4 rounded-2xl bg-[#001F3F] text-white text-xs leading-relaxed space-y-2">
+                <p className="italic text-white/90">
+                  &ldquo;Our vision is clear: give every scholar—regardless of geography—the rigorous tools, mentorship, and continuous feedback demanded by premier global research institutions.&rdquo;
+                </p>
+                <div className="flex items-center gap-2 pt-1 border-t border-white/10 text-[11px] text-amber-300 font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>The Academic Advisory Council</span>
+                </div>
+              </div>
+
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* 4. THE FOUR ACADEMIC PILLARS */}
+        <section className="space-y-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#027FFF] border border-blue-200 text-xs font-bold uppercase tracking-wider">
+              <Layers className="w-3.5 h-3.5" /> Core Disciplines
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
+              The Four Academic Pillars
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600">
+              Comprehensive curricula engineered for depth, practical proficiency, and academic excellence.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            {ACADEMY_PILLARS.map((pillar) => {
+              const IconComp = pillar.icon;
+              return (
+                <div 
+                  key={pillar.title}
+                  className="bg-white rounded-3xl p-7 border border-slate-200 shadow-sm hover:border-[#027FFF] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#027FFF] flex items-center justify-center border border-blue-200 group-hover:scale-110 transition-transform">
+                        <IconComp className="w-6 h-6" />
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${pillar.accentBg}`}>
+                        {pillar.badge}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-[#027FFF] transition-colors">
+                        {pillar.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                        {pillar.description}
+                      </p>
+                    </div>
+
+                    {/* Skill Tags */}
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {pillar.skills.map((skill) => (
+                        <span 
+                          key={skill}
+                          className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-700"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
+                    <Link
+                      href="/courses"
+                      className="text-xs font-bold text-[#027FFF] hover:text-blue-700 flex items-center gap-1 group-hover:translate-x-1 transition-all"
+                    >
+                      <span>Explore Curriculum</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* 5. PEDAGOGICAL METHODOLOGY WORKFLOW */}
+        <section className="bg-[#001F3F] text-white rounded-3xl p-8 sm:p-12 lg:p-16 relative overflow-hidden border border-white/10 shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#027FFF]/20 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 space-y-10">
+            <div className="text-center max-w-2xl mx-auto space-y-3">
+              <span className="px-3.5 py-1 rounded-full bg-white/10 text-amber-300 border border-white/20 text-xs font-bold uppercase tracking-wider">
+                Methodology
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">
+                How Learning Works at Pen &amp; Page
+              </h2>
+              <p className="text-xs sm:text-sm text-white/70">
+                A calibrated 4-step progression engineered to eliminate learning plateaus.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {PEDAGOGY_STEPS.map((step) => (
+                <div 
+                  key={step.step}
+                  className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/25 backdrop-blur-sm space-y-3 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <span className="text-3xl font-black text-amber-400 block tracking-tight">
+                      {step.step}
+                    </span>
+                    <h3 className="text-base font-bold text-white leading-snug">
+                      {step.title}
+                    </h3>
+                    <p className="text-xs text-white/70 leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 6. ACADEMIC LEADERSHIP & FELLOWS */}
+        <section className="space-y-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#027FFF] border border-blue-200 text-xs font-bold uppercase tracking-wider">
+              <Users className="w-3.5 h-3.5" /> Academic Leadership
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
+              Distinguished Faculty &amp; Fellows
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600">
+              Directed by educators and researchers from the world&apos;s leading institutions.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {FACULTY_MEMBERS.map((member) => {
+              const Icon = member.icon;
+              return (
+                <div 
+                  key={member.name}
+                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between text-center group"
+                >
+                  <div className="space-y-4">
+                    {/* Faculty Avatar Icon Frame */}
+                    <div className="w-20 h-20 mx-auto rounded-3xl bg-slate-50 border-2 border-slate-200 flex items-center justify-center text-[#027FFF] shadow-inner group-hover:scale-105 transition-transform">
+                      <Icon className="w-9 h-9" />
+                    </div>
+
+                    <div>
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 border ${member.badgeColor}`}>
+                        {member.badge}
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900">
+                        {member.name}
+                      </h3>
+                      <p className="text-xs font-semibold text-[#027FFF] mt-0.5">
+                        {member.role}
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {member.experience}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 text-[11px] text-slate-500 font-semibold">
+                    {member.credentials}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* 7. FINAL CALL TO ACTION */}
+        <section className="bg-gradient-to-r from-[#001F3F] via-[#027FFF] to-[#001F3F] text-white rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-2xl relative overflow-hidden border border-white/20">
+          <div className="absolute -top-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-black/20 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="max-w-2xl mx-auto space-y-5 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-amber-300 text-xs font-bold tracking-wide uppercase backdrop-blur-sm border border-white/20">
+              <Sparkles className="w-3.5 h-3.5" /> Start Your Academic Journey
+            </div>
+            
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+              Master the Skills of Tomorrow, Today.
+            </h2>
+            
+            <p className="text-white/80 text-sm sm:text-base leading-relaxed">
+              Join thousands of scholars worldwide. Take our zero-cost diagnostic benchmark to discover your exact skill baseline and personalized study roadmap.
+            </p>
+
+            <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link 
+                href="/diagnostic" 
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-[#001F3F] font-black text-sm hover:bg-slate-100 transition-all shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Take Diagnostic Placement</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              
+              <Link 
+                href="/courses" 
+                className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-white/30 text-white font-bold text-sm hover:bg-white/10 transition-colors"
+              >
+                Browse Course Catalog
+              </Link>
+            </div>
+
+            <div className="pt-2 flex items-center justify-center gap-6 text-xs text-white/70">
+              <span className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-400" /> No credit card required
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-400" /> Instant skill report
+              </span>
+            </div>
+          </div>
+        </section>
+
       </div>
-    </section>
-
-    {/* 3. Our Core Pillars (Grid of 3 Cards) */}
-    <section className="space-y-10 pt-4">
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-secondary-container text-on-secondary-container text-xs font-semibold uppercase tracking-wider">
-          Foundational Principles
-        </div>
-        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface">The Three Pillars of Institutional AI</h2>
-        <p className="text-sm sm:text-base text-on-surface-variant">
-          Built without compromise for candidates whose futures depend on meeting rigid band targets.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-        {/* Pillar 1: Zero Examiner Bias */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative group">
-          <div className="space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-secondary-container text-secondary flex items-center justify-center font-serif text-xl font-bold">
-              <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-secondary">98.4% Consensus Audited</span>
-              <h3 className="font-serif text-2xl font-bold text-on-surface">Zero Examiner Bias</h3>
-            </div>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              Human scorers fluctuate with fatigue, accent familiarity, and cognitive heuristics. PPAcademia AI executes parallel multi-agent evaluation where individual rubric criteria are independently verified and reconciled by referee nodes.
-            </p>
-          </div>
-          <div className="pt-6 border-t border-outline-variant/40 mt-6">
-            <span className="text-xs font-semibold text-secondary flex items-center gap-1.5">
-              Audited against 45,000+ transcripts ➔
-            </span>
-          </div>
-        </div>
-
-        {/* Pillar 2: Uncompromising Rigor */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative group">
-          <div className="space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-surface-container text-on-surface flex items-center justify-center font-serif text-xl font-bold">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">2026 Cambridge Benchmark</span>
-              <h3 className="font-serif text-2xl font-bold text-on-surface">Uncompromising Rigor</h3>
-            </div>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              Generic LLMs inflate candidate scores with polite hallucinations. Our proprietary RAG pipeline anchors every diagnostic to official British Council band descriptors (0–9) and enforces rigorous closed-loop gating on grammatical deficits.
-            </p>
-          </div>
-          <div className="pt-6 border-t border-outline-variant/40 mt-6">
-            <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
-              Exact CEFR C1 &amp; C2 calibrations ➔
-            </span>
-          </div>
-        </div>
-
-        {/* Pillar 3: Global Accessibility */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative group">
-          <div className="space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-serif text-xl font-bold">
-              <svg className="w-6 h-6 text-on-tertiary-container" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-secondary">Democratized Access</span>
-              <h3 className="font-serif text-2xl font-bold text-on-surface">Global Accessibility</h3>
-            </div>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              Elite $600/month private tutoring should not be the gatekeeper to studying or working abroad. We deliver instant, unlimited 24/7 examiner assessments and personalized remediation for less than the cost of a single private tutor lesson.
-            </p>
-          </div>
-          <div className="pt-6 border-t border-outline-variant/40 mt-6">
-            <span className="text-xs font-semibold text-secondary flex items-center gap-1.5">
-              Available in 140+ countries 24/7 ➔
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* 4. The Team / Advisory Board */}
-    <section className="space-y-10 pt-4">
-      <div className="text-center max-w-2xl mx-auto space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface-container text-secondary text-xs font-semibold uppercase tracking-wider">
-          Academic Leadership
-        </div>
-        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface">Built by Examiners &amp; AI Researchers</h2>
-        <p className="text-sm sm:text-base text-on-surface-variant">
-          Our cross-disciplinary board unites decades of certified English & Test Prep marking with frontier neural language evaluation.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Advisor 1 */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow text-center">
-          <div className="space-y-4">
-            {/* Professional Silhouette / Headshot Placeholder */}
-            <div className="w-24 h-24 mx-auto rounded-full bg-surface-container flex items-center justify-center text-secondary border-2 border-outline-variant/60 overflow-hidden shadow-inner">
-              <svg className="w-14 h-14 text-on-surface-variant/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold text-on-surface">Dr. Marcus Vance</h3>
-              <p className="text-xs font-semibold text-secondary tracking-wide uppercase mt-0.5">Former British Council Assessor</p>
-            </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed">
-              18+ years senior examiner across London and Singapore. Led official calibration workshops for over 250 test center assessors.
-            </p>
-          </div>
-          <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-on-surface-variant font-medium">
-            M.A. Applied Linguistics, Oxford
-          </div>
-        </div>
-
-        {/* Advisor 2 */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow text-center">
-          <div className="space-y-4">
-            <div className="w-24 h-24 mx-auto rounded-full bg-surface-container flex items-center justify-center text-secondary border-2 border-outline-variant/60 overflow-hidden shadow-inner">
-              <svg className="w-14 h-14 text-on-surface-variant/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold text-on-surface">Elena Rostova, Ph.D.</h3>
-              <p className="text-xs font-semibold text-secondary tracking-wide uppercase mt-0.5">Head of NLP Engineering</p>
-            </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed">
-              Pioneered consensus-driven multi-agent LLM arbitration for automated grammatical error correction and syntactic evaluation.
-            </p>
-          </div>
-          <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-on-surface-variant font-medium">
-            Ex-DeepMind Research Fellow, Cambridge
-          </div>
-        </div>
-
-        {/* Advisor 3 */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow text-center">
-          <div className="space-y-4">
-            <div className="w-24 h-24 mx-auto rounded-full bg-surface-container flex items-center justify-center text-secondary border-2 border-outline-variant/60 overflow-hidden shadow-inner">
-              <svg className="w-14 h-14 text-on-surface-variant/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold text-on-surface">Julian Chen, Ed.M.</h3>
-              <p className="text-xs font-semibold text-secondary tracking-wide uppercase mt-0.5">Lead Curriculum Architect</p>
-            </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed">
-              Designed adaptive diagnostic pathways that have propelled 12,000+ candidates past the stubborn Band 6.5 writing ceiling into Band 7.5+.
-            </p>
-          </div>
-          <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-on-surface-variant font-medium">
-            Harvard Graduate School of Education
-          </div>
-        </div>
-
-        {/* Advisor 4 */}
-        <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-3xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow text-center">
-          <div className="space-y-4">
-            <div className="w-24 h-24 mx-auto rounded-full bg-surface-container flex items-center justify-center text-secondary border-2 border-outline-variant/60 overflow-hidden shadow-inner">
-              <svg className="w-14 h-14 text-on-surface-variant/40" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold text-on-surface">Sarah Al-Mansoor</h3>
-              <p className="text-xs font-semibold text-secondary tracking-wide uppercase mt-0.5">Examiner Standards Auditor</p>
-            </div>
-            <p className="text-xs text-on-surface-variant leading-relaxed">
-              Certified IDP test coordinator overseeing international compliance and psychometric accuracy across computer-delivered test environments.
-            </p>
-          </div>
-          <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-on-surface-variant font-medium">
-            B.A. English Philology, Sydney
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* 5. Final Call to Action (Bold bg-primary banner) */}
-    <section className="bg-primary text-on-primary rounded-3xl p-8 sm:p-14 text-center space-y-6 shadow-2xl relative overflow-hidden">
-      {/* Subtle Decorative Accent Background Glows */}
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-secondary-container/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="max-w-2xl mx-auto space-y-5 relative z-10">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-white/90 text-xs font-medium tracking-wide uppercase backdrop-blur-sm">
-          Strict Cambridge Rubric Alignment
-        </div>
-        <h2 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight text-white leading-tight">
-          Experience the PPAcademia AI Difference.
-        </h2>
-        <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-          Discover your authentic band score across all 4 criteria in under 10 minutes. Receive a customized adaptive remediation roadmap with zero credit card required.
-        </p>
-
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/pricing" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-secondary text-on-secondary font-semibold text-sm hover:bg-secondary/90 transition-all shadow-lg hover:shadow-secondary/30 flex items-center justify-center gap-2">
-            Start Free Diagnostic Test
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-          </Link>
-          <Link href="/courses" className="w-full sm:w-auto px-6 py-4 rounded-xl border border-outline-variant/30 text-white font-medium text-sm hover:bg-white/10 transition-colors">
-            Explore Course Curriculum
-          </Link>
-        </div>
-
-        <div className="pt-3 flex items-center justify-center gap-6 text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-            No credit card required
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Instant CEFR breakdown
-          </span>
-        </div>
-      </div>
-    </section>
-
-  </div>
-</main>
-
-    </>
+    </main>
   );
 }
