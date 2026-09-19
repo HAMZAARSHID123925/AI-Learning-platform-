@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -267,7 +267,7 @@ const COURSE_EXAM_BANKS: Record<string, CourseExamBank> = {
   }
 };
 
-export default function AIExamGeneratorPage() {
+function AIExamGeneratorContent() {
   const searchParams = useSearchParams();
   const courseIdParam = searchParams.get('courseId') || "cs-101";
   const modeParam = searchParams.get('mode') || "standard"; // 'diagnostic' | 'weak_points' | 'standard'
@@ -854,5 +854,13 @@ export default function AIExamGeneratorPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AIExamGeneratorPage() {
+  return (
+    <Suspense>
+      <AIExamGeneratorContent />
+    </Suspense>
   );
 }
