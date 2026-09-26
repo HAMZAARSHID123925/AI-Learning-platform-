@@ -1,169 +1,536 @@
-# Stitch AI Generation Prompts
+# Pen & Page Academia — Public UI Design Specification
+## Brilliant.org-Inspired Layout — Full Screen-by-Screen Design Guide
 
-Copy & Paste Prompt for Stitch AI (Homepage /):
-Design a modern, high-converting, and responsive public web interface for an AI-Powered Adaptive Learning & Assessment Platform (focused initially on IELTS preparation). 
-Brand Aesthetic & Theme:
-- Theme: Clean, modern, trustworthy EdTech platform (similar to modern Stripe, Duolingo Max, or Coursera).
-- Color Palette: Deep indigo/slate primary (#1E293B / #0F172A), vibrant royal blue (#2563EB) for primary actions, emerald green (#10B981) for success/progress highlights, clean white/light gray background with subtle gradients.
-- Typography: Clean sans-serif (Inter or Plus Jakarta Sans), crisp readability with clear visual hierarchy.
-1. Universal Public Header (Navbar):
-- Left: Platform Logo + Brand Name ("AdaptiveLMS" or "IELTS.AI").
-- Center Navlinks:
-  - "Home" (links to /)
-  - "Courses" (links to /courses)
-  - "How It Works" (links to /how-it-works)
-  - "Pricing" (links to /pricing)
-  - "About" (links to /about)
-  - "Contact" (links to /contact)
-- Right Actions:
-  - "Log In" (clean ghost/outline button)
-  - "Sign Up" (bold primary button with subtle glow/hover effect)
-2. Homepage Layout & Teaser Sections (Path: /):
-- Section 1: Hero Section
-  - Catchy Headline: "Master IELTS Faster with AI That Adapts to Your Weaknesses."
-  - Subheadline: "Unlike static courses, our multi-agent AI analyzes your test errors in real time, generates custom quizzes, and personalizes your curriculum until you hit Band 7.5+."
-  - CTA Buttons: [ Start Free Diagnostic Test ➔ ] (Primary) and [ Explore Courses ] (Secondary outline).
-  - Visual Showcase: An interactive split hero graphic displaying a student taking a reading test on the left, with an AI Agent breakdown on the right highlighting real-time skill detection: "Grammar: 85% Strong", "Vocabulary: 40% Focus Needed".
-- Section 2: Social Proof / Metrics Bar
-  - 4 clean summary cards: "98% Target Band Achievement", "50,000+ AI Diagnostic Tests Taken", "Band 7.5+ Average Score", "24/7 Real-Time AI Tutor".
-- Section 3: "How It Works" Teaser Section
-  - Heading: "A Closed-Loop Learning Journey Built Around You"
-  - 3 connected process cards with arrow connectors:
-    1. Study Authentic Lessons (PDFs, Notes, Videos).
-    2. AI-Generated Checkpoint Tests (RAG-powered quizzes).
-    3. Adaptive Weakness Repair (AI locks advanced lessons and prescribes targeted practice).
-  - Link/Button: [ Learn How Our AI Works ➔ ] (routes to /how-it-works).
-- Section 4: "Featured Courses" Teaser Section
-  - Heading: "Targeted Prep for Every Test Taker"
-  - 2 Course Cards side-by-side:
-    - Card A: "IELTS Academic Complete Masterclass" (4 Modules, 24 Lessons, Level: All).
-    - Card B: "IELTS General Training Fast-Track" (3 Modules, 18 Lessons, Level: All).
-    - Cards include thumbnail, category badge, lesson count, and "Preview Syllabus" button.
-  - Link/Button: [ View All Courses ➔ ] (routes to /courses).
-- Section 5: Traditional LMS vs. Our Adaptive AI (Comparison Table / Card)
-  - Visual side-by-side card comparing:
-    - ❌ Old Static LMS: "One-size-fits-all, static PDFs, slow manual grading, no weakness targeting."
-    - ✅ Our AI Platform: "Dynamic test generation, instant rubric-based AI grading, automatic remediation plans."
-- Section 6: Student Testimonials & Success Stories
-  - 3 modern testimonial quote cards with student photos, target band achieved (e.g., Band 8.0), and short review.
-- Section 7: "About Our Mission" Teaser Section
-  - Brief 2-sentence mission statement highlighting our pedagogy, with a [ Read Our Story ➔ ] button (routes to /about).
-- Section 8: Pre-Footer CTA Banner
-  - High-contrast gradient banner: "Ready to reach your dream band score?" with a prominent [ Get Started Free ] button and a "Need guidance? [ Contact Our Team ]" link.
-3. Universal Public Footer:
-- 4 Columns:
-  - Col 1: Brand logo, mission summary, social media icons.
-  - Col 2: Learning (Courses, Diagnostic Test, AI Tutor).
-  - Col 3: Company (About Us, How It Works, Contact Us, Careers).
-  - Col 4: Legal & Security (Privacy Policy, Terms of Service, Student Safety).
-- Bottom row: "© 2026 AdaptiveLMS Inc. All rights reserved."
+> **Platform:** Pen & Page Academia  
+> **Inspiration:** Brilliant.org (studied A to Z — see `docs/BRILLIANT-INSPIRED-MASTER-PLAN.md`)  
+> **Our 4 disciplines:** Academic English · Higher Mathematics · Computer Science · Applied Physics
 
-Route 1: The Public Course Catalog (/courses)
-Design a dedicated, responsive Course Catalog page for an AI-powered IELTS preparation platform (Route: /courses).
-Top Header:
-- Reusable Public Navbar: Logo, Navlinks (Courses [Active], How It Works, About, Contact), [Log In], [Sign Up].
-Page Layout:
-1. Header Banner:
-   - Title: "Explore Our IELTS Preparation Courses"
-   - Subtitle: "Curriculum designed by IELTS examiners, powered by adaptive AI testing."
-   - Search Bar: Input box to search for topics (e.g., "Writing Task 2", "Speaking Fluency").
-   - Filter Tabs: [ All Courses ] [ IELTS Academic ] [ IELTS General ] [ Crash Courses ].
-2. Course Grid (3-column layout):
-   - Course Card 1: "IELTS Academic Masterclass"
-     - Badge: "Most Popular"
-     - Stats: 4 Modules • 28 Lessons • 12 Adaptive Quizzes
-     - Topics covered: Reading Strategies, Task 1 & 2 Writing, Listening, Speaking.
-     - Actions: [ View Syllabus ➔ ] and [ Enroll Now ].
-   - Course Card 2: "IELTS General Training Fast-Track"
-     - Stats: 3 Modules • 18 Lessons • 8 Adaptive Quizzes
-     - Focus: Workplace English, Letter Writing, Everyday Reading.
-     - Actions: [ View Syllabus ➔ ] and [ Enroll Now ].
-   - Course Card 3: "Intensive IELTS Writing & Grammar Bootcamp"
-     - Badge: "Targeted Skill"
-     - Stats: 2 Modules • 10 Lessons • Instant AI Essay Evaluation
-     - Actions: [ View Syllabus ➔ ] and [ Enroll Now ].
-3. Course Syllabus Drawer / Modal Preview:
-   - Show how a course outline looks when clicked: Collapsible Modules with Lesson items.
-   - Include a subtle lock icon 🔒 next to lessons with a banner: "Sign in to access lesson materials."
-4. Bottom Reusable Public Footer.
+---
 
-Route 2: Deep-Dive "How It Works" Page (/how-it-works)
-Design a dedicated "How It Works" explanatory page for an AI-Powered Adaptive Learning & Assessment LMS (Route: /how-it-works).
-Top Header:
-- Reusable Public Navbar: Logo, Navlinks (Courses, How It Works [Active], About, Contact), [Log In], [Sign Up].
-Page Layout:
-1. Hero Header:
-   - Badge: "Our Adaptive Engine"
-   - Title: "How Our AI Agents Personalize Your IELTS Journey"
-   - Subtitle: "See behind the scenes of how our multi-agent AI evaluates your skills and adapts your curriculum in real-time."
-2. The 4-Step Interactive Pipeline (Visual Vertical Timeline or Step Cards):
-   - Step 1: "Smart Curriculum & Knowledge Retrieval (RAG)"
-     - Description: Our AI indexes authentic IELTS PDFs, examiner notes, and official rubrics.
-   - Step 2: "Dynamic Diagnostic Test Generation"
-     - Description: Instead of static question banks, our Test Agent writes fresh, contextual questions tailored to your current level.
-   - Step 3: "Multi-Agent Skill Evaluation"
-     - Visual Card: Mock evaluation breakdown showing sub-skills (Vocabulary 80%, Grammar Tenses 45%, Task Achievement 90%).
-   - Step 4: "Automated Remediation & Lesson Gating"
-     - Description: If your score in a sub-skill drops below 60%, the engine locks advanced modules and prescribes targeted remedial lessons until mastery is achieved.
-3. "Static LMS vs. Our Adaptive AI" Interactive Feature Matrix.
-4. Call-to-Action Card:
-   - "Experience it yourself." -> [ Take Free 10-Minute Level Check ➔ ].
-5. Bottom Reusable Public Footer.
+## 🌐 PAGE 1: PUBLIC LANDING PAGE (`/`)
 
-Route 3: Company & Pedagogy "About" Page (/about)
-Design a clean, professional "About Us" page for an educational AI startup (Route: /about).
-Top Header:
-- Reusable Public Navbar: Logo, Navlinks (Courses, How It Works, About [Active], Contact), [Log In], [Sign Up].
-Page Layout:
-1. Mission Statement Section:
-   - Title: "Democratizing 1-on-1 IELTS Tutoring with Agentic AI"
-   - Subtitle: "We believe no student should waste time studying lessons they already know. Our mission is to make hyper-personalized test prep accessible to everyone worldwide."
-2. Our Story & Pedagogy:
-   - Two-column layout: High-quality image of students/instructors on the left, story narrative on the right.
-   - Core pillars: "Data-Driven Mastery", "Examiner-Approved Rubrics", "Continuous Feedback Loops".
-3. Leadership & Academic Advisors Grid:
-   - 3 Advisor Cards: Profile photo, Name, Title (e.g., "Former British Council Examiner", "Lead AI Researcher").
-4. Trust & Security Badges:
-   - Icons showing: "Privacy Compliant", "Authentic IELTS Standards", "99.9% Uptime".
-5. Bottom Reusable Public Footer.
+### NAVBAR — Public (Not Logged In)
+```
+[PPAcademia Logo]                              [Sign in]
+─────────────────────────────────────────────────────────
+```
+- Pure white background, `border-b border-slate-100`
+- Logo: left-aligned, our brand mark + "Pen & Page Academia"
+- Sign in: right-aligned, plain text link `text-slate-700 hover:text-blue-600`
+- NO other navigation links (Brilliant rule: ultra-minimal public navbar)
+- Height: `h-16` sticky top
 
-Route 4: Support & Inquiry "Contact" Page (/contact)
-Design a modern, accessible Contact Us and Student Support page (Route: /contact).
-Top Header:
-- Reusable Public Navbar: Logo, Navlinks (Courses, How It Works, About, Contact [Active]), [Log In], [Sign Up].
-Page Layout:
-1. Page Header:
-   - Title: "Get in Touch With Our Team"
-   - Subtitle: "Have questions about courses, institutional licensing, or technical support? We are here to help."
-2. Two-Column Split Layout:
-   - Left Column: Interactive Contact Form
-     - Full Name input field.
-     - Email Address input field.
-     - Inquiry Type dropdown: [ Student Support | Instructor Application | Institutional Partnership ].
-     - Message textarea.
-     - Submit button: [ Send Message ➔ ].
-   - Right Column: Direct Info & Quick Support
-     - Support Email: support@adaptiveielts.com
-     - WhatsApp / Phone assistance badge.
-     - Office Location card with a stylized minimal map placeholder.
-     - FAQ Accordion preview: 3 quick expandable questions (e.g., "How soon will I get a reply?", "How do I reset my password?").
-3. Bottom Reusable Public Footer.
+---
 
-Route 5: Authentication Pages (/login & /register)
-Design a split-screen Authentication Page (both Login and Register variants) for the platform.
-Layout:
-- Left Half (Form Area):
-  - Brand Logo at the top.
-  - Heading: "Welcome Back" (or "Create your free account").
-  - Form Fields:
-    - Full Name (on register).
-    - Email address.
-    - Password (with show/hide eye toggle).
-    - Checkbox: "Remember me" & Link: "Forgot password?".
-  - Primary Action: [ Sign In / Create Account ] button.
-  - Social Logins: [ Continue with Google ] button.
-  - Bottom toggle link: "Already have an account? Log In" / "Don't have an account? Sign Up".
-- Right Half (Brand Showcase Area):
-  - Gradient background with stylized graphics.
-  - Floating Testimonial Card: "Band 8.0 achieved in 4 weeks. The adaptive quizzes saved me 50 hours of prep time."
-  - Subtle graphic showing the AI skill radar chart.
+### SECTION 1: HERO
+```
+LEFT SIDE:
+──────────
+[Small label] "Get started for free."
+
+[Big Serif Headline]
+"Your personal tutor for
+ English, Math, Physics & CS"
+
+[Subheadline]
+"Interactive lessons, AI-powered guidance,
+ and real progress tracking — designed for
+ every level from foundation to university."
+
+[TWO BUTTONS side by side]
+🟦 [I'm a Student]          ⬜ [I'm a Teacher or Parent]
+   (filled, brand blue)        (outlined, white bg)
+
+[App badge row — optional]
+[📱 App Store]  [▶ Google Play]
+
+RIGHT SIDE:
+──────────
+[Interactive lesson preview card]
+Shows a sample lesson widget — e.g:
+"What type of clause is this sentence?"
+  ○ Independent   ● Dependent   ○ Relative
+  [Check Answer]
+```
+
+**Design specs:**
+- Headline: `text-5xl font-bold leading-tight text-slate-900`
+- Subheadline: `text-lg text-slate-500 mt-4 max-w-xl`
+- "I'm a Student" button: `rounded-full bg-blue-600 text-white px-8 py-3 font-semibold`
+- "I'm a Teacher or Parent" button: `rounded-full border-2 border-slate-300 text-slate-700 px-8 py-3`
+- Background: white, NO hero gradient (clean like Brilliant)
+
+---
+
+### SECTION 2: TRUST STRIP
+```
+┌──────────────────┬──────────────────┬───────────────────┐
+│  🏆              │  ⭐⭐⭐⭐⭐        │  🌍               │
+│  Fully accredited│  98.4% success   │  10,000+          │
+│  Cambridge       │  rate            │  students         │
+│  calibrated      │  100,000+ problems│  worldwide       │
+└──────────────────┴──────────────────┴───────────────────┘
+```
+- `grid grid-cols-3 border border-slate-200 rounded-2xl divide-x`
+- Each cell: `p-6 text-center`
+- Icon: large emoji or custom SVG, `text-4xl mb-2`
+- Title: `font-bold text-slate-900 text-lg`
+- Subtitle: `text-slate-500 text-sm`
+
+---
+
+### SECTION 3: AI STUDY BUDDY INTRO
+```
+[Centered AI chip icon — our mascot logo]
+
+"Meet Your AI Study Buddy"
+
+Toggle row:  [English]  [Math]  [CS]  [Physics]
+             ↑ dark filled = selected
+
+LEFT TEXT (changes per tab):
+"A visual, interactive tutor for Academic English"
+• Explains WHY your essay logic is weak
+• Gives Socratic hints — never just the answer
+• Tracks your clause construction in real time
+
+RIGHT: Screenshot or animated preview
+of our AI Study Buddy in action
+```
+**Design:**
+- Icon: centered, `w-16 h-16 rounded-2xl bg-blue-600 mx-auto mb-6`
+- Heading: `text-3xl font-bold text-slate-900 text-center`
+- Toggle: `flex gap-2 bg-slate-100 p-1 rounded-full mx-auto w-fit`
+- Active tab: `bg-slate-900 text-white rounded-full px-5 py-2`
+
+---
+
+### SECTION 4: SUBJECT COVERAGE
+```
+"From Foundation Level to University and Beyond"
+
+Filter tabs:
+[Computer Science] [Mathematics] [Academic English ●] [Physics]
+                                  ^ selected = dark
+
+LEFT COLUMN:                    RIGHT COLUMN:
+Covered topics list:            Interactive lesson preview
+• Academic writing              (animated/screenshot)
+• Clause construction
+• IELTS essay structure
+• Rhetoric & argumentation
+• Grammar mastery
+• Vocabulary in context
+```
+**Design:** Two-column, `grid grid-cols-2 gap-12`  
+- Background: `bg-slate-50` full-width section  
+
+---
+
+### SECTION 5: "ALWAYS ON YOUR SCHEDULE"
+```
+LEFT: Real photo of student studying
+RIGHT:
+"Learn in 15 minutes a day or binge for hours.
+ Your AI Study Buddy never sleeps."
+
+• Daily streak keeps you consistent
+• 2 free lessons every day
+• Midnight key reset — fresh start daily
+• iOS widget to track your streak
+```
+
+---
+
+### SECTION 6: "BUILT WITH EXPERTS"
+```
+"Designed with leading education standards"
+
+Logo strip: [Cambridge] [IELTS] [IDP] [Common Core] [AQA]
+
+RIGHT: Photo of tutors/campus
+```
+
+---
+
+### SECTION 7: TESTIMONIALS
+```
+"Loved by Students of All Ages"
+                    ● ○ ○ ○    ← pagination dots
+
+[Card 1]                [Card 2]                [Card 3]
+[Photo]                 [Photo]                 [Photo]
+"I went from band 6    "The Math path took     "CS finally clicked
+ to 7.5 in 8 weeks."    me from algebra to      for me after years
+                        calculus in 3 months."   of struggle."
+— Aisha R.             — Hamid K.               — Sarah L.
+  IELTS Student          University Prep          Career Switcher
+```
+- Cards: `rounded-2xl border border-slate-200 p-6 bg-white`
+- Photo: `w-12 h-12 rounded-full object-cover mb-4`
+- Quote: `text-slate-700 italic mb-4`
+- Name: `font-semibold text-slate-900`
+- Title: `text-slate-500 text-sm`
+
+---
+
+### SECTION 8: DARK CLOSING CTA
+```
+[Full black background #0A0A0A]
+
+"The best learning companion you'll ever have."
+
+[I'm a Student]   [Start for free]
+```
+- `bg-slate-950 text-white py-32 text-center`
+- Heading: `text-5xl font-bold text-white`
+
+---
+
+### FOOTER
+```
+[Logo + tagline]
+
+Product          Learn              Company          Legal
+Courses          English Track      About Us         Privacy Policy
+Pricing          Math Track         Careers          Terms of Service
+Instructor       CS Track           Blog             Cookie Policy
+For Students     Physics Track      Contact Us       Refund Policy
+
+© 2026 Pen & Page Academia. All rights reserved.
+[🌐 English ▾]
+```
+- `bg-slate-900 text-slate-400`
+- `grid grid-cols-4 gap-12`
+
+---
+
+## 📝 PAGE 2: SIGNUP PAGE (`/signup`)
+
+### PROGRESS BAR (top of all steps)
+```
+Step 1 of 4
+[━━━━━░░░░░░░]  25%
+```
+
+### STEP 1 — Your Goal
+```
+"Why are you here?"
+
+[Card: 💼 Career Growth]     [Card: 🎓 School & Uni]
+Advance professionally       Prep for exams & degrees
+
+[Card: 🔭 Personal Growth]   [Card: 👨‍👩‍👧 For My Child]
+Learn out of curiosity       Help my child succeed
+
+[Continue →]  (grayed out until 1 selected)
+```
+- Cards: `rounded-2xl border-2 border-slate-200 p-6 cursor-pointer`
+- Selected: `border-blue-600 bg-blue-50`
+- Tap animation: `scale-95 → scale-100` spring effect
+
+### STEP 2 — Your Subject
+```
+"What do you want to learn?"
+
+[Card: 📖 Academic English]  [Card: 🧮 Higher Mathematics]
+IELTS · Writing · Rhetoric   Algebra → Calculus → More
+
+[Card: 💻 Computer Science]  [Card: 🔬 Applied Physics]
+Python · Algorithms · AI     Mechanics · Circuits · Quantum
+```
+
+### STEP 3 — Your Level
+```
+"Where are you right now?"
+
+[Card: 🌱 Beginner]
+I'm starting from scratch
+
+[Card: ⚡ Intermediate]
+I know the basics, want to go deeper
+
+[Card: 🚀 Advanced]
+I want challenging, university-level content
+```
+
+### STEP 4 — Create Account
+```
+"Create your account"
+
+[🔵 Continue with Google]
+[⬛ Continue with Apple]
+─── or ───
+[Email input]
+[Password input]
+[Create account]
+
+By signing up you agree to our Terms & Privacy Policy.
+Already have an account? Sign in
+```
+
+### STEP 5 — Welcome Screen
+```
+[AI Study Buddy icon animated]
+
+"Welcome to Pen & Page Academia!"
+
+You chose: 💻 Computer Science
+Level: Intermediate
+Goal: Career Growth
+
+🔑 You have 2 free lesson keys today
+
+[▶ Start your first lesson]
+[Browse all courses]
+```
+
+---
+
+## 🔐 PAGE 3: LOGIN PAGE (`/login`) — Keep as-is
+No changes needed to login page structure.  
+Just ensure it links back to new signup flow.
+
+---
+
+## 📚 PAGE 4: COURSES PAGE (`/courses`)
+
+### Subject Filter Tabs
+```
+[ All ●]  [ Academic English ]  [ Mathematics ]  [ Computer Science ]  [ Applied Physics ]
+```
+- `flex gap-2 border-b border-slate-200 pb-0`
+- Active: `border-b-2 border-blue-600 text-blue-600 font-semibold`
+
+### Learning Paths Section
+```
+📍 Learning Paths
+
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ 📖 English Path            │  │ 🧮 Math Path               │
+│ Foundation →               │  │ Pre-Algebra →              │
+│ Academic Writing →         │  │ Algebra →                  │
+│ Rhetoric →                 │  │ Calculus →                 │
+│ IELTS Mastery              │  │ Linear Algebra             │
+│ [Start Path →]             │  │ [Start Path →]             │
+└────────────────────────────┘  └────────────────────────────┘
+
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ 💻 CS Path                 │  │ 🔬 Physics Path            │
+│ Python Intro →             │  │ Everyday Physics →         │
+│ Algorithms →               │  │ Mechanics →                │
+│ Data Structures →          │  │ Circuits →                 │
+│ AI Fundamentals            │  │ Quantum Basics             │
+│ [Start Path →]             │  │ [Start Path →]             │
+└────────────────────────────┘  └────────────────────────────┘
+```
+
+### Course Grid (All Courses — max 6 on public page)
+```
+┌──────────┐  ┌──────────┐  ┌──────────┐
+│ 📖       │  │ 🧮       │  │ 💻       │
+│ Academic │  │ Algebra  │  │ Python   │
+│ Writing  │  │ Mastery  │  │ Basics   │
+│          │  │          │  │          │
+│ Beginner │  │ Intermed.│  │ Beginner │
+│ 12 less. │  │ 18 less. │  │ 24 less. │
+│ [Start]  │  │ [Start]  │  │ [Start]  │
+└──────────┘  └──────────┘  └──────────┘
+```
+- Card: `rounded-2xl border border-slate-200 p-5 hover:shadow-md transition`
+- 🔒 locked courses (free sequential): show `opacity-60` with lock badge
+- Premium courses: `border-amber-200 bg-amber-50`
+
+---
+
+## 💳 PAGE 5: PRICING PAGE (`/pricing`)
+
+```
+"Choose Your Plan"
+
+┌──────────────┐  ┌──────────────────────┐  ┌──────────────────┐
+│   Free       │  │   Premium ⭐          │  │   Family 👪      │
+│              │  │   (Most Popular)      │  │                  │
+│   $0         │  │   $20/mo (annual)     │  │   $40/mo         │
+│   forever    │  │   or $30/mo monthly   │  │   up to 6 people │
+│              │  │                       │  │                  │
+│ ✓ 2 lessons  │  │ ✓ Unlimited lessons   │  │ ✓ All Premium    │
+│   per day    │  │ ✓ Full AI Study Buddy │  │   for each       │
+│ ✓ All 4      │  │ ✓ Jump to any lesson  │  │ ✓ Up to 6 seats  │
+│   subjects   │  │ ✓ No ads              │  │ ✓ Parent dash    │
+│ ✓ Streaks    │  │ ✓ Streak charges      │  │ ✓ Progress view  │
+│   & XP       │  │ ✓ League competitions │  │   per member     │
+│              │  │                       │  │                  │
+│ [Get started]│  │ [Start 7-day trial]   │  │ [Start trial]    │
+└──────────────┘  └──────────────────────┘  └──────────────────┘
+
+                  Educator? Apply for FREE access →
+```
+
+---
+
+## 🏠 PAGE 6: DASHBOARD HOME (`/dashboard`)
+
+### Layout: 2-column (main + right sidebar)
+
+**MAIN COLUMN:**
+```
+👋 Good morning, Alex
+
+📌 UP NEXT
+┌─────────────────────────────────────────┐
+│ 💻 Python Fundamentals                  │
+│ Lesson 3: Lists & Loops                 │
+│ ━━━━━━━░░░░░░░  20% complete           │
+│ ~10 minutes  [🔑 Uses 1 key]           │  ← hidden for premium
+│              [Continue →]              │
+└─────────────────────────────────────────┘
+
+🧠 DAILY PRACTICE
+┌─────────────────────────────────────────┐
+│ 3 quick problems · ~8 mins              │
+│ Based on: Python · Clause Writing       │
+│ [🔑 Uses 1 key]                        │  ← hidden for premium
+│ [Start Practice]                        │
+└─────────────────────────────────────────┘
+
+── More Courses ──────────────────────────
+
+[Course card] [Course card] [Course card]  → scroll
+```
+
+**RIGHT SIDEBAR:**
+```
+┌──────────────────┐
+│ Today's Goal     │
+│   ● ● ○          │
+│ 2 of 3 done      │
+│                  │
+│ 🔥 14 days       │
+│ Keep it going!   │
+└──────────────────┘
+
+┌──────────────────┐
+│ 🔑 2 keys left  │ ← Free users only
+│ Resets midnight  │
+└──────────────────┘
+
+┌──────────────────┐
+│ ⚡ 1 charge      │
+│ banked           │
+└──────────────────┘
+
+┌──────────────────┐
+│ 🏆 Carbon League │
+│ You: #8 of 30    │
+│ 320 XP this week │
+│ [Leaderboard]    │
+└──────────────────┘
+```
+
+---
+
+## 👤 PAGE 7: YOU / PROFILE PAGE (`/dashboard/you`)
+
+```
+┌────────────────────────────────────────────────────────┐
+│  [Avatar]  Alex Johnson                                │
+│            Free Plan  [Upgrade to Premium]             │
+│            Member since September 2026                 │
+└────────────────────────────────────────────────────────┘
+
+🔥 STREAK
+─────────────────────────────────────────────────────────
+Current: 14 days    |    Longest: 21 days
+
+Sep  ▓ ▓ ░ ▓ ▓ ▓ ░
+     ▓ ▓ ▓ ░ ▓ ▓ ░
+     ░ ▓ ▓ ▓ ▓ ▓ ▓
+     ░ ░ ░ ░ ░ ░ ░
+                     ← GitHub-style heatmap
+
+⭐ XP THIS WEEK
+─────────────────────────────────────────────────────────
+320 XP  ·  🏆 Carbon League  ·  Rank #8 of 30
+[See full leaderboard →]
+
+📚 MY COURSES
+─────────────────────────────────────────────────────────
+Python Fundamentals     ████░░░░░░  20%  (2/10 lessons)
+Algebra Mastery         ░░░░░░░░░░   0%  (not started)
+[Browse more courses →]
+
+🔑 KEYS & CHARGES
+─────────────────────────────────────────────────────────
+Daily Keys:      🔑 🔑  2/2 remaining today    ← Free only
+Streak Charges:  ⚡ ░   1/2 banked
+
+⚙️ [Settings →]
+```
+
+---
+
+## 🎮 GAMIFICATION COMPONENT SPECS
+
+### Keys Badge (Navbar)
+```tsx
+<div className="flex items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+  <span>🔑</span>
+  <span className="text-blue-700 font-semibold text-sm">2</span>
+</div>
+```
+
+### Streak Badge (Navbar)
+```tsx
+<div className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-full px-3 py-1">
+  <span>🔥</span>
+  <span className="text-orange-700 font-semibold text-sm">14</span>
+</div>
+```
+
+### Charge Badge (Navbar)
+```tsx
+<div className="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
+  <span>⚡</span>
+  <span className="text-yellow-700 font-semibold text-sm">1</span>
+</div>
+```
+
+### Premium Pill (Free users — "Start trial" button)
+```tsx
+<button className="rounded-full px-4 py-1.5 text-sm font-semibold 
+  bg-gradient-to-r from-purple-500 via-blue-500 to-teal-400 
+  text-white shadow-sm hover:shadow-md transition">
+  Start trial
+</button>
+```
+
+### Countdown Sub-Banner
+```tsx
+<div className="w-full bg-gradient-to-r from-purple-100 via-pink-50 to-amber-100 
+  border-b border-purple-200 py-2 text-center text-sm">
+  💎 Try Premium FREE for 7 days. Offer ends in 
+  <span className="font-bold text-purple-700 ml-1">6d 23h 59m 15s</span>
+  <button className="ml-4 bg-purple-600 text-white rounded-full px-4 py-0.5 text-xs font-semibold">
+    Start trial
+  </button>
+</div>
+```
+
+---
+
+## 🎨 DESIGN TOKEN REFERENCE
+
+| Token | Value | Usage |
+|---|---|---|
+| `brand-primary` | `#027FFF` (blue) | Primary buttons, active states |
+| `brand-dark` | `#1E293B` | Headlines, dark text |
+| `brand-light` | `#F8FAFC` | Section backgrounds |
+| `success` | `#10B981` | Correct answers, completion |
+| `warning` | `#F59E0B` | Streak charges, warnings |
+| `danger` | `#EF4444` | Wrong answers, errors |
+| `premium` | `purple→blue→teal gradient` | Premium features |
+| `streak` | `#F97316` | Streak flame, orange accents |
+| `border` | `#E2E8F0` | All card/section borders |
+| `radius-card` | `rounded-2xl` | All cards |
+| `radius-button` | `rounded-full` | All buttons (pill style) |

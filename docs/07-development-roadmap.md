@@ -1,143 +1,93 @@
-# Complete A-to-Z Web Developer Roadmap: Building the AI-Ready LMS
+# Pen & Page Academia — Development Roadmap
+## Brilliant.org-Inspired Redesign & Feature Build
 
-High-Level Architecture Overview
-                     STUDENT
-                        │
-                        ▼
-                 NEXT.JS (FRONTEND)
-        ┌───────────────────────────────────┐
-        │  • Dashboard                      │
-        │  • Course & Lesson Player (LMS)   │
-        │  • Test / Quiz Interface          │
-        │  • AI Tutor Chat Widget           │
-        └─────────────────┬─────────────────┘
-                          │ (HTTP / REST API Calls)
-                          ▼
-                 FASTAPI (BACKEND API)
-        ┌───────────────────────────────────┐
-        │  • Auth & User Management         │
-        │  • Course & Lesson Logic          │
-        │  • Progress Tracking              │
-        │  • Test Submission Handling       │
-        │  • AI Gateway / Dispatcher        │
-        └─────────┬───────────────────┬─────┘
-                  │                   │
-                  ▼                   ▼
-            POSTGRESQL            AI ENGINE (Python)
-        (Users, Courses,              │
-         Lessons, Progress,     ┌─────┼───────────────┐
-         Attempts, pgvector)    ▼     ▼               ▼
-                               RAG  AGENTS          MODELS
-                                │     │           (Gemini/
-                                │  ┌──┴─────────┐  OpenAI)
-                                │  │ Test Gen   │
-                                │  │ Evaluation │
-                                │  │ Skill Anly │
-                                │  │ AI Tutor   │
-                                │  └────────────┘
-                                ▼
-                       COURSE KNOWLEDGE
-                     (PDFs / Notes / Lessons)
+> **See full plan:** `docs/BRILLIANT-INSPIRED-MASTER-PLAN.md`
+> **Rule:** Never build without discussion + approval first.
 
-Phase 1: Project Setup & System Foundation
-1. Repository Structure (Monorepo Recommended)
-lms-platform/
-├── backend/                  # FastAPI Application
-│   ├── app/
-│   │   ├── api/              # Route controllers (v1)
-│   │   ├── core/             # Config, security (JWT, hashing), db session
-│   │   ├── models/           # SQLAlchemy database tables
-│   │   ├── schemas/          # Pydantic request/response schemas
-│   │   ├── services/         # Business logic & file uploaders
-│   │   └── ai_integrations/  # Interfaces/stubs where AI logic connects
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/                 # Next.js Application (App Router)
-│   ├── src/
-│   │   ├── app/              # Routes: /login, /dashboard, /courses, etc.
-│   │   ├── components/       # Reusable UI (Buttons, Modals, VideoPlayer)
-│   │   ├── hooks/            # Data-fetching hooks (TanStack Query / SWR)
-│   │   └── lib/              # Axios client, auth token helpers
-│   ├── package.json
-│   └── tailwind.config.js
-└── docker-compose.yml        # Local Postgres + Backend + Frontend runner
+---
 
-Phase 2: Database Schema (PostgreSQL)
-1. User & Access Control
-users: id (UUID, PK), email (string, unique, indexed), hashed_password (string), full_name (string), role (enum: student, admin, instructor), created_at, updated_at (timestamp)
+## 🔴 PHASE 1 — Core UX Overhaul (Top Priority)
 
-2. LMS Structure (Courses, Modules, Lessons)
-courses: id, title, slug, description, category, is_published
-modules: id, course_id, title, order_index
-lessons: id, module_id, title, content_type, body_text, media_url, order_index
+| # | Task | File | Done? |
+|---|---|---|---|
+| 1 | Redesign public Navbar → ultra-minimal (Logo + Sign In only) | `components/Navbar.tsx` | ❌ |
+| 2 | Redesign Landing Page (hero + trust strip + tutor section + subjects + testimonials + dark footer) | `(main)/page.tsx` | ❌ |
+| 3 | Build Multi-Step Signup (5 steps: goal → track → level → account → welcome) | `(auth)/signup/page.tsx` | ❌ |
+| 4 | Build Premium Upsell Screen (post-signup modal / page) | New component | ❌ |
+| 5 | Redesign Logged-In Navbar (Home+Courses+You + trial badge + 🔑 + ⚡ + ☰) | `components/Navbar.tsx` | ❌ |
+| 6 | Add Countdown Sub-Banner below logged-in navbar | Layout or Navbar | ❌ |
 
-3. Student Progress & Enrollments
-enrollments: id, user_id, course_id, enrolled_at
-lesson_completions: id, user_id, lesson_id, completed_at
+---
 
-4. Assessments & Questions (AI Integration Ready)
-assessments: id, course_id, module_id, title, is_ai_generated, target_skill
-questions: id, assessment_id, prompt, question_type, options, correct_answer
-test_attempts: id, assessment_id, user_id, status, total_score, feedback_summary
-attempt_answers: id, attempt_id, question_id, student_answer, is_correct, score, ai_feedback
+## 🟡 PHASE 2 — Gamification Foundation
 
-5. Student Skill Profile & Recommendations
-student_skill_profiles: id, user_id, skill_name, mastery_level, updated_at
-ai_recommendations: id, user_id, recommended_lesson_id, reason, is_completed
+| # | Task | File | Done? |
+|---|---|---|---|
+| 7 | Build Keys System (2/day free, midnight reset, navbar counter) | `lib/keys.ts` (new) | ❌ |
+| 8 | Build Streak System (daily tracking + streak charges auto-save) | `lib/streak.ts` (new) | ❌ |
+| 9 | Build XP System (earn per lesson + per correct problem) | `lib/xp.ts` (new) | ❌ |
+| 10 | Redesign Dashboard Home (Up Next + daily goal + sidebar widgets) | `dashboard/page.tsx` | ❌ |
+| 11 | Add "Out of Keys" screen inside Lesson Player | `dashboard/lesson/page.tsx` | ❌ |
+| 12 | Add Lesson End Screen (+XP, streak maintained, next lesson button) | `dashboard/lesson/page.tsx` | ❌ |
 
-Phase 3: Backend API Endpoints (FastAPI)
-1. Auth Module (/api/v1/auth)
-POST /register
-POST /login
-GET /me
+---
 
-2. Course & Content Module (/api/v1/courses)
-GET /
-GET /{course_id}
-POST / (Admin)
-POST /{course_id}/modules (Admin)
-POST /{module_id}/lessons (Admin)
-POST /upload-media (Admin)
+## 🟡 PHASE 3 — Profile & Courses
 
-3. Student Progress Module (/api/v1/progress)
-POST /enroll/{course_id}
-POST /lessons/{lesson_id}/complete
-GET /courses/{course_id}/summary
+| # | Task | File | Done? |
+|---|---|---|---|
+| 13 | Create "You" Profile Page (streak calendar + XP + league + courses) | `dashboard/you/page.tsx` (new) | ❌ |
+| 14 | Redesign Courses Page (subject filter tabs + learning paths + course grid) | `(main)/courses/page.tsx` | ❌ |
+| 15 | Add League System (weekly leaderboard, 10 tiers, 30 peers per group) | `dashboard/leagues/page.tsx` (new) | ❌ |
+| 16 | Add Streak Calendar Component (GitHub-style heatmap) | `components/StreakCalendar.tsx` (new) | ❌ |
 
-4. Assessment Module (/api/v1/assessments)
-GET /{assessment_id}
-POST /{assessment_id}/start
-POST /attempts/{attempt_id}/submit
-GET /attempts/{attempt_id}/result
+---
 
-5. AI Handoff Endpoints
-POST /api/v1/ai/generate-test
-POST /api/v1/ai/chat-tutor
-GET /api/v1/ai/recommendations
+## 🟢 PHASE 4 — Polish & Complete
 
-Phase 4: Frontend Development (Next.js)
-Screen-by-Screen Breakdown
-Login / Register: /login, /register
-Student Dashboard: /dashboard
-Course Catalog: /courses
-Lesson Player: /courses/[slug]/lessons/[lessonId]
-Assessment / Quiz UI: /assessments/[id]
-Results & Feedback: /assessments/attempts/[attemptId]
-AI Tutor Chat Widget: Embedded Drawer
-Admin Content Studio: /admin/courses
+| # | Task | File | Done? |
+|---|---|---|---|
+| 17 | Update Settings page (notifications + subscription + language) | `dashboard/settings/page.tsx` | ❌ |
+| 18 | Update Hamburger Menu (all options including settings/signout/language) | `components/Navbar.tsx` | ❌ |
+| 19 | Update Pricing Page (Free/Monthly/Annual/Family table comparison) | `(main)/pricing/page.tsx` | ❌ |
+| 20 | Update Instructor Portal (class creation + student invite + progress tracking) | `instructor/page.tsx` | ❌ |
+| 21 | Add Personalisation Engine (dashboard shows content by chosen track) | Multiple files | ❌ |
 
-Phase 5: Clear Division of Responsibilities
-Feature Area | Your Scope (Web Developer) | AI Team Scope (AI Developer)
-Course Materials | Build upload forms, store PDFs in S3 | Read PDFs from S3, chunk text, generate vector embeddings
-Quizzes & Tests | Render quiz UI, collect student answers | Write prompt/agent that analyzes student history and outputs new questions
-Grading | Save scores and feedback text in DB | Run Evaluation Agent to evaluate grammar/vocabulary
-Recommendations | Build "Recommended For You" UI cards | Run Skill Analysis Agent to decide which lesson
-AI Chat | Build chat UI window, handle text input | Manage system prompts, context retrieval
+---
 
-Phase 6: Step-by-Step Execution Plan
-Milestone 1: Backend Baseline (Setup FastAPI + PostgreSQL, Auth)
-Milestone 2: LMS Content Management (courses, modules, lessons tables, S3)
-Milestone 3: Core Student Web Flow (Dashboard, Lesson Viewer, Progress)
-Milestone 4: Static Assessments (Assessment tables, test screen)
-Milestone 5: AI Integration Points (Create mock endpoints for AI dev)
-Milestone 6: Polish & Deployment (Docker, Vercel, AWS/Render)
+## ✅ Already Done & Stable
+
+| Feature | File | Status |
+|---|---|---|
+| Login page | `(auth)/login/page.tsx` | ✅ Working |
+| Forgot / Reset password | `(auth)/forgot-password` + `reset-password` | ✅ Working |
+| Dashboard layout | `(dashboard)/layout.tsx` | ✅ Working |
+| Lesson Player (basic video + quiz) | `dashboard/lesson/page.tsx` | ✅ Working (needs XP/keys) |
+| Admin panel | `admin/page.tsx` | ✅ Working |
+| AI Study Buddy (chat widget) | `components/AIStudyBuddy.tsx` | ✅ Working |
+| Footer | `components/Footer.tsx` | ✅ Working (minor updates needed) |
+| Adaptive learning page | `dashboard/adaptive/page.tsx` | ✅ Working |
+
+---
+
+## ⚠️ HARD RULES — Never Violate
+
+1. `"dev": "next dev --webpack"` in `package.json` — NEVER change to turbopack
+2. Backend in `backend/` — **NEVER touch from frontend team**
+3. Max **6 courses** on public grid
+4. Our 4 tracks ONLY: CS & Python · Higher Math · Academic English · Applied Physics
+5. Always build: Discuss → Approve → Then code
+6. Never delete working features — extend, never remove without backup
+7. Build command: `npx next build --webpack` (not bare `next build`)
+
+---
+
+## 🗂️ Architecture Quick Reference
+
+```
+Frontend:  http://localhost:3001   (npx next dev --webpack in frontend/)
+Backend:   http://localhost:8000   (uvicorn in backend/)
+Auth:      localStorage via saveAuthSession() in lib/auth-storage.ts
+Onboarding prefs: localStorage keys: onboarding_goal, onboarding_track, onboarding_level
+Enrolled courses: localStorage key: student_enrolled_courses
+```

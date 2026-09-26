@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pen & Page Academia — Frontend README
+## Brilliant.org-Inspired Multi-Discipline Learning Platform
 
-## Getting Started
+---
 
-First, run the development server:
+## 🎯 What Is This?
+
+**Pen & Page Academia** is a Brilliant.org-inspired interactive learning platform covering 4 disciplines:
+
+| Track | Content |
+|---|---|
+| 📖 Academic English | IELTS prep, Academic Writing, Rhetoric, Grammar |
+| 🧮 Higher Mathematics | Algebra → Calculus → Linear Algebra |
+| 💻 Computer Science | Python → Algorithms → Data Structures → AI |
+| 🔬 Applied Physics | Everyday Physics → Mechanics → Circuits → Quantum |
+
+**Key features being built:**
+- 🎯 5-step personalised onboarding (like Brilliant)
+- 🔑 Daily keys system (2 free lessons/day)
+- 🔥 Streak system with automatic charge saves
+- ⭐ XP + Weekly league leaderboard (10 tiers)
+- 💎 Free vs Premium model
+- 🤖 AI Study Buddy (our Koji — Socratic hints, never the answer)
+
+---
+
+## ⚡ Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Start dev server (ALWAYS use this command)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# → http://localhost:3001
+
+# Type check
+npx tsc --noEmit
+
+# Production build
+npx next build --webpack
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> 🚨 **CRITICAL:** Always use `npm run dev` (which runs `next dev --webpack`).  
+> Never use `turbopack`. It crashes with `@tailwindcss/postcss`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗂️ Key Files
 
-## Learn More
+| File | Purpose |
+|---|---|
+| `src/app/(main)/page.tsx` | Landing page |
+| `src/app/(auth)/signup/page.tsx` | Signup — 5-step wizard |
+| `src/app/(dashboard)/dashboard/page.tsx` | Home dashboard |
+| `src/app/(dashboard)/dashboard/lesson/page.tsx` | Lesson player |
+| `src/components/Navbar.tsx` | Public + logged-in navbar |
+| `src/components/AIStudyBuddy.tsx` | AI Study Buddy widget |
+| `src/lib/auth-storage.ts` | Auth session helpers |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📖 Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Doc | Location | Description |
+|---|---|---|
+| **Master Plan** | `../docs/BRILLIANT-INSPIRED-MASTER-PLAN.md` | Complete A-Z feature plan |
+| **UI Design Spec** | `../docs/05-public-ui-design.md` | Page-by-page UI wireframes |
+| **Routing Spec** | `../docs/04-frontend-routing-spec.md` | All routes + navigation flows |
+| **Roadmap** | `../docs/07-development-roadmap.md` | Phase 1-4 build order |
+| **System Overview** | `../docs/01-system-overview.md` | Architecture + auth + gamification |
+| **Dev Guide** | `AGENTS.md` | Component patterns + build rules |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔒 Rules
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Backend in `backend/` — **do not touch**
+2. `"dev": "next dev --webpack"` — **never change**
+3. Max **6 courses** on public grid
+4. **Discuss → Approve → Build** (never skip planning)
+5. **4 tracks only:** CS · Math · English · Physics
+
+---
+
+## 🌐 Ports
+
+| Service | URL |
+|---|---|
+| Frontend | `http://localhost:3001` |
+| Backend API | `http://localhost:8000` |
+| API Docs | `http://localhost:8000/docs` |

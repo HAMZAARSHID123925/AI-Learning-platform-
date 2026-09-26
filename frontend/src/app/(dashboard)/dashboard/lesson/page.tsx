@@ -37,7 +37,7 @@ const INITIAL_LESSONS: Lesson[] = [
     title: '1. Introduction to Computational Thinking & Python',
     type: 'video',
     duration: '12 mins',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    videoUrl: 'https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=0&rel=0',
     completed: true,
     description: 'Understand the fundamental logic behind computer programming, writing clean Python syntax, and executing your first program.',
     overviewNotes: [
@@ -72,7 +72,7 @@ const INITIAL_LESSONS: Lesson[] = [
     title: '3. Conditional Logic & For/While Loops',
     type: 'video',
     duration: '16 mins',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    videoUrl: 'https://www.youtube-nocookie.com/embed/k9TUPpGqYTo?autoplay=0&rel=0',
     completed: false,
     description: 'Master if-elif-else conditional branching and automate repetitive tasks using for and while loops.',
     overviewNotes: [
@@ -172,7 +172,7 @@ function LessonPlayerContent() {
             title: '1. Complex Clause Construction & Coordination',
             type: 'video',
             duration: '14 mins',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            videoUrl: 'https://www.youtube-nocookie.com/embed/B_mS7b2q_iI?autoplay=0&rel=0',
             completed: false,
             description: 'Master dependent clauses, coordinating conjunctions, and sentence variety for clear academic writing.',
             overviewNotes: [
@@ -239,7 +239,7 @@ function LessonPlayerContent() {
             title: '1. Solving Multi-Step Linear Equations',
             type: 'video',
             duration: '16 mins',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            videoUrl: 'https://www.youtube-nocookie.com/embed/NybHckSEQBI?autoplay=0&rel=0',
             completed: false,
             description: 'Step-by-step methodology for isolating variables across equality balance lines.',
             overviewNotes: [
@@ -643,20 +643,29 @@ function LessonPlayerContent() {
           <div className="w-full bg-[#0B1221] border-b border-slate-800 flex items-center justify-center p-0 md:p-6 lg:p-8">
             {/* Embedded Responsive 16:9 Video Player */}
             <div className="w-full max-w-4xl aspect-video rounded-none md:rounded-3xl overflow-hidden shadow-2xl bg-black relative border border-slate-800">
-              <iframe
-                src={activeLesson.videoUrl?.includes('youtube') 
-                  ? activeLesson.videoUrl 
-                  : (requestedCourseId?.includes('eng') 
-                      ? "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=0&rel=0"
+              {activeLesson.videoUrl && (activeLesson.videoUrl.endsWith('.mp4') || activeLesson.videoUrl.includes('.mp4')) ? (
+                <video
+                  key={activeLesson.videoUrl}
+                  controls
+                  playsInline
+                  className="w-full h-full object-contain bg-black"
+                  src={activeLesson.videoUrl}
+                />
+              ) : (
+                <iframe
+                  src={activeLesson.videoUrl || (
+                    requestedCourseId?.includes('eng') 
+                      ? "https://www.youtube-nocookie.com/embed/B_mS7b2q_iI?autoplay=0&rel=0"
                       : requestedCourseId?.includes('math')
                       ? "https://www.youtube-nocookie.com/embed/NybHckSEQBI?autoplay=0&rel=0"
                       : "https://www.youtube-nocookie.com/embed/_uQrJ0TkZlc?autoplay=0&rel=0"
-                    )}
-                title={activeLesson.title}
-                className="w-full h-full object-cover"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+                  )}
+                  title={activeLesson.title}
+                  className="w-full h-full object-cover"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              )}
             </div>
           </div>
         ) : activeLesson.type === 'pdf' ? (

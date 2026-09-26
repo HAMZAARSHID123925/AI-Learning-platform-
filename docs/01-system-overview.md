@@ -1,129 +1,218 @@
-# AI-Powered Adaptive Learning & Assessment Platform
-Developer Technical Overview — LMS + Agentic AI Architecture
+# Pen & Page Academia — System Overview
+## Platform Summary, Architecture & Feature Set
 
-This document extracts the technical architecture, technology stack, system flow, data model, LMS scope, and AI
-components from the project proposal.
+---
 
-1. System Overview
-The platform is an integrated Learning Management System (LMS) and AI-powered adaptive learning platform.
-The LMS provides the structured learning environment: courses, modules, lessons, content, enrollment, access
-control, assessments, and progress.
-The AI engine operates on top of the LMS and continuously analyzes learning activity and assessment
-performance. It identifies strengths and weaknesses, generates personalized assessments, recommends learning
-activities, and updates the student's learning profile.
-The initial course is IELTS / English, but the architecture is intended to be generic enough to support additional
-courses and subjects later.
+## 🎯 WHAT WE ARE BUILDING
 
-2. Core Student Journey
-Student → Login / LMS Dashboard → Select / Access Course → Open Module & Study Lesson Material →
-Complete Learning Activity → AI Creates Initial Assessment → Student Takes Test → AI Evaluates Answers →
-Performance & Skill Analysis → Strengths + Weaknesses Identified → AI Generates Tailored Written Remedial Course
-(Document / Reading format targeting specific weak points — NOT video) → Student Studies AI-Generated Remedial Course →
-Student Takes Targeted Follow-up Test → Progress Updated in LMS → Continuous Improvement Loop.
-The loop repeats as new learning activity and test results become available, allowing personalization to improve
-over time.
+**Pen & Page Academia** is a Brilliant.org-inspired interactive learning platform for:
 
-3. Adaptive Learning Engine
-Input data: LMS learning activity, assessments, test attempts, historical performance, and course content.
-Processing flow: Student Performance → AI Skill Analysis → Identify Strong Areas / Weak Areas → 
-AI Synthesizes & Generates Written Remedial Course (Document form tailored to weak concepts) → 
-Student Studies Remedial Material → AI Generates Targeted Follow-up Assessment → Evaluate New Attempt → 
-Update Student Performance Profile in LMS → Repeat.
-The system should use historical data rather than relying only on the most recent score.
+| Discipline | Track Name | Coverage |
+|---|---|---|
+| 📖 Academic English | English Track | IELTS prep, Academic Writing, Rhetoric, Grammar, Vocabulary |
+| 🧮 Higher Mathematics | Math Track | Algebra → Calculus → Linear Algebra → Statistics |
+| 💻 Computer Science | CS Track | Python → Algorithms → Data Structures → AI |
+| 🔬 Applied Physics | Physics Track | Everyday Physics → Mechanics → Circuits → Quantum |
 
-4. Agentic AI Architecture
-The platform uses a coordinated set of specialized AI components rather than a single general-purpose chatbot.
-These agents read relevant course structure, content, and learning history from the LMS and write
-recommendations, assessments, and progress-related results back into the platform.
-Test Generation Agent: Generates assessments using course content, student level, learning history, previous
-performance, and weak areas.
-Evaluation Agent: Evaluates answers at question and skill level, including skills such as grammar, vocabulary,
-reading, and writing.
-Skill Analysis Agent: Analyzes historical LMS and assessment data to identify strengths, weaknesses, and
-sub-skills requiring improvement.
-Personalization / Learning Agent: Determines what the student should learn or practice next and communicates
-the recommendation through the LMS.
-AI Tutor: Provides explanations, examples, feedback, and learning guidance within the LMS learning experience.
+**Core philosophy (from Brilliant.org):**
+- Learn by **doing** — not watching
+- **Interactive problems** — not static videos
+- **AI Study Buddy** (our Koji) — Socratic hints, never the answer
+- **Gamification** — streaks, XP, leagues, keys
+- **Freemium model** — 2 lessons/day free, unlimited with premium
 
-5. AI Course Understanding & RAG
-AI-generated tests and tutoring responses must be grounded in the actual course material managed inside the
-LMS.
-Supported course sources include LMS-managed PDFs and documents, course notes and lesson content,
-uploaded learning material, and question banks.
-Conceptual flow: LMS Course Content → AI Processing / Knowledge Layer → Organize & Store Course
-Knowledge (RAG) → Retrieve Relevant Learning Context → AI Assessment / Tutor / Personalization.
-RAG uses the LMS-managed content as the source material so generated assessments and tutoring responses
-remain relevant to the course.
+---
 
-6. LMS Functional Layer
-Course Management: Courses, descriptions, structure, modules, lessons, topics, and learning objectives.
-Learning Content Management: PDFs, documents, lesson notes, videos, text-based lessons, and question
-banks.
-Student Management: Registration, login, profiles, enrollment, course access control, and role-based access.
-Progress: Course progress, module progress, lesson completion, learning activity, assessment history, and test
-attempts.
-Assessments: Quizzes, assessments, submissions, test attempts, results, and assessment history.
-The LMS and AI engine are integrated components of one platform: LMS = structured learning/platform layer; AI =
-intelligence and personalization layer.
+## 🏗️ SYSTEM ARCHITECTURE
 
-7. Integrated LMS + AI Loop
-Student → LMS Course / Module / Lesson → Learning Activity → Assessment → AI Evaluation → Skill Analysis →
-Weakness Detection → Personalization Agent → Recommended Lesson / Practice + Personalized Assessment →
-Updated Student Progress → Back to LMS → Continuous Learning Loop.
+```
+STUDENT / TEACHER / PARENT
+         │
+         ▼
+  NEXT.JS FRONTEND (localhost:3001)
+  ┌─────────────────────────────────────────┐
+  │  Public Pages:                          │
+  │  • Landing (/) • Courses • Pricing     │
+  │  • About • Contact • How It Works      │
+  │                                         │
+  │  Auth Pages:                            │
+  │  • Signup (5-step wizard)              │
+  │  • Login • Reset Password              │
+  │                                         │
+  │  Dashboard (Student):                   │
+  │  • Home • Lesson Player • Courses      │
+  │  • You/Profile • Leagues • Settings    │
+  │  • Adaptive • Mock Exam • Grammar      │
+  │                                         │
+  │  Instructor Portal:                     │
+  │  • Class management • Assignments      │
+  │  • Student progress tracking           │
+  │                                         │
+  │  Admin Panel:                           │
+  │  • Course management • Analytics       │
+  └──────────────┬──────────────────────────┘
+                 │ REST API (fetch)
+                 ▼
+  FASTAPI BACKEND (localhost:8000)
+  ┌─────────────────────────────────────────┐
+  │  • Auth & JWT tokens                   │
+  │  • User management (RBAC)             │
+  │  • Course & lesson data               │
+  │  • Progress tracking                  │
+  │  • AI exam generation                 │
+  │  • RAG (document Q&A)                │
+  │  • Assessment engine                  │
+  └────────────┬──────────────────────────-─┘
+               │
+       ┌───────┴────────┐
+       ▼                ▼
+  POSTGRESQL         AI ENGINE
+  • Users            • Gemini/OpenAI
+  • Courses          • RAG (pgvector)
+  • Lessons          • Essay grading
+  • Progress         • Quiz generation
+  • Attempts         • Weakness analysis
+  • pgvector
+```
 
-8. Test Evaluation
-Student Answers → AI Evaluation → Question-Level Analysis → Skill-Level Analysis → Overall Score → Detailed
-Feedback stored in LMS.
-The evaluation model can also support sub-skill detection, for example vocabulary: synonyms, academic words,
-contextual usage; grammar: tenses, articles, prepositions.
+---
 
-9. Personalized Test Generation
-Previous Test Results → Student Weak Areas → LMS Course Content & Learning History → AI Test Generation
-Agent → Difficulty + Skill Selection → Personalized Test → Delivered via LMS.
-The generator should reduce unnecessary focus on already-strong skills, increase focus on weak areas, surface
-related LMS learning material, and gradually adjust difficulty as performance improves.
+## 👥 USER ROLES
 
-10. Progress & Dashboard
-The dashboard is the student's LMS home base and can show enrolled courses, course/module/lesson progress,
-skill performance, test history, weak areas, improvement over time, and AI recommendations.
-Progress analysis combines LMS learning activity, assessment results, and historical performance, then produces
-personalized recommendations.
+| Role | Description | Access Level |
+|---|---|---|
+| `student` (free) | Regular learner, 2 keys/day | Dashboard, 2 lessons/day |
+| `student` (premium) | Paid learner, unlimited | Dashboard, full access |
+| `instructor` | Teacher with class management | Instructor portal + student tracking |
+| `admin` | Platform administrator | Full admin panel |
+| `parent` | Family plan manager | Can view linked student progress |
 
-11. Conceptual Data Model
-LMS entities: Users & Roles, Courses, Modules, Lessons, Learning Materials, Enrollments, Progress.
-AI & Assessment entities: Assessments & Questions, Attempts, Answers / Submissions, Skill Scores, AI
-Recommendations, Learning History.
-Detailed schema design is to be finalized during platform foundation and should support the LMS and AI layers
-through shared data.
+---
 
-12. Technology Stack
-Frontend: Next.js, TypeScript, Tailwind CSS, Responsive UI.
-Backend: Python, FastAPI.
-Database: PostgreSQL.
-AI / LLM: OpenAI / Google Gemini / Groq-compatible models.
-AI Architecture: Agentic AI workflow and specialized AI agents.
-Knowledge: RAG (Retrieval-Augmented Generation).
-Vector Search: PostgreSQL + pgvector.
-Authentication: Secure login and role management.
-File Storage: AWS S3 / Cloudflare R2.
-Deployment: Docker + cloud hosting.
-Monitoring: Application and AI usage monitoring.
+## 🔑 GAMIFICATION SYSTEM
 
-13. High-Level Technical Architecture
-Student → Web Platform → LMS Layer → Courses / Modules / Lessons / Enrollment / Progress / Assessments →
-Backend / API → AI & Adaptive Learning Engine → Test Agent / Evaluation / Skill Analysis / Personalization Agent
-/ AI Tutor → Personalized Learning / Assessment → Back to LMS → Student.
-The LMS layer is implemented using the same overall technology stack rather than requiring a separate LMS
-framework. It consists of additional data models, screens, and API endpoints within the architecture.
+### Keys System (Freemium Control)
+- **Free users:** 2 keys per day
+- **1 key = 1 lesson or 1 practice set**
+- **Reset:** Midnight local time
+- **Premium users:** No keys (unlimited)
+- **Stored:** `localStorage` key: `{ daily_keys, keys_reset_date }`
 
-14. Initial Technical Scope
-Student registration/login; LMS course access; course/module/lesson structure; LMS learning content upload and
-management; enrollment and access control; learning progress tracking; AI-generated assessments; test attempts;
-AI evaluation; skill-level analysis; weak-area detection; personalized tests; test history; progress comparison; AI
-learning recommendations; AI learning assistant/chat; LMS + AI integration with shared data and a unified
-dashboard.
+### Streak System
+- **Maintained by:** Completing 3 problems OR 1 lesson per day
+- **Broken:** Missing a day with no charges
+- **Streak Charges:** Earned 1 per lesson (max 2 banked), auto-used if day missed
+- **Stored:** `localStorage` key: `{ streak_count, last_active_date, streak_charges }`
 
-15. Future Architecture Direction
-The architecture should remain extensible for a dedicated instructor dashboard, advanced admin dashboard,
-course authoring tools, assignment management, certificates, attendance tracking, notifications, advanced
-analytics, multiple learning programs / additional subjects, and additional content types.
+### XP System
+- `+50 XP` per lesson completed
+- `+10 XP` per correct problem in daily practice
+- `+200 XP` per chapter complete bonus
+- Used for: weekly league ranking
+- **Stored:** `localStorage` + backend sync
+
+### League System
+- **30 users** per weekly league group
+- **Weekly reset:** Every Monday 3:00 AM UTC
+- **10 tiers:** Bronze → Silver → Gold → Platinum → Diamond (or Hydrogen→Einsteinium)
+- **Promotion:** Top 5 users → next tier
+- **Demotion:** Bottom 5 users → lower tier
+- **Stored:** Backend (needs user comparison)
+
+---
+
+## 📱 FREE vs PREMIUM — COMPLETE FEATURE MATRIX
+
+| Feature | Free | Premium |
+|---|---|---|
+| Daily lessons | 🔑 2/day | ♾️ Unlimited |
+| Course order | Sequential only | Jump to any lesson |
+| AI Study Buddy | 2-3 hints/lesson | Full, unlimited |
+| Ads/upsell prompts | Yes (between lessons) | None |
+| Streak charges | ✅ Same | ✅ Same |
+| XP & Leagues | ✅ Same | ✅ Same |
+| Streak calendar | ✅ Same | ✅ Same |
+| All 4 tracks | ✅ Same | ✅ Same |
+| Navbar | Shows trial + 🔑 + countdown | Clean — no trial/🔑 |
+| Price | \$0 | ~\$20/mo annual |
+
+---
+
+## 🔐 AUTH SYSTEM
+
+- **JWT tokens** stored in `localStorage` via `saveAuthSession()` in `lib/auth-storage.ts`
+- **Onboarding prefs** stored in `localStorage`:
+  - `onboarding_goal` — why they joined
+  - `onboarding_track` — chosen subject
+  - `onboarding_level` — experience level
+- **Enrolled courses** stored in `localStorage` key: `student_enrolled_courses`
+- **Session check:** `loadAuthSession()` called on protected pages
+
+---
+
+## 📁 PROJECT STRUCTURE
+
+```
+AI-Learning-platform-/
+├── frontend/                   ← Next.js app (FRONTEND TEAM ONLY)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── (auth)/         ← Signup, Login, Reset password
+│   │   │   ├── (dashboard)/    ← All logged-in pages
+│   │   │   │   ├── dashboard/  ← Student dashboard pages
+│   │   │   │   ├── admin/      ← Admin pages
+│   │   │   │   └── instructor/ ← Instructor portal
+│   │   │   ├── (main)/         ← Public pages
+│   │   │   └── layout.tsx
+│   │   ├── components/         ← Reusable UI components
+│   │   └── lib/                ← Utilities, auth, API helpers
+│   ├── package.json            ← "dev": "next dev --webpack" — DO NOT CHANGE
+│   └── ...
+│
+├── backend/                    ← FastAPI app (BACKEND TEAM ONLY — DO NOT TOUCH)
+│   ├── app/
+│   │   ├── api/                ← Routes
+│   │   ├── models/             ← SQLAlchemy models
+│   │   ├── schemas/            ← Pydantic schemas
+│   │   └── services/           ← Business logic
+│   └── ...
+│
+├── docs/                       ← Project documentation
+│   ├── BRILLIANT-INSPIRED-MASTER-PLAN.md  ← MAIN PLAN — read first
+│   ├── 01-system-overview.md              ← This file
+│   ├── 04-frontend-routing-spec.md        ← All routes
+│   ├── 05-public-ui-design.md             ← UI specs per page
+│   ├── 07-development-roadmap.md          ← Phase 1-4 implementation order
+│   └── ...
+│
+└── docx/                       ← Legacy SDD and backend specs
+```
+
+---
+
+## ⚙️ DEV ENVIRONMENT
+
+| Item | Value |
+|---|---|
+| Frontend port | `http://localhost:3001` |
+| Backend port | `http://localhost:8000` |
+| Start frontend | `cd frontend && npm run dev` |
+| Start backend | `cd backend && venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload` |
+| Build command | `cd frontend && npx next build --webpack` |
+| Node version | 18+ |
+| Python version | 3.11 |
+
+> ⚠️ **CRITICAL:** `package.json` must keep `"dev": "next dev --webpack"` — Turbopack crashes Tailwind v4
+
+---
+
+## 📋 IMPLEMENTATION PHASES (SUMMARY)
+
+| Phase | Focus | Items |
+|---|---|---|
+| **Phase 1** 🔴 | Core UX Overhaul | Navbar redesign, Landing page, 5-step signup, premium upsell, logged-in navbar, countdown banner |
+| **Phase 2** 🟡 | Gamification | Keys system, streak system, XP, dashboard redesign, lesson end screen, out-of-keys screen |
+| **Phase 3** 🟡 | Profile & Courses | You page, Courses page, Leagues, streak calendar |
+| **Phase 4** 🟢 | Polish | Settings update, hamburger menu, pricing update, instructor portal, personalisation |
+
+> **Full detail in:** [`docs/BRILLIANT-INSPIRED-MASTER-PLAN.md`](./BRILLIANT-INSPIRED-MASTER-PLAN.md)
