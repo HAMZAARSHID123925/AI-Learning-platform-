@@ -267,6 +267,14 @@ const COURSE_EXAM_BANKS: Record<string, CourseExamBank> = {
   }
 };
 
+export default function AIExamGeneratorPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center text-slate-500 font-semibold">Loading AI Exam Studio...</div>}>
+      <AIExamGeneratorContent />
+    </Suspense>
+  );
+}
+
 function AIExamGeneratorContent() {
   const searchParams = useSearchParams();
   const courseIdParam = searchParams.get('courseId') || "cs-101";
@@ -854,13 +862,5 @@ function AIExamGeneratorContent() {
         </div>
       </main>
     </div>
-  );
-}
-
-export default function AIExamGeneratorPage() {
-  return (
-    <Suspense>
-      <AIExamGeneratorContent />
-    </Suspense>
   );
 }
