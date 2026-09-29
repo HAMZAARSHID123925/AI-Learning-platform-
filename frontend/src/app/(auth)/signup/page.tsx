@@ -29,6 +29,7 @@ export default function SignupPage() {
   const [voiceOn, setVoiceOn] = useState<boolean>(true);
   const [track, setTrack] = useState<string | null>(null);
   const [level, setLevel] = useState<string | null>(null);
+  const [grade, setGrade] = useState<number>(1);
   const [dailyTime, setDailyTime] = useState<string | null>(null);
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
 
@@ -175,6 +176,7 @@ export default function SignupPage() {
           localStorage.setItem('onboarding_voice_on', String(voiceOn));
           localStorage.setItem('onboarding_track', track || 'math');
           localStorage.setItem('onboarding_level', level || 'beginner');
+          localStorage.setItem('student_grade', String(grade));
           localStorage.setItem('onboarding_daily_time', dailyTime || '15');
           localStorage.setItem('onboarding_schedule_time', scheduleTime || 'morning');
           if (userType === 'educator_parent') {
@@ -1006,6 +1008,39 @@ export default function SignupPage() {
                   );
                 });
               })()}
+            </div>
+
+            {/* Grade Level Selection (Classes 1 - 5) */}
+            <div className="w-full max-w-[560px] bg-slate-50 border border-slate-200/80 rounded-3xl p-5 mb-10 text-center">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                Primary School Grade
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 mb-1">
+                Which class/grade are you in? 🎒
+              </h3>
+              <p className="text-xs text-slate-500 mb-3">
+                Your dashboard, courses, and live classes will be set to this class.
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((g) => {
+                  const isSelected = grade === g;
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setGrade(g)}
+                      className={`py-2 px-1 rounded-2xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center border cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#111827] text-white border-[#111827] shadow-sm scale-[1.03]'
+                          : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span className="text-[10px] uppercase font-semibold opacity-70">Class</span>
+                      <span className="text-base font-black">{g}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <button

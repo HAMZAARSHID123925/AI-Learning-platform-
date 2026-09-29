@@ -60,42 +60,45 @@ interface AdminCertificate {
 }
 
 const INITIAL_USERS: AdminUser[] = [
-  { id: "usr-1", name: "Hamza Arshid", email: "student@penpage.academy", role: "Student", status: "Active", enrolledCoursesCount: 4, joinedDate: "Sep 01, 2026" },
-  { id: "usr-2", name: "Dr. Alan Turing", email: "alan@penpage.academy", role: "Instructor", status: "Active", enrolledCoursesCount: 0, joinedDate: "Aug 15, 2026" },
-  { id: "usr-3", name: "Sarah Chen", email: "sarah.c@utoronto.ca", role: "Student", status: "Active", enrolledCoursesCount: 2, joinedDate: "Aug 28, 2026" },
-  { id: "usr-4", name: "Prof. Eleanor Vance", email: "eleanor@penpage.academy", role: "Instructor", status: "Active", enrolledCoursesCount: 0, joinedDate: "Aug 10, 2026" },
-  { id: "usr-5", name: "Marcus Sterling", email: "marcus.s@outlook.com", role: "Student", status: "Active", enrolledCoursesCount: 3, joinedDate: "Sep 04, 2026" },
-  { id: "usr-6", name: "System Administrator", email: "admin@penpage.academy", role: "Admin", status: "Active", enrolledCoursesCount: 0, joinedDate: "Jan 01, 2026" },
+  { id: "usr-1", name: "Alex Johnson", email: "alex.j@penpage.academy", role: "Student", status: "Active", enrolledCoursesCount: 4, joinedDate: "Sep 01, 2026" },
+  { id: "usr-2", name: "Sarah Jenkins", email: "sarah.jenkins@penpage.academy", role: "Instructor", status: "Active", enrolledCoursesCount: 0, joinedDate: "Aug 15, 2026" },
+  { id: "usr-3", name: "Emma Watson", email: "emma.w@penpage.academy", role: "Student", status: "Active", enrolledCoursesCount: 3, joinedDate: "Aug 28, 2026" },
+  { id: "usr-4", name: "Dr. David Miller", email: "david.miller@penpage.academy", role: "Instructor", status: "Active", enrolledCoursesCount: 0, joinedDate: "Aug 10, 2026" },
+  { id: "usr-5", name: "Liam Smith", email: "liam.smith@penpage.academy", role: "Student", status: "Active", enrolledCoursesCount: 2, joinedDate: "Sep 04, 2026" },
+  { id: "usr-6", name: "Sophia Garcia", email: "sophia.g@penpage.academy", role: "Student", status: "Active", enrolledCoursesCount: 4, joinedDate: "Sep 08, 2026" },
+  { id: "usr-7", name: "Head Administrator", email: "admin@penpage.academy", role: "Admin", status: "Active", enrolledCoursesCount: 0, joinedDate: "Jan 01, 2026" },
 ];
 
-const INITIAL_COURSES: AdminCourse[] = platformCourses.slice(0, 8).map((pc, idx) => ({
+const INITIAL_COURSES: AdminCourse[] = platformCourses.map((pc, idx) => ({
   id: pc.id,
-  title: pc.title,
+  title: `${pc.title} (Grade ${pc.grade})`,
   grade: pc.grade,
   subject: pc.subject === 'cs' ? 'Computer Science' : pc.subject === 'math' ? 'Mathematics' : pc.subject === 'science' ? 'Science' : 'English',
-  instructorName: pc.subject === 'cs' ? 'Dr. Alan Turing' : pc.subject === 'english' ? 'Prof. Eleanor Vance' : pc.subject === 'math' ? 'Dr. Alex Vance' : 'Dr. Sarah Jenkins',
-  modulesCount: pc.moduleTitles?.length || 4,
-  studentsCount: 30 + idx * 12,
+  instructorName: pc.subject === 'cs' || pc.subject === 'math' ? 'Dr. David Miller' : 'Sarah Jenkins',
+  modulesCount: pc.moduleTitles?.length || 3,
+  studentsCount: 24 + (idx % 5) * 6,
   status: 'published',
-  isFeatured: idx < 3,
+  isFeatured: idx < 4,
   createdDate: 'Academic Year 2026'
 }));
 
 const INITIAL_SESSIONS: AdminLiveSession[] = [
-  { id: "ls-1", title: "Live Code Review: Data Structures & Hash Maps", subject: "Computer Science", instructorName: "Dr. Alan Turing", scheduledTime: "Today at 4:00 PM", attendanceCount: 28, status: "UPCOMING" },
-  { id: "ls-2", title: "Interactive Workshop: Academic Essay Structuring", subject: "English", instructorName: "Prof. Eleanor Vance", scheduledTime: "Tomorrow at 11:00 AM", attendanceCount: 34, status: "UPCOMING" },
-  { id: "ls-3", title: "Calculus & Fractions Problem Solving", subject: "Mathematics", instructorName: "Dr. Alex Vance", scheduledTime: "Friday at 2:00 PM", attendanceCount: 22, status: "UPCOMING" }
+  { id: "ls-1", title: "Grade 3: Fractions Fun & Visual Pizza Slices 🍕", subject: "Mathematics", instructorName: "Dr. David Miller", scheduledTime: "Today at 3:30 PM", attendanceCount: 24, status: "UPCOMING" },
+  { id: "ls-2", title: "Grade 3: Plant Life Cycles & Habitats Explorer 🌿", subject: "Science", instructorName: "Sarah Jenkins", scheduledTime: "Tomorrow at 10:00 AM", attendanceCount: 28, status: "UPCOMING" },
+  { id: "ls-3", title: "Grade 3: Creative Storytelling & Character Voices 📚", subject: "English", instructorName: "Sarah Jenkins", scheduledTime: "Thursday at 2:00 PM", attendanceCount: 22, status: "UPCOMING" },
+  { id: "ls-4", title: "Grade 3: Coding Games with Blocks & Arrows 💻", subject: "Computer Science", instructorName: "Dr. David Miller", scheduledTime: "Friday at 4:00 PM", attendanceCount: 30, status: "UPCOMING" }
 ];
 
 const INITIAL_CERTS: AdminCertificate[] = [
-  { id: "crt-1", certificateId: "CERT-2026-MATH-9842", studentName: "Hamza Arshid", studentEmail: "student@penpage.academy", courseTitle: "Fractions & Problem Solving", issueDate: "Sep 15, 2026", status: "VERIFIED" },
-  { id: "crt-2", certificateId: "CERT-2026-ENG-4419", studentName: "Sarah Chen", studentEmail: "sarah.c@utoronto.ca", courseTitle: "Reading & Narrative Writing", issueDate: "Aug 28, 2026", status: "VERIFIED" },
-  { id: "crt-3", certificateId: "CERT-2026-CS-1102", studentName: "Marcus Sterling", studentEmail: "marcus.s@outlook.com", courseTitle: "Python Algorithms & Logic", issueDate: "Sep 10, 2026", status: "VERIFIED" }
+  { id: "crt-1", certificateId: "CERT-2026-MATH-G3", studentName: "Alex Johnson", studentEmail: "alex.j@penpage.academy", courseTitle: "Fractions & Problem Solving (Grade 3)", issueDate: "Sep 20, 2026", status: "VERIFIED" },
+  { id: "crt-2", certificateId: "CERT-2026-ENG-G3", studentName: "Emma Watson", studentEmail: "emma.w@penpage.academy", courseTitle: "Reading & Narrative Writing (Grade 3)", issueDate: "Sep 18, 2026", status: "VERIFIED" },
+  { id: "crt-3", certificateId: "CERT-2026-CS-G3", studentName: "Liam Smith", studentEmail: "liam.smith@penpage.academy", courseTitle: "Digital Basics & Safety (Grade 3)", issueDate: "Sep 15, 2026", status: "VERIFIED" },
+  { id: "crt-4", certificateId: "CERT-2026-SCI-G3", studentName: "Sophia Garcia", studentEmail: "sophia.g@penpage.academy", courseTitle: "Plants & Living Things (Grade 3)", issueDate: "Sep 12, 2026", status: "VERIFIED" }
 ];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'courses' | 'live' | 'certificates' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'teachers' | 'students' | 'users' | 'courses' | 'live' | 'certificates' | 'settings'>('overview');
 
   // Users State
   const [users, setUsers] = useState<AdminUser[]>(INITIAL_USERS);
@@ -250,256 +253,552 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-canvas text-ink font-sans overflow-hidden">
+    <div className="flex min-h-screen bg-canvas text-ink font-sans">
       <AdminSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
 
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-        
-        {/* Top Executive Header */}
-        <header className="min-h-24 py-5 px-6 md:px-10 border-b border-line bg-white/95 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-2xs">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary-soft text-primary border border-primary/20 flex items-center justify-center shadow-xs shrink-0">
-              <ShieldCheck className="w-6 h-6 text-primary" />
+      <main className="flex-1 min-w-0 max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-6 sm:py-8 space-y-8 overflow-y-auto h-screen overflow-y-auto">
+
+        {/* ── TOP PAGE HEADER ── */}
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-line/60">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-purple-100 to-violet-50 text-purple-700 font-extrabold flex items-center justify-center text-lg shadow-xs border border-purple-200/80">
+              👑
             </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl md:text-2xl font-extrabold text-ink tracking-tight">
-                  Platform Administration
-                </h1>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-canvas border border-line text-muted uppercase tracking-wider">
-                  v2.4 Production
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">School Administration</h1>
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live &amp; Operational
                 </span>
               </div>
-              <p className="text-xs text-muted font-medium">
-                PPAcademia Governance, User Access, Course Integrity &amp; Global Telemetry
-              </p>
+              <p className="text-xs text-muted font-medium mt-0.5">Academic Year 2026 • Classes 1–5 Management &amp; Faculty Supervision</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-2xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>All Systems Operational</span>
-            </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setShowAddUserModal(true)}
+              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-ink font-bold text-xs border border-line flex items-center gap-2 cursor-pointer transition-all shadow-xs hover:border-slate-300"
+            >
+              <Users className="w-4 h-4 text-purple-600" />
+              <span>Enroll User</span>
+            </button>
+            <button
+              onClick={() => setShowCreateCourseModal(true)}
+              className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-sm shadow-primary/20 flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Course</span>
+            </button>
           </div>
         </header>
 
-        {/* Content Body */}
-        <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        {/* ── CONTENT BODY ── */}
+        <div className="w-full space-y-8">
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="space-y-8">
-              {/* Executive Welcome Hero Banner */}
-              <div className="rounded-3xl bg-white border border-line p-7 md:p-8 shadow-xs relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary-soft/40 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-                <div className="absolute bottom-0 right-1/3 w-64 h-64 bg-emerald-50/50 rounded-full blur-2xl pointer-events-none" />
+            <div className="space-y-6">
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+              {/* ─── HERO BANNER ─── */}
+              <div className="relative rounded-3xl overflow-hidden border border-[#302b63]/30 shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]" />
+                <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-purple-500/25 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 w-52 h-52 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
+                <div
+                  className="absolute inset-0 opacity-[0.04]"
+                  style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+                />
+                <div className="relative z-10 px-8 py-8 md:px-10 md:py-9 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
                   <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary-soft px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-primary/10">
-                        <Activity className="w-3.5 h-3.5" /> Executive Control Center
-                      </span>
-                      <span className="text-xs text-muted font-medium">Academic Year 2026</span>
-                    </div>
-
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">
-                      Platform Command &amp; Real-Time Telemetry
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-purple-300 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
+                      <Sparkles className="w-3 h-3" /> Principal &amp; Admin Suite
+                    </span>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-snug">
+                      Welcome back, Administrator 🎓
                     </h2>
-                    <p className="text-sm text-muted max-w-2xl leading-relaxed">
-                      Oversee verified student enrollments, faculty course deployments, cryptographically audited credentials, and live classroom streams across the PPAcademia network.
+                    <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
+                      Full oversight across <span className="text-white font-semibold">Classes 1–5</span>. Manage faculty, students, courses, and live sessions from one unified command center.
                     </p>
-
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
-                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-primary" />
-                        <span>{users.length * 280} Provisioned Users</span>
-                      </div>
-                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
-                        <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{courses.length} Curriculum Tracks</span>
-                      </div>
-                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
-                        <Award className="w-3.5 h-3.5 text-purple-600" />
-                        <span>{certificates.length * 160} Verified Diplomas</span>
-                      </div>
+                    <div className="flex items-center gap-3 pt-1 flex-wrap">
+                      <button
+                        onClick={() => setActiveTab('teachers')}
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" /> View Faculty
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('students')}
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Users className="w-3.5 h-3.5" /> View Students
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('courses')}
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" /> Courses
+                      </button>
                     </div>
                   </div>
 
-                  <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-56">
-                    <button
-                      onClick={() => setShowCreateCourseModal(true)}
-                      className="w-full py-3.5 px-5 rounded-2xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-sm shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
-                    >
-                      <Plus className="w-4 h-4" /> Publish New Course
-                    </button>
-                    <button
-                      onClick={() => setShowAddUserModal(true)}
-                      className="w-full py-3 px-5 rounded-2xl bg-canvas hover:bg-slate-200/60 text-ink font-semibold text-xs flex items-center justify-center gap-2 transition-all border border-line cursor-pointer"
-                    >
-                      <Users className="w-4 h-4 text-primary" /> Provision User
-                    </button>
+                  <div className="shrink-0 flex flex-col sm:flex-row items-center gap-3">
+                    <div className="px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-center min-w-[110px]">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Grade Span</p>
+                      <p className="text-3xl font-extrabold text-white mt-1">1–5</p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Elementary</p>
+                    </div>
+                    <div className="px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-center min-w-[110px]">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Subjects</p>
+                      <p className="text-3xl font-extrabold text-white mt-1">4</p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Core Tracks</p>
+                    </div>
+                    <div className="px-6 py-4 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-center min-w-[110px]">
+                      <p className="text-[10px] uppercase font-bold text-emerald-300 tracking-wider">Status</p>
+                      <div className="flex items-center justify-center gap-1.5 mt-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <p className="text-lg font-extrabold text-emerald-300">Live</p>
+                      </div>
+                      <p className="text-[10px] text-emerald-400 font-medium mt-0.5">Operational</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Platform Bento KPI Metrics */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-primary/40 transition-all space-y-2 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Total User Base</span>
-                    <span className="p-2.5 rounded-xl bg-primary-soft text-primary group-hover:scale-105 transition-transform">
-                      <Users className="w-4 h-4" />
-                    </span>
+              {/* ─── 4 KPI BENTO CARDS ─── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Students */}
+                <div
+                  onClick={() => { setUserRoleFilter('Student'); setActiveTab('students'); }}
+                  className="group relative p-6 rounded-3xl bg-white border border-line shadow-xs cursor-pointer overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-blue-300/70"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-2xl bg-blue-100/80 text-primary shadow-xs group-hover:scale-110 transition-transform">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">Students</span>
+                    </div>
+                    <p className="text-4xl font-extrabold text-ink tracking-tight">{users.filter(u => u.role === 'Student').length}</p>
+                    <p className="text-xs text-muted font-medium mt-1.5">Enrolled Students</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-primary font-bold group-hover:opacity-100 opacity-0 transition-opacity">
+                      Manage directory <ArrowUpRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-ink tracking-tight">{users.length * 280}</p>
-                  <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> 98.4% Active Accounts
-                  </p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-emerald-300 transition-all space-y-2 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Active Curriculum</span>
-                    <span className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 group-hover:scale-105 transition-transform">
-                      <BookOpen className="w-4 h-4" />
-                    </span>
+                {/* Teachers */}
+                <div
+                  onClick={() => { setUserRoleFilter('Instructor'); setActiveTab('teachers'); }}
+                  className="group relative p-6 rounded-3xl bg-white border border-line shadow-xs cursor-pointer overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300/70"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-2xl bg-emerald-100/80 text-emerald-700 shadow-xs group-hover:scale-110 transition-transform">
+                        <GraduationCap className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Faculty</span>
+                    </div>
+                    <p className="text-4xl font-extrabold text-ink tracking-tight">{users.filter(u => u.role === 'Instructor').length}</p>
+                    <p className="text-xs text-muted font-medium mt-1.5">Faculty Teachers</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-emerald-700 font-bold group-hover:opacity-100 opacity-0 transition-opacity">
+                      View faculty <ArrowUpRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-ink tracking-tight">{courses.length}</p>
-                  <p className="text-xs text-muted font-medium">Grades 1–10 (Math, CS, English, Sci)</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-purple-300 transition-all space-y-2 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Verified Diplomas</span>
-                    <span className="p-2.5 rounded-xl bg-purple-50 text-purple-700 group-hover:scale-105 transition-transform">
-                      <Award className="w-4 h-4" />
-                    </span>
+                {/* Courses */}
+                <div
+                  onClick={() => setActiveTab('courses')}
+                  className="group relative p-6 rounded-3xl bg-white border border-line shadow-xs cursor-pointer overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-purple-300/70"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-50/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-2xl bg-purple-100/80 text-purple-700 shadow-xs group-hover:scale-110 transition-transform">
+                        <BookOpen className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">Courses</span>
+                    </div>
+                    <p className="text-4xl font-extrabold text-ink tracking-tight">{courses.length}</p>
+                    <p className="text-xs text-muted font-medium mt-1.5">Published Courses</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-purple-700 font-bold group-hover:opacity-100 opacity-0 transition-opacity">
+                      Browse catalog <ArrowUpRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-ink tracking-tight">{certificates.length * 160}</p>
-                  <p className="text-xs text-purple-700 font-semibold">100% Validated Signatures</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-cyan-300 transition-all space-y-2 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">System Availability</span>
-                    <span className="p-2.5 rounded-xl bg-cyan-50 text-cyan-700 group-hover:scale-105 transition-transform">
-                      <Server className="w-4 h-4" />
-                    </span>
+                {/* Live Sessions */}
+                <div
+                  onClick={() => setActiveTab('live')}
+                  className="group relative p-6 rounded-3xl bg-white border border-line shadow-xs cursor-pointer overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-amber-300/70"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-50/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-2xl bg-amber-100/80 text-amber-700 shadow-xs group-hover:scale-110 transition-transform">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">Live</span>
+                    </div>
+                    <p className="text-4xl font-extrabold text-ink tracking-tight">{sessions.length}</p>
+                    <p className="text-xs text-muted font-medium mt-1.5">Live Classrooms</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-amber-700 font-bold group-hover:opacity-100 opacity-0 transition-opacity">
+                      Scheduled this week <ArrowUpRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-ink tracking-tight">99.98%</p>
-                  <p className="text-xs text-emerald-700 font-semibold">Zero downtime recorded past 90d</p>
                 </div>
               </div>
 
-              {/* Two-Column Audit Feed & Platform Governance */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* Real-time Platform Audit Stream */}
-                <div className="lg:col-span-7 p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-line/80 pb-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
-                        <BarChart3 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-ink">Live Platform Audit Feed</h3>
-                        <p className="text-[11px] text-muted">Real-time platform logs &amp; security events</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
-                    </span>
-                  </div>
+              {/* ─── TWO-COLUMN COMMAND HUB ─── */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-                  <div className="space-y-3">
-                    {[
-                      { action: "Student Enrollment", desc: "Hamza Arshid enrolled in Computer Science & Python Mastery", time: "5 mins ago", tag: "CS-101", tagColor: "bg-blue-50 text-blue-700 border-blue-200" },
-                      { action: "Assignment Graded", desc: "Dr. Alan Turing submitted Grade A (92%) for Sarah Chen", time: "18 mins ago", tag: "Graded", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                      { action: "Certificate Generated", desc: "Official Certificate CERT-2026-MATH-9842 verified on blockchain", time: "42 mins ago", tag: "Diploma", tagColor: "bg-purple-50 text-purple-700 border-purple-200" },
-                      { action: "Live Session Scheduled", desc: "Interactive Essay Workshop scheduled for Tomorrow at 11:00 AM", time: "2 hours ago", tag: "Live", tagColor: "bg-amber-50 text-amber-700 border-amber-200" },
-                    ].map((item, idx) => (
-                      <div key={idx} className="p-3.5 rounded-2xl bg-canvas border border-line hover:border-slate-300 transition-all flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-ink">{item.action}</p>
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${item.tagColor}`}>
-                                {item.tag}
-                              </span>
+                {/* Left 7 cols */}
+                <div className="lg:col-span-7 space-y-5">
+
+                  {/* Faculty Teachers Card */}
+                  <div className="p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-700 flex items-center justify-center border border-emerald-200/80 shadow-xs">
+                          <GraduationCap className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-ink">Faculty Teachers</h3>
+                          <p className="text-[11px] text-muted">Active instructors managing classrooms</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setUserRoleFilter('Instructor'); setActiveTab('teachers'); }}
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        View All <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {users.filter(u => u.role === 'Instructor').map((teacher) => (
+                        <div key={teacher.id} className="flex items-center justify-between p-4 rounded-2xl bg-canvas border border-line hover:border-slate-300 hover:shadow-xs transition-all">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-800 font-black flex items-center justify-center text-sm border border-emerald-200/80 shrink-0">
+                              {teacher.name[0]}
                             </div>
-                            <p className="text-muted text-[11px] mt-0.5">{item.desc}</p>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-ink">{teacher.name}</span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
+                              </div>
+                              <p className="text-xs text-muted font-mono mt-0.5">{teacher.email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-bold text-ink block">Classes 1–5</span>
+                            <span className="text-[10px] text-muted">{teacher.joinedDate}</span>
                           </div>
                         </div>
-                        <span className="text-subtle font-medium text-[11px] shrink-0">{item.time}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Direct Control Governance Hub */}
-                <div className="lg:col-span-5 p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs space-y-4">
-                  <div className="border-b border-line/80 pb-3.5">
-                    <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                      <ShieldAlert className="w-4 h-4 text-primary" /> Platform Governance
-                    </h3>
-                    <p className="text-[11px] text-muted">Administrative routing and system oversight</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setActiveTab('users')}
-                      className="p-4 rounded-2xl bg-canvas hover:bg-primary-soft/50 border border-line hover:border-primary/40 text-left transition-all group cursor-pointer"
-                    >
-                      <Users className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-bold text-ink">User Directory</p>
-                      <p className="text-[10px] text-muted mt-0.5">RBAC &amp; Provisioning</p>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveTab('courses')}
-                      className="p-4 rounded-2xl bg-canvas hover:bg-emerald-50 border border-line hover:border-emerald-300 text-left transition-all group cursor-pointer"
-                    >
-                      <BookOpen className="w-5 h-5 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-bold text-ink">Course Catalog</p>
-                      <p className="text-[10px] text-muted mt-0.5">Publish &amp; Spotlight</p>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveTab('certificates')}
-                      className="p-4 rounded-2xl bg-canvas hover:bg-purple-50 border border-line hover:border-purple-300 text-left transition-all group cursor-pointer"
-                    >
-                      <Award className="w-5 h-5 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-bold text-ink">Diplomas</p>
-                      <p className="text-[10px] text-muted mt-0.5">Verify &amp; Revoke</p>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="p-4 rounded-2xl bg-canvas hover:bg-cyan-50 border border-line hover:border-cyan-300 text-left transition-all group cursor-pointer"
-                    >
-                      <Settings className="w-5 h-5 text-cyan-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-bold text-ink">Platform Config</p>
-                      <p className="text-[10px] text-muted mt-0.5">AI Engine &amp; Identity</p>
-                    </button>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-canvas border border-line flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-bold text-ink">Platform Status Check</span>
-                      <span className="text-[11px] text-muted block">Database, Redis &amp; Gemini API operational</span>
+                      ))}
                     </div>
-                    <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs" />
+                  </div>
+
+                  {/* Students Quick Strip */}
+                  <div className="p-6 rounded-3xl bg-white border border-line shadow-xs">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-primary flex items-center justify-center border border-blue-200/80 shadow-xs">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-ink">Enrolled Students</h3>
+                          <p className="text-[11px] text-muted">Recently joined campus members</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setUserRoleFilter('Student'); setActiveTab('students'); }}
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        All ({users.filter(u => u.role === 'Student').length}) <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {users.filter(u => u.role === 'Student').slice(0, 4).map((stu) => (
+                        <div key={stu.id} className="p-3.5 rounded-2xl bg-canvas border border-line text-center space-y-1.5 hover:border-slate-300 hover:shadow-xs transition-all">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-50 text-blue-800 font-bold mx-auto flex items-center justify-center text-sm border border-blue-200/70">
+                            {stu.name[0]}
+                          </div>
+                          <p className="text-xs font-bold text-ink truncate">{stu.name.split(' ')[0]}</p>
+                          <span className="text-[10px] text-muted block">{stu.enrolledCoursesCount} courses</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
+                {/* Right 5 cols */}
+                <div className="lg:col-span-5 space-y-5">
+
+                  {/* Curriculum Tracks */}
+                  <div className="p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-200/80 shadow-xs">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-ink">Curriculum Tracks</h3>
+                          <p className="text-[11px] text-muted">Core elementary subjects</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('courses')}
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        Full Catalog <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {[
+                        { name: 'Mathematics', desc: 'Numbers, fractions & arithmetic', count: 6, icon: '📐', bg: 'bg-gradient-to-r from-blue-50 to-indigo-50', border: 'border-blue-200/60', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+                        { name: 'Science',     desc: 'Plants, habitats & living things', count: 5, icon: '🌿', bg: 'bg-gradient-to-r from-emerald-50 to-teal-50',   border: 'border-emerald-200/60', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                        { name: 'English',     desc: 'Reading, spelling & stories',     count: 6, icon: '📚', bg: 'bg-gradient-to-r from-purple-50 to-violet-50',  border: 'border-purple-200/60', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
+                        { name: 'Computer Science', desc: 'Typing, logic & digital safety', count: 5, icon: '💻', bg: 'bg-gradient-to-r from-amber-50 to-orange-50', border: 'border-amber-200/60', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+                      ].map((subj, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setActiveTab('courses')}
+                          className={`flex items-center justify-between p-3.5 rounded-2xl ${subj.bg} border ${subj.border} cursor-pointer hover:shadow-xs hover:-translate-y-0.5 transition-all`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl shrink-0">{subj.icon}</span>
+                            <div>
+                              <p className="text-xs font-bold text-ink">{subj.name}</p>
+                              <p className="text-[11px] text-muted mt-0.5">{subj.desc}</p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${subj.badge}`}>{subj.count} lessons</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setShowCreateCourseModal(true)}
+                      className="mt-4 w-full py-2.5 rounded-2xl bg-canvas hover:bg-slate-100 text-ink font-bold text-xs border border-line flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-primary" /> Add Course to Catalog
+                    </button>
+                  </div>
+
+                  {/* Upcoming Live Sessions */}
+                  <div className="p-6 rounded-3xl bg-white border border-line shadow-xs">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200/80 shadow-xs">
+                          <Video className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-ink">Upcoming Sessions</h3>
+                          <p className="text-[11px] text-muted">Live classrooms this week</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('live')}
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        All <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {sessions.slice(0, 3).map((sess) => (
+                        <div key={sess.id} className="flex items-start gap-3 p-3 rounded-2xl bg-canvas border border-line hover:border-slate-300 transition-all">
+                          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                            <Clock className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-ink line-clamp-1">{sess.title.replace(/[🍕🌿📚💻]/g, '').trim()}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="text-[10px] text-muted">{sess.scheduledTime}</span>
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">{sess.status}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          )}
+          {/* TAB 2: FACULTY TEACHERS DIRECTORY */}
+          {activeTab === 'teachers' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2">
+                    <GraduationCap className="w-6 h-6 text-emerald-600" />
+                    Faculty Teachers Directory
+                  </h2>
+                  <p className="text-xs text-muted">Manage school instructors, teaching assignments, and faculty credentials</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setNewUserRole('Instructor');
+                      setShowAddUserModal(true);
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Add New Teacher
+                  </button>
+                </div>
+              </div>
+
+              {/* Teachers Grid Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {users.filter(u => u.role === 'Instructor').map((teacher) => (
+                  <div key={teacher.id} className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-slate-300 transition-all space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-800 font-black flex items-center justify-center text-base border border-emerald-200/80 shadow-xs shrink-0">
+                          {teacher.name[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-extrabold text-ink">{teacher.name}</span>
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Active Faculty
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted font-mono mt-0.5">{teacher.email}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleToggleUserStatus(teacher.id)}
+                        className="px-3 py-1.5 rounded-xl border border-line text-ink hover:bg-canvas font-semibold text-[11px] transition-all cursor-pointer"
+                      >
+                        {teacher.status === 'Active' ? 'Suspend' : 'Activate'}
+                      </button>
+                    </div>
+
+                    <div className="pt-3 border-t border-line grid grid-cols-2 gap-2 text-xs text-muted">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-subtle block">Assigned Classes</span>
+                        <span className="font-bold text-ink">Classes 1–5</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-subtle block">Joined Date</span>
+                        <span className="font-semibold text-ink">{teacher.joinedDate}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* TAB 2: USER DIRECTORY */}
+          {/* TAB 3: ENROLLED STUDENTS DIRECTORY */}
+          {activeTab === 'students' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-ink tracking-tight flex items-center gap-2">
+                    <Users className="w-6 h-6 text-primary" />
+                    Enrolled Students Directory
+                  </h2>
+                  <p className="text-xs text-muted">Supervise registered student profiles across Classes 1 through 5</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setNewUserRole('Student');
+                      setShowAddUserModal(true);
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Enroll New Student
+                  </button>
+                </div>
+              </div>
+
+              {/* Student Search Bar */}
+              <div className="bg-white p-4 rounded-2xl border border-line shadow-xs">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search students by name or email..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-canvas border border-line text-xs text-ink placeholder-subtle focus:outline-none focus:border-primary focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Students Table */}
+              <div className="bg-white rounded-3xl border border-line shadow-xs overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-line bg-canvas/60 text-[11px] font-bold text-muted uppercase tracking-wider">
+                      <th className="p-4">Student</th>
+                      <th className="p-4">Email Address</th>
+                      <th className="p-4">Enrolled Class</th>
+                      <th className="p-4">Courses Enrolled</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60 text-xs">
+                    {users.filter(u => u.role === 'Student' && (u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase()))).map((stu) => (
+                      <tr key={stu.id} className="hover:bg-canvas/50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-2xl bg-blue-100 text-blue-800 font-extrabold flex items-center justify-center text-xs shrink-0">
+                              {stu.name[0]}
+                            </div>
+                            <span className="font-bold text-ink text-sm">{stu.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-muted font-mono text-[11px]">{stu.email}</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            Class 3
+                          </span>
+                        </td>
+                        <td className="p-4 font-semibold text-ink">{stu.enrolledCoursesCount || 4} Subjects</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 ${
+                            stu.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${stu.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            {stu.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <button
+                            onClick={() => handleToggleUserStatus(stu.id)}
+                            className="px-3 py-1.5 rounded-xl border border-line text-ink hover:bg-canvas font-semibold text-[11px] transition-all cursor-pointer"
+                          >
+                            {stu.status === 'Active' ? 'Suspend' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: USER DIRECTORY (LEGACY / ALL) */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

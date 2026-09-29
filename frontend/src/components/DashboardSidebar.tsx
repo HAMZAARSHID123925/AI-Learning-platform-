@@ -59,7 +59,7 @@ export default function DashboardSidebar({ courseTrack }: DashboardSidebarProps)
       <div>
         {/* Logo Header */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800 sticky top-0 bg-[#0F172A] z-10">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="h-10 w-10 rounded-xl bg-white p-1 flex items-center justify-center border border-white/20 shadow-md">
               <img 
                 src="/logo.png" 
@@ -178,6 +178,47 @@ export default function DashboardSidebar({ courseTrack }: DashboardSidebarProps)
           >
             <Settings className="w-[18px] h-[18px] text-white/90" />
             Settings
+          </Link>
+
+          {/* Portals Divider */}
+          <div className="pt-3 pb-1 px-3">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Staff &amp; Management Portals
+            </span>
+          </div>
+
+          <Link 
+            href="/instructor" 
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              pathname.startsWith('/instructor')
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <Users className="w-[18px] h-[18px] text-emerald-400" />
+              Teacher Studio
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+              Faculty
+            </span>
+          </Link>
+
+          <Link 
+            href="/admin" 
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              pathname.startsWith('/admin')
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <ShieldCheck className="w-[18px] h-[18px] text-purple-400" />
+              Admin Portal
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+              Admin
+            </span>
           </Link>
         </nav>
       </div>

@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isElarionCorePage =
     pathname === '/dashboard' ||
     pathname.startsWith('/dashboard/courses') ||
+    pathname === '/dashboard/live' ||
     pathname === '/dashboard/you';
 
   const isLessonLearnPage = pathname.includes('/learn');
@@ -26,7 +27,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <AppLayout>{children}</AppLayout>;
   }
 
-  // Secondary studio tools (AI Exam, Simulator, Live, etc.) retain their full-width layout and AI Study Buddy
+  const isAdminOrInstructor = pathname.startsWith('/admin') || pathname.startsWith('/instructor');
+
+  if (isAdminOrInstructor) {
+    return (
+      <div className="min-h-screen bg-canvas text-ink antialiased selection:bg-primary selection:text-white relative">
+        {children}
+      </div>
+    );
+  }
+
+  // Secondary studio tools (AI Exam, Simulator, etc.) retain their full-width layout and AI Study Buddy
   return (
     <div className="min-h-screen bg-[#F0F4F8] text-slate-800 antialiased selection:bg-[#027FFF] selection:text-white relative">
       {children}

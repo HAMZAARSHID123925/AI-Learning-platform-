@@ -11,6 +11,18 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('student_grade');
+        if (stored) {
+          const parsed = parseInt(stored, 10);
+          if (parsed >= 1 && parsed <= 5) return parsed;
+        }
+      } catch (e) {}
+    }
+    return 1;
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -61,6 +73,11 @@ export default function LoginPage() {
           const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || cleanEmail.split('@')[0];
 
           saveAuthSession(token, detectedRole, userName);
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('student_grade', String(selectedGrade));
+            } catch (e) {}
+          }
           toast.success(`Welcome back, ${userName}! 🎓`, `Signed in as ${detectedRole}`);
           authenticated = true;
 
@@ -94,6 +111,11 @@ export default function LoginPage() {
             const userName = `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || cleanEmail.split('@')[0];
 
             saveAuthSession(token, detectedRole, userName);
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('student_grade', String(selectedGrade));
+              } catch (e) {}
+            }
             toast.success(`Welcome back, ${userName}! 🎓`, `Signed in as ${detectedRole}`);
             authenticated = true;
 
@@ -110,6 +132,11 @@ export default function LoginPage() {
       let name = cleanEmail.split('@')[0] || 'User';
       name = name.charAt(0).toUpperCase() + name.slice(1);
       saveAuthSession('dev_token_' + Date.now(), role, name);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('student_grade', String(selectedGrade));
+        } catch (e) {}
+      }
       toast.success(`Welcome back, ${name}! 🚀`, `Signed in as ${role}`);
       
       window.location.href = targetUrl;
@@ -140,7 +167,7 @@ export default function LoginPage() {
 
       {/*  Top Section: Brand Logo & Institutional Tag  */}
       <header className="relative z-10 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group focus:outline-none">
+        <Link href="/dashboard" className="flex items-center gap-3 group focus:outline-none">
           <div className="h-12 w-12 rounded-2xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-[#027FFF]/50 transition-all duration-300 group-hover:scale-105 shadow-lg shadow-[#027FFF]/10">
             <img 
               src="/logo.png" 
@@ -263,7 +290,7 @@ export default function LoginPage() {
       
       {/*  Top Mobile Brand Header (Visible only on mobile/tablet)  */}
       <div className="w-full flex lg:hidden items-center justify-between pb-8 border-b border-slate-100">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-lg bg-[#0B1221] flex items-center justify-center text-[#5BC0EB]">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
@@ -286,9 +313,9 @@ export default function LoginPage() {
         
         {/* Back Button */}
         <div className="mb-6">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            Back to Website
+            Back to Dashboard
           </Link>
         </div>
         <header className="mb-8 text-left">
@@ -383,6 +410,41 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Student Grade Selection Question */}
+          <div className="pt-1">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-slate-800">
+                Which grade/class are you in? 🎒
+              </label>
+              <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                Class {selectedGrade}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mb-2.5">
+              We&apos;ll tailor your courses, lessons, and live classes specifically for this grade.
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5].map((g) => {
+                const isSelected = selectedGrade === g;
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setSelectedGrade(g)}
+                    className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 border ${
+                      isSelected
+                        ? 'bg-[#027FFF] text-white border-[#027FFF] shadow-md shadow-[#027FFF]/20 scale-[1.02]'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-semibold opacity-80">Grade</span>
+                    <span className="text-sm font-black">{g}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/*  Remember Me & Single-Session Checkbox  */}
           <div className="flex items-center justify-between pt-0.5">
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
@@ -425,7 +487,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('student@ppacademia.com');
+                  setEmail('ali.student@ppacademia.com');
                   setPassword('Student123!');
                 }}
                 className="py-1.5 px-2.5 rounded-lg bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-bold transition-all text-center shadow-xs"
