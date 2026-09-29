@@ -49,6 +49,28 @@
   --color-on-error: #ffffff;
   --color-secondary-fixed: #dbe1ff;
 
+  --color-canvas: #F7F7F4;
+  --color-ink: #15181F;
+  --color-muted: #5E6472;
+  --color-subtle: #9097A3;
+  --color-line: #E6E6E1;
+  --color-primary-soft: #EBF0FD;
+  --color-primary-strong: #2148BD;
+  --color-success: #178A55;
+  --color-success-soft: #E4F4EC;
+  --color-danger: #C9443A;
+  --color-danger-soft: #FCEBE9;
+  --color-streak: #D96A1E;
+  --color-streak-soft: #FDF0E4;
+  --color-math: #6D5AE6;
+  --color-math-soft: #F0EEFD;
+  --color-science: #1F9D6B;
+  --color-science-soft: #E6F5EE;
+  --color-english: #E0673A;
+  --color-english-soft: #FDEEE7;
+  --color-cs: #1A8BB5;
+  --color-cs-soft: #E4F3F9;
+
   --spacing-space-sm: 0.75rem;
   --spacing-space-lg: 1.5rem;
   --spacing-space-xl: 2rem;
@@ -132,5 +154,15 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 2px rgba(21, 24, 31, 0.04), 0 1px 1px rgba(21, 24, 31, 0.02);
+  }
+  .shadow-lift {
+    box-shadow: 0 12px 28px -12px rgba(21, 24, 31, 0.18);
+  }
+  .ease-out-strong {
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
 }

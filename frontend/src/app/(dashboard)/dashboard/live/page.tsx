@@ -464,7 +464,7 @@ export default function LiveClassesPage() {
               </div>
             </header>
 
-            <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+            <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
               
               {/* Active Now Banner (If Live) */}
               {sessions.find(s => s.isLiveNow) && (

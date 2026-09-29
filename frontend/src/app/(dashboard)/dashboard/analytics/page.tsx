@@ -134,7 +134,7 @@ export default function MyProgressPage() {
         </header>
 
         {/* Content Body */}
-        <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
           
           {/* Top 4 Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

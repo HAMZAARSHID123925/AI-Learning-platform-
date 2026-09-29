@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Read configured recipient and Gmail credentials
-    const recipientEmail = process.env.CONTACT_RECIPIENT_EMAIL || 'support@elarion.com';
+    const recipientEmail = process.env.CONTACT_RECIPIENT_EMAIL || 'support@ppacademia.com';
     const gmailUser = process.env.GMAIL_USER;
     const gmailAppPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, ''); // strip spaces if any
 

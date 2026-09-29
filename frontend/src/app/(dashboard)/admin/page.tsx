@@ -7,10 +7,14 @@ import {
   BarChart3, Users, BookOpen, Video, Award, 
   Settings, ShieldAlert, CheckCircle2, AlertCircle, 
   Search, Plus, X, Trash2, Edit2, Check, RefreshCw,
-  Server, Lock, Globe, Mail, Eye, Sparkles, Filter
+  Server, Lock, Globe, Mail, Eye, Sparkles, Filter,
+  ArrowUpRight, Activity, ShieldCheck, ChevronRight,
+  GraduationCap, Calendar, Clock, Layers
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { toast } from '@/components/ToastProvider';
+import { courses as platformCourses } from '@/data/courses';
+import { subjects } from '@/data/subjects';
 
 interface AdminUser {
   id: string;
@@ -26,6 +30,7 @@ interface AdminCourse {
   id: string;
   title: string;
   subject: string;
+  grade: number;
   instructorName: string;
   modulesCount: number;
   studentsCount: number;
@@ -63,24 +68,29 @@ const INITIAL_USERS: AdminUser[] = [
   { id: "usr-6", name: "System Administrator", email: "admin@penpage.academy", role: "Admin", status: "Active", enrolledCoursesCount: 0, joinedDate: "Jan 01, 2026" },
 ];
 
-const INITIAL_COURSES: AdminCourse[] = [
-  { id: "c-1", title: "Introduction to Computer Science & Python", subject: "Computer Science", instructorName: "Dr. Alan Turing", modulesCount: 6, studentsCount: 142, status: "published", isFeatured: true, createdDate: "Sep 01, 2026" },
-  { id: "c-2", title: "English Grammar & Academic Writing", subject: "English & Languages", instructorName: "Prof. Eleanor Vance", modulesCount: 5, studentsCount: 128, status: "published", isFeatured: true, createdDate: "Sep 05, 2026" },
-  { id: "c-3", title: "Algebra & Problem Solving Masterclass", subject: "Mathematics", instructorName: "Dr. Alan Turing", modulesCount: 8, studentsCount: 94, status: "published", isFeatured: false, createdDate: "Aug 20, 2026" },
-  { id: "c-4", title: "General Science & Physics Fundamentals", subject: "Science", instructorName: "Faculty Lead", modulesCount: 4, studentsCount: 68, status: "published", isFeatured: false, createdDate: "Sep 12, 2026" },
-  { id: "c-5", title: "Financial Accounting & Business Strategy", subject: "Business & Finance", instructorName: "Prof. Eleanor Vance", modulesCount: 4, studentsCount: 35, status: "draft", isFeatured: false, createdDate: "Sep 14, 2026" },
-];
+const INITIAL_COURSES: AdminCourse[] = platformCourses.slice(0, 8).map((pc, idx) => ({
+  id: pc.id,
+  title: pc.title,
+  grade: pc.grade,
+  subject: pc.subject === 'cs' ? 'Computer Science' : pc.subject === 'math' ? 'Mathematics' : pc.subject === 'science' ? 'Science' : 'English',
+  instructorName: pc.subject === 'cs' ? 'Dr. Alan Turing' : pc.subject === 'english' ? 'Prof. Eleanor Vance' : pc.subject === 'math' ? 'Dr. Alex Vance' : 'Dr. Sarah Jenkins',
+  modulesCount: pc.moduleTitles?.length || 4,
+  studentsCount: 30 + idx * 12,
+  status: 'published',
+  isFeatured: idx < 3,
+  createdDate: 'Academic Year 2026'
+}));
 
 const INITIAL_SESSIONS: AdminLiveSession[] = [
   { id: "ls-1", title: "Live Code Review: Data Structures & Hash Maps", subject: "Computer Science", instructorName: "Dr. Alan Turing", scheduledTime: "Today at 4:00 PM", attendanceCount: 28, status: "UPCOMING" },
   { id: "ls-2", title: "Interactive Workshop: Academic Essay Structuring", subject: "English", instructorName: "Prof. Eleanor Vance", scheduledTime: "Tomorrow at 11:00 AM", attendanceCount: 34, status: "UPCOMING" },
-  { id: "ls-3", title: "Calculus Problem Solving: Derivations & Roots", subject: "Mathematics", instructorName: "Dr. Alan Turing", scheduledTime: "Friday at 2:00 PM", attendanceCount: 22, status: "UPCOMING" }
+  { id: "ls-3", title: "Calculus & Fractions Problem Solving", subject: "Mathematics", instructorName: "Dr. Alex Vance", scheduledTime: "Friday at 2:00 PM", attendanceCount: 22, status: "UPCOMING" }
 ];
 
 const INITIAL_CERTS: AdminCertificate[] = [
-  { id: "crt-1", certificateId: "CERT-2026-CS-9842", studentName: "Hamza Arshid", studentEmail: "student@penpage.academy", courseTitle: "Computer Science & Python", issueDate: "Sep 15, 2026", status: "VERIFIED" },
-  { id: "crt-2", certificateId: "CERT-2026-ENG-4419", studentName: "Sarah Chen", studentEmail: "sarah.c@utoronto.ca", courseTitle: "English Grammar & Writing", issueDate: "Aug 28, 2026", status: "VERIFIED" },
-  { id: "crt-3", certificateId: "CERT-2026-MATH-1102", studentName: "Marcus Sterling", studentEmail: "marcus.s@outlook.com", courseTitle: "Algebra & Problem Solving", issueDate: "Sep 10, 2026", status: "VERIFIED" }
+  { id: "crt-1", certificateId: "CERT-2026-MATH-9842", studentName: "Hamza Arshid", studentEmail: "student@penpage.academy", courseTitle: "Fractions & Problem Solving", issueDate: "Sep 15, 2026", status: "VERIFIED" },
+  { id: "crt-2", certificateId: "CERT-2026-ENG-4419", studentName: "Sarah Chen", studentEmail: "sarah.c@utoronto.ca", courseTitle: "Reading & Narrative Writing", issueDate: "Aug 28, 2026", status: "VERIFIED" },
+  { id: "crt-3", certificateId: "CERT-2026-CS-1102", studentName: "Marcus Sterling", studentEmail: "marcus.s@outlook.com", courseTitle: "Python Algorithms & Logic", issueDate: "Sep 10, 2026", status: "VERIFIED" }
 ];
 
 export default function AdminDashboardPage() {
@@ -102,6 +112,7 @@ export default function AdminDashboardPage() {
   const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [newCourseSubject, setNewCourseSubject] = useState("Computer Science");
+  const [newCourseGrade, setNewCourseGrade] = useState<number>(3);
   const [newCourseInstructor, setNewCourseInstructor] = useState("Faculty Lead");
   const [newCourseDesc, setNewCourseDesc] = useState("");
 
@@ -113,7 +124,7 @@ export default function AdminDashboardPage() {
   const [certSearch, setCertSearch] = useState("");
 
   // Platform Settings State
-  const [platformName, setPlatformName] = useState("Pen & Page Academia");
+  const [platformName, setPlatformName] = useState("PPAcademia");
   const [supportEmail, setSupportEmail] = useState("support@penpage.academy");
   const [aiEngine, setAiEngine] = useState("Gemini 1.5 Pro (Adaptive)");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -156,14 +167,14 @@ export default function AdminDashboardPage() {
     setNewUserName("");
     setNewUserEmail("");
     setNewUserRole("Student");
-    toast.success("User Added! 🎉", `${newUser.name} has been provisioned with the ${newUser.role} role.`);
+    toast.success("User Provisioned 🎉", `${newUser.name} is now added as ${newUser.role}.`);
   };
 
   const handleToggleUserStatus = (userId: string) => {
     setUsers(prev => prev.map(u => {
       if (u.id === userId) {
         const nextStatus = u.status === 'Active' ? 'Suspended' : 'Active';
-        toast.info("User Status Updated", `${u.name} is now ${nextStatus}.`);
+        toast.info("Account Status Updated", `${u.name} is now ${nextStatus}.`);
         return { ...u, status: nextStatus };
       }
       return u;
@@ -174,7 +185,7 @@ export default function AdminDashboardPage() {
     setCourses(prev => prev.map(c => {
       if (c.id === courseId) {
         const nextFeatured = !c.isFeatured;
-        toast.info(nextFeatured ? "Course Featured! ⭐" : "Course Unfeatured", `"${c.title}" updated.`);
+        toast.info(nextFeatured ? "Course Featured ⭐" : "Course Unfeatured", `"${c.title}" updated.`);
         return { ...c, isFeatured: nextFeatured };
       }
       return c;
@@ -185,7 +196,7 @@ export default function AdminDashboardPage() {
     setCertificates(prev => prev.map(crt => {
       if (crt.id === certId) {
         const nextStatus = crt.status === 'VERIFIED' ? 'REVOKED' : 'VERIFIED';
-        toast.info("Certificate Status Changed", `Certificate ${crt.certificateId} is now ${nextStatus}.`);
+        toast.info("Accreditation Updated", `Certificate ${crt.certificateId} is now ${nextStatus}.`);
         return { ...crt, status: nextStatus };
       }
       return crt;
@@ -193,7 +204,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleSaveSettings = () => {
-    toast.success("Settings Saved! ⚙️", "Platform global configuration updated successfully.");
+    toast.success("Settings Saved ⚙️", "Platform global configuration updated successfully.");
   };
 
   const handleAdminCreateCourse = (e: React.FormEvent) => {
@@ -203,6 +214,7 @@ export default function AdminDashboardPage() {
     const newC: AdminCourse = {
       id: `c-${Date.now()}`,
       title: newCourseTitle.trim(),
+      grade: Number(newCourseGrade) || 3,
       subject: newCourseSubject,
       instructorName: newCourseInstructor.trim() || "Faculty Lead",
       modulesCount: 4,
@@ -219,72 +231,98 @@ export default function AdminDashboardPage() {
     toast.success("Master Course Published! 🚀", `"${newC.title}" is now active in the platform catalog.`);
   };
 
+  const getSubjectBadge = (subj: string) => {
+    switch (subj.toLowerCase()) {
+      case 'computer science':
+      case 'cs':
+        return 'bg-amber-50 text-amber-800 border-amber-200';
+      case 'mathematics':
+      case 'math':
+        return 'bg-blue-50 text-blue-800 border-blue-200';
+      case 'science':
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      case 'english':
+      case 'english & languages':
+        return 'bg-purple-50 text-purple-800 border-purple-200';
+      default:
+        return 'bg-slate-50 text-slate-800 border-slate-200';
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-800 font-sans overflow-hidden">
+    <div className="flex h-screen bg-canvas text-ink font-sans overflow-hidden">
       <AdminSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
 
       <main className="flex-1 flex flex-col h-screen overflow-y-auto">
         
-        {/* Top Header */}
-        <header className="h-20 border-b border-slate-200 bg-white/95 backdrop-blur-md px-6 md:px-10 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200 flex items-center justify-center shadow-xs">
-              <ShieldAlert className="w-5 h-5 text-cyan-600" />
+        {/* Top Executive Header */}
+        <header className="min-h-24 py-5 px-6 md:px-10 border-b border-line bg-white/95 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-2xs">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary-soft text-primary border border-primary/20 flex items-center justify-center shadow-xs shrink-0">
+              <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-lg md:text-xl font-black text-slate-900 flex items-center gap-2">
-                Platform Administration
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                User Management, Multi-Subject Catalog Control, Live Session Monitoring &amp; System Health
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-xl md:text-2xl font-extrabold text-ink tracking-tight">
+                  Platform Administration
+                </h1>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-canvas border border-line text-muted uppercase tracking-wider">
+                  v2.4 Production
+                </span>
+              </div>
+              <p className="text-xs text-muted font-medium">
+                PPAcademia Governance, User Access, Course Integrity &amp; Global Telemetry
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>System: 100% Operational</span>
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>All Systems Operational</span>
             </div>
           </div>
         </header>
 
         {/* Content Body */}
-        <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              {/* Executive Platform Health & Telemetry Header */}
-              <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-slate-850 to-cyan-950 text-white p-7 md:p-9 shadow-xl border border-slate-700/50 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
+              {/* Executive Welcome Hero Banner */}
+              <div className="rounded-3xl bg-white border border-line p-7 md:p-8 shadow-xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-primary-soft/40 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+                <div className="absolute bottom-0 right-1/3 w-64 h-64 bg-emerald-50/50 rounded-full blur-2xl pointer-events-none" />
 
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
                   <div className="space-y-3 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300 bg-cyan-400/15 backdrop-blur-md px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-cyan-400/20">
-                        <Server className="w-3 h-3 text-cyan-300" /> Platform Executive Console
+                      <span className="text-[11px] font-black uppercase tracking-wider text-primary bg-primary-soft px-3 py-1 rounded-full inline-flex items-center gap-1.5 border border-primary/10">
+                        <Activity className="w-3.5 h-3.5" /> Executive Control Center
                       </span>
-                      <span className="text-xs text-slate-300 font-medium">Global Version 2.4.0</span>
+                      <span className="text-xs text-muted font-medium">Academic Year 2026</span>
                     </div>
 
-                    <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
-                      Platform Overview &amp; Health Telemetry
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">
+                      Platform Command &amp; Real-Time Telemetry
                     </h2>
-                    <p className="text-xs text-slate-300 max-w-xl">
-                      Monitor multi-subject catalog integrity, track cross-faculty course provisioning, audit blockchain certificates, and supervise user RBAC access.
+                    <p className="text-sm text-muted max-w-2xl leading-relaxed">
+                      Oversee verified student enrollments, faculty course deployments, cryptographically audited credentials, and live classroom streams across the PPAcademia network.
                     </p>
 
                     <div className="flex flex-wrap items-center gap-3 pt-2">
-                      <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs font-bold text-slate-200 flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5 text-blue-400" /> {users.length * 280} Registered Users
+                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-primary" />
+                        <span>{users.length * 280} Provisioned Users</span>
                       </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs font-bold text-slate-200 flex items-center gap-2">
-                        <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> {courses.length} Multi-Subject Tracks
+                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
+                        <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{courses.length} Curriculum Tracks</span>
                       </div>
-                      <div className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs font-bold text-slate-200 flex items-center gap-2">
-                        <Award className="w-3.5 h-3.5 text-purple-400" /> {certificates.length * 160} Issued Credentials
+                      <div className="px-3.5 py-1.5 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink flex items-center gap-2">
+                        <Award className="w-3.5 h-3.5 text-purple-600" />
+                        <span>{certificates.length * 160} Verified Diplomas</span>
                       </div>
                     </div>
                   </div>
@@ -292,15 +330,15 @@ export default function AdminDashboardPage() {
                   <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-56">
                     <button
                       onClick={() => setShowCreateCourseModal(true)}
-                      className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-[#027FFF] hover:from-cyan-600 hover:to-blue-600 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                      className="w-full py-3.5 px-5 rounded-2xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-sm shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
                     >
-                      <Plus className="w-4 h-4" /> Create Course
+                      <Plus className="w-4 h-4" /> Publish New Course
                     </button>
                     <button
                       onClick={() => setShowAddUserModal(true)}
-                      className="w-full py-3 px-5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all border border-white/15 cursor-pointer"
+                      className="w-full py-3 px-5 rounded-2xl bg-canvas hover:bg-slate-200/60 text-ink font-semibold text-xs flex items-center justify-center gap-2 transition-all border border-line cursor-pointer"
                     >
-                      <Users className="w-4 h-4 text-cyan-300" /> Add User
+                      <Users className="w-4 h-4 text-primary" /> Provision User
                     </button>
                   </div>
                 </div>
@@ -308,144 +346,152 @@ export default function AdminDashboardPage() {
 
               {/* Platform Bento KPI Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-2">
+                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-primary/40 transition-all space-y-2 group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-wider">Total User Base</span>
-                    <span className="p-2 rounded-xl bg-blue-50 text-[#027FFF] border border-blue-200/60">
+                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Total User Base</span>
+                    <span className="p-2.5 rounded-xl bg-primary-soft text-primary group-hover:scale-105 transition-transform">
                       <Users className="w-4 h-4" />
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{users.length * 280}</p>
-                  <p className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> 98.4% active accounts
+                  <p className="text-3xl font-extrabold text-ink tracking-tight">{users.length * 280}</p>
+                  <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> 98.4% Active Accounts
                   </p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-2">
+                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-emerald-300 transition-all space-y-2 group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-wider">Active Catalog</span>
-                    <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Active Curriculum</span>
+                    <span className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 group-hover:scale-105 transition-transform">
                       <BookOpen className="w-4 h-4" />
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{courses.length}</p>
-                  <p className="text-xs text-slate-500 font-medium">5 Academic Tracks</p>
+                  <p className="text-3xl font-extrabold text-ink tracking-tight">{courses.length}</p>
+                  <p className="text-xs text-muted font-medium">Grades 1–10 (Math, CS, English, Sci)</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-2">
+                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-purple-300 transition-all space-y-2 group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-wider">Verified Certs</span>
-                    <span className="p-2 rounded-xl bg-purple-50 text-purple-600 border border-purple-200/60">
+                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">Verified Diplomas</span>
+                    <span className="p-2.5 rounded-xl bg-purple-50 text-purple-700 group-hover:scale-105 transition-transform">
                       <Award className="w-4 h-4" />
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">{certificates.length * 160}</p>
-                  <p className="text-xs text-purple-600 font-bold">Cryptographically signed</p>
+                  <p className="text-3xl font-extrabold text-ink tracking-tight">{certificates.length * 160}</p>
+                  <p className="text-xs text-purple-700 font-semibold">100% Validated Signatures</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-2">
+                <div className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-cyan-300 transition-all space-y-2 group">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-black uppercase tracking-wider">System Availability</span>
-                    <span className="p-2 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-200/60">
+                    <span className="text-[11px] text-muted font-bold uppercase tracking-wider">System Availability</span>
+                    <span className="p-2.5 rounded-xl bg-cyan-50 text-cyan-700 group-hover:scale-105 transition-transform">
                       <Server className="w-4 h-4" />
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-slate-900">99.98%</p>
-                  <p className="text-xs text-emerald-600 font-bold">Zero downtime past 90d</p>
+                  <p className="text-3xl font-extrabold text-ink tracking-tight">99.98%</p>
+                  <p className="text-xs text-emerald-700 font-semibold">Zero downtime recorded past 90d</p>
                 </div>
               </div>
 
-              {/* Two-Column Platform Audit & Fast Admin Hub */}
+              {/* Two-Column Audit Feed & Platform Governance */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Real-time Activity Stream (7 Cols) */}
-                <div className="lg:col-span-7 p-6 md:p-7 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#027FFF] flex items-center justify-center">
+                {/* Real-time Platform Audit Stream */}
+                <div className="lg:col-span-7 p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-line/80 pb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
                         <BarChart3 className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-black text-slate-900">Live Platform Audit Feed</h3>
-                        <p className="text-[11px] text-slate-500">Real-time platform events &amp; audit telemetry</p>
+                        <h3 className="text-sm font-bold text-ink">Live Platform Audit Feed</h3>
+                        <p className="text-[11px] text-muted">Real-time platform logs &amp; security events</p>
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
+                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Telemetry
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     {[
-                      { action: "Student Enrollment", desc: "Hamza Arshid enrolled in Computer Science & Python Mastery", time: "5 mins ago", tag: "CS-101", tagColor: "bg-blue-50 text-blue-700" },
-                      { action: "Assignment Graded", desc: "Dr. Alan Turing submitted Grade A (92%) for Sarah Chen", time: "18 mins ago", tag: "Graded", tagColor: "bg-emerald-50 text-emerald-700" },
-                      { action: "Certificate Generated", desc: "Official Certificate CERT-2026-MATH-1102 cryptographically validated", time: "42 mins ago", tag: "Cert", tagColor: "bg-purple-50 text-purple-700" },
-                      { action: "Live Class Scheduled", desc: "Interactive Workshop scheduled for Tomorrow at 11:00 AM", time: "2 hours ago", tag: "Live", tagColor: "bg-rose-50 text-rose-700" },
+                      { action: "Student Enrollment", desc: "Hamza Arshid enrolled in Computer Science & Python Mastery", time: "5 mins ago", tag: "CS-101", tagColor: "bg-blue-50 text-blue-700 border-blue-200" },
+                      { action: "Assignment Graded", desc: "Dr. Alan Turing submitted Grade A (92%) for Sarah Chen", time: "18 mins ago", tag: "Graded", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                      { action: "Certificate Generated", desc: "Official Certificate CERT-2026-MATH-9842 verified on blockchain", time: "42 mins ago", tag: "Diploma", tagColor: "bg-purple-50 text-purple-700 border-purple-200" },
+                      { action: "Live Session Scheduled", desc: "Interactive Essay Workshop scheduled for Tomorrow at 11:00 AM", time: "2 hours ago", tag: "Live", tagColor: "bg-amber-50 text-amber-700 border-amber-200" },
                     ].map((item, idx) => (
-                      <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all flex items-center justify-between gap-3 text-xs">
+                      <div key={idx} className="p-3.5 rounded-2xl bg-canvas border border-line hover:border-slate-300 transition-all flex items-center justify-between gap-3 text-xs">
                         <div className="flex items-center gap-3">
-                          <span className="w-2 h-2 rounded-full bg-[#027FFF] shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="font-black text-slate-900">{item.action}</p>
-                              <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-md ${item.tagColor}`}>
+                              <p className="font-bold text-ink">{item.action}</p>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${item.tagColor}`}>
                                 {item.tag}
                               </span>
                             </div>
-                            <p className="text-slate-500 text-[11px] mt-0.5">{item.desc}</p>
+                            <p className="text-muted text-[11px] mt-0.5">{item.desc}</p>
                           </div>
                         </div>
-                        <span className="text-slate-400 font-medium text-[11px] shrink-0">{item.time}</span>
+                        <span className="text-subtle font-medium text-[11px] shrink-0">{item.time}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Direct Control Hub (5 Cols) */}
-                <div className="lg:col-span-5 p-6 md:p-7 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-                  <div className="border-b border-slate-100 pb-3">
-                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <ShieldAlert className="w-4 h-4 text-cyan-600" /> Platform Governance
+                {/* Direct Control Governance Hub */}
+                <div className="lg:col-span-5 p-6 md:p-7 rounded-3xl bg-white border border-line shadow-xs space-y-4">
+                  <div className="border-b border-line/80 pb-3.5">
+                    <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-primary" /> Platform Governance
                     </h3>
-                    <p className="text-[11px] text-slate-500">Master controls for system administrators</p>
+                    <p className="text-[11px] text-muted">Administrative routing and system oversight</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setActiveTab('users')}
-                      className="p-4 rounded-2xl bg-slate-50 hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-200 text-left transition-all group cursor-pointer"
+                      className="p-4 rounded-2xl bg-canvas hover:bg-primary-soft/50 border border-line hover:border-primary/40 text-left transition-all group cursor-pointer"
                     >
-                      <Users className="w-5 h-5 text-[#027FFF] mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-black text-slate-900">User Management</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">RBAC &amp; Provisioning</p>
+                      <Users className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                      <p className="text-xs font-bold text-ink">User Directory</p>
+                      <p className="text-[10px] text-muted mt-0.5">RBAC &amp; Provisioning</p>
                     </button>
 
                     <button
                       onClick={() => setActiveTab('courses')}
-                      className="p-4 rounded-2xl bg-slate-50 hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-200 text-left transition-all group cursor-pointer"
+                      className="p-4 rounded-2xl bg-canvas hover:bg-emerald-50 border border-line hover:border-emerald-300 text-left transition-all group cursor-pointer"
                     >
                       <BookOpen className="w-5 h-5 text-emerald-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-black text-slate-900">Course Catalog</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Publish &amp; feature</p>
+                      <p className="text-xs font-bold text-ink">Course Catalog</p>
+                      <p className="text-[10px] text-muted mt-0.5">Publish &amp; Spotlight</p>
                     </button>
 
                     <button
                       onClick={() => setActiveTab('certificates')}
-                      className="p-4 rounded-2xl bg-slate-50 hover:bg-purple-50/60 border border-slate-200/80 hover:border-purple-200 text-left transition-all group cursor-pointer"
+                      className="p-4 rounded-2xl bg-canvas hover:bg-purple-50 border border-line hover:border-purple-300 text-left transition-all group cursor-pointer"
                     >
                       <Award className="w-5 h-5 text-purple-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-black text-slate-900">Certificates</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Verify &amp; revoke</p>
+                      <p className="text-xs font-bold text-ink">Diplomas</p>
+                      <p className="text-[10px] text-muted mt-0.5">Verify &amp; Revoke</p>
                     </button>
 
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className="p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50/60 border border-slate-200/80 hover:border-cyan-200 text-left transition-all group cursor-pointer"
+                      className="p-4 rounded-2xl bg-canvas hover:bg-cyan-50 border border-line hover:border-cyan-300 text-left transition-all group cursor-pointer"
                     >
                       <Settings className="w-5 h-5 text-cyan-600 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-xs font-black text-slate-900">Platform Config</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">AI engines &amp; flags</p>
+                      <p className="text-xs font-bold text-ink">Platform Config</p>
+                      <p className="text-[10px] text-muted mt-0.5">AI Engine &amp; Identity</p>
                     </button>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-canvas border border-line flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-ink">Platform Status Check</span>
+                      <span className="text-[11px] text-muted block">Database, Redis &amp; Gemini API operational</span>
+                    </div>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-xs" />
                   </div>
                 </div>
 
@@ -453,92 +499,102 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* TAB 2: USER MANAGEMENT */}
+          {/* TAB 2: USER DIRECTORY */}
           {activeTab === 'users' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">User Accounts &amp; Permissions</h2>
-                  <p className="text-xs text-slate-500">Manage all student, teacher, and administrator accounts on the platform</p>
+                  <h2 className="text-lg font-extrabold text-ink tracking-tight">Platform User Accounts</h2>
+                  <p className="text-xs text-muted">Supervise student profiles, teacher faculty credentials, and administrative privileges</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowAddUserModal(true)}
-                    className="px-4 py-2 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-xs flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                   >
-                    <Plus className="w-4 h-4" /> Add User
+                    <Plus className="w-4 h-4" /> Provision User
                   </button>
                 </div>
               </div>
 
-              {/* Filter Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              {/* Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-line shadow-xs">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search by name or email..."
+                    placeholder="Search by name or email address..."
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#027FFF]"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-canvas border border-line text-xs text-ink placeholder-subtle focus:outline-none focus:border-primary focus:bg-white transition-all"
                   />
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
                   {(['all', 'Student', 'Instructor', 'Admin'] as const).map(role => (
                     <button
                       key={role}
                       onClick={() => setUserRoleFilter(role)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        userRoleFilter === role ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        userRoleFilter === role 
+                          ? 'bg-ink text-white shadow-xs' 
+                          : 'text-muted hover:text-ink hover:bg-canvas'
                       }`}
                     >
-                      {role === 'all' ? 'All Roles' : role}
+                      {role === 'all' ? 'All Roles' : role === 'Instructor' ? 'Teachers' : role}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Users Table */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              {/* Users Directory Table */}
+              <div className="bg-white rounded-3xl border border-line shadow-xs overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      <th className="p-4">User Name</th>
+                    <tr className="border-b border-line bg-canvas/60 text-[11px] font-bold text-muted uppercase tracking-wider">
+                      <th className="p-4">User</th>
                       <th className="p-4">Email</th>
-                      <th className="p-4">Role</th>
+                      <th className="p-4">Platform Role</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Joined Date</th>
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
+                  <tbody className="divide-y divide-line/60 text-xs">
                     {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="p-4 font-bold text-slate-900">{u.name}</td>
-                        <td className="p-4 text-slate-600 font-mono text-[11px]">{u.email}</td>
+                      <tr key={u.id} className="hover:bg-canvas/50 transition-colors">
                         <td className="p-4">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase ${
-                            u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                            u.role === 'Instructor' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            'bg-blue-50 text-[#027FFF] border border-blue-200'
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-canvas border border-line font-extrabold text-ink flex items-center justify-center text-xs shrink-0">
+                              {u.name[0]}
+                            </div>
+                            <span className="font-bold text-ink">{u.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-muted font-mono text-[11px]">{u.email}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase border ${
+                            u.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                            u.role === 'Instructor' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            'bg-blue-50 text-primary border-blue-200'
                           }`}>
                             {u.role}
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 ${
                             u.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                           }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                             {u.status}
                           </span>
                         </td>
-                        <td className="p-4 text-slate-500">{u.joinedDate}</td>
+                        <td className="p-4 text-muted">{u.joinedDate}</td>
                         <td className="p-4 text-right">
                           <button
                             onClick={() => handleToggleUserStatus(u.id)}
-                            className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-[11px] transition-all cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl border border-line text-ink hover:bg-canvas font-semibold text-[11px] transition-all cursor-pointer"
                           >
                             {u.status === 'Active' ? 'Suspend' : 'Activate'}
                           </button>
@@ -556,62 +612,73 @@ export default function AdminDashboardPage() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">Platform Course Catalog</h2>
-                  <p className="text-xs text-slate-500">Oversee published courses, create new master courses, and feature top content</p>
+                  <h2 className="text-lg font-extrabold text-ink tracking-tight">Platform Course Catalog</h2>
+                  <p className="text-xs text-muted">Oversee published multi-subject courses, manage grade coverage, and spotlight courses</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="relative w-full sm:w-64">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Search courses..."
                       value={courseSearch}
                       onChange={(e) => setCourseSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#027FFF]"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-line text-xs text-ink placeholder-subtle focus:outline-none focus:border-primary transition-all"
                     />
                   </div>
 
                   <button
                     onClick={() => setShowCreateCourseModal(true)}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-all"
+                    className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-all"
                   >
-                    <Plus className="w-4 h-4" /> Create Course
+                    <Plus className="w-4 h-4" /> New Course
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {filteredCourses.map((c) => (
-                  <div key={c.id} className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-4">
+                  <div key={c.id} className="p-6 rounded-3xl bg-white border border-line shadow-xs hover:border-slate-300 transition-all space-y-4">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#027FFF] uppercase">
-                        {c.subject}
-                      </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                        c.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase ${getSubjectBadge(c.subject)}`}>
+                          {c.subject}
+                        </span>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-canvas border border-line text-muted">
+                          Grade {c.grade}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border ${
+                        c.status === 'published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-canvas text-muted border-line'
                       }`}>
                         {c.status}
                       </span>
                     </div>
 
                     <div>
-                      <h3 className="text-base font-black text-slate-900 leading-snug">{c.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1">Instructor: <strong>{c.instructorName}</strong></p>
+                      <h3 className="text-base font-extrabold text-ink leading-snug">{c.title}</h3>
+                      <p className="text-xs text-muted mt-1">Instructor: <strong className="text-ink font-semibold">{c.instructorName}</strong></p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-600">
-                      <span>{c.modulesCount} Modules</span>
-                      <span>{c.studentsCount} Active Students</span>
+                    <div className="flex items-center justify-between pt-3 border-t border-line text-xs text-muted">
+                      <span className="flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-subtle" />
+                        {c.modulesCount} Modules
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-subtle" />
+                        {c.studentsCount} Active Students
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-2">
                       <button
                         onClick={() => handleToggleCourseFeatured(c.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                           c.isFeatured 
-                            ? 'bg-amber-50 text-amber-700 border border-amber-300' 
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-300' 
+                            : 'bg-canvas text-muted hover:text-ink border border-line'
                         }`}
                       >
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -620,9 +687,9 @@ export default function AdminDashboardPage() {
 
                       <Link
                         href="/dashboard/courses"
-                        className="text-xs font-bold text-[#027FFF] hover:underline"
+                        className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                       >
-                        Preview Catalog &rarr;
+                        Catalog View &rarr;
                       </Link>
                     </div>
                   </div>
@@ -635,32 +702,37 @@ export default function AdminDashboardPage() {
           {activeTab === 'live' && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-black text-slate-900">Live Virtual Classrooms Monitor</h2>
-                <p className="text-xs text-slate-500">Monitor all scheduled and active live video sessions across instructors</p>
+                <h2 className="text-lg font-extrabold text-ink tracking-tight">Live Virtual Classrooms Telemetry</h2>
+                <p className="text-xs text-muted">Supervise active, upcoming, and completed faculty live video sessions</p>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-3xl border border-line shadow-xs overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr className="border-b border-line bg-canvas/60 text-[11px] font-bold text-muted uppercase tracking-wider">
                       <th className="p-4">Session Title</th>
                       <th className="p-4">Subject</th>
-                      <th className="p-4">Instructor</th>
+                      <th className="p-4">Faculty Instructor</th>
                       <th className="p-4">Scheduled Time</th>
-                      <th className="p-4">Registered Students</th>
-                      <th className="p-4">Status</th>
+                      <th className="p-4">Registrations</th>
+                      <th className="p-4">Live Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
+                  <tbody className="divide-y divide-line/60 text-xs">
                     {sessions.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="p-4 font-bold text-slate-900">{s.title}</td>
-                        <td className="p-4 text-slate-700">{s.subject}</td>
-                        <td className="p-4 text-slate-600 font-medium">{s.instructorName}</td>
-                        <td className="p-4 text-slate-500 font-mono text-[11px]">{s.scheduledTime}</td>
-                        <td className="p-4 font-bold text-slate-900">{s.attendanceCount}</td>
+                      <tr key={s.id} className="hover:bg-canvas/50 transition-colors">
+                        <td className="p-4 font-bold text-ink">{s.title}</td>
                         <td className="p-4">
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getSubjectBadge(s.subject)}`}>
+                            {s.subject}
+                          </span>
+                        </td>
+                        <td className="p-4 text-muted font-medium">{s.instructorName}</td>
+                        <td className="p-4 text-muted font-mono text-[11px]">{s.scheduledTime}</td>
+                        <td className="p-4 font-bold text-ink">{s.attendanceCount} Students</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase border border-emerald-200 inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             {s.status}
                           </span>
                         </td>
@@ -672,52 +744,52 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* TAB 5: CERTIFICATES CENTER */}
+          {/* TAB 5: CERTIFICATES & ACCREDITATION */}
           {activeTab === 'certificates' && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">Certificates &amp; Accreditation Center</h2>
-                  <p className="text-xs text-slate-500">Master database of all verified course completion certificates</p>
+                  <h2 className="text-lg font-extrabold text-ink tracking-tight">Accreditation &amp; Certificates Hub</h2>
+                  <p className="text-xs text-muted">Cryptographically audited registry of official course completion credentials</p>
                 </div>
 
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-subtle absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search by Certificate ID or Student..."
+                    placeholder="Search by ID or student name..."
                     value={certSearch}
                     onChange={(e) => setCertSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#027FFF]"
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-line text-xs text-ink placeholder-subtle focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="bg-white rounded-3xl border border-line shadow-xs overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                      <th className="p-4">Certificate ID</th>
+                    <tr className="border-b border-line bg-canvas/60 text-[11px] font-bold text-muted uppercase tracking-wider">
+                      <th className="p-4">Credential ID</th>
                       <th className="p-4">Recipient Student</th>
                       <th className="p-4">Course Title</th>
                       <th className="p-4">Issue Date</th>
-                      <th className="p-4">Status</th>
+                      <th className="p-4">Validation</th>
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
+                  <tbody className="divide-y divide-line/60 text-xs">
                     {filteredCerts.map((crt) => (
-                      <tr key={crt.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="p-4 font-mono font-bold text-[#027FFF]">{crt.certificateId}</td>
-                        <td className="p-4 font-bold text-slate-900">
+                      <tr key={crt.id} className="hover:bg-canvas/50 transition-colors">
+                        <td className="p-4 font-mono font-bold text-primary">{crt.certificateId}</td>
+                        <td className="p-4 font-bold text-ink">
                           <div>{crt.studentName}</div>
-                          <span className="text-[11px] text-slate-400 font-normal">{crt.studentEmail}</span>
+                          <span className="text-[11px] text-subtle font-normal">{crt.studentEmail}</span>
                         </td>
-                        <td className="p-4 text-slate-700 font-medium">{crt.courseTitle}</td>
-                        <td className="p-4 text-slate-500">{crt.issueDate}</td>
+                        <td className="p-4 text-muted font-medium">{crt.courseTitle}</td>
+                        <td className="p-4 text-muted">{crt.issueDate}</td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            crt.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                            crt.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
                           }`}>
                             {crt.status}
                           </span>
@@ -725,7 +797,7 @@ export default function AdminDashboardPage() {
                         <td className="p-4 text-right">
                           <button
                             onClick={() => handleRevokeCertificate(crt.id)}
-                            className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-[11px] transition-all cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl border border-line text-ink hover:bg-canvas font-semibold text-[11px] transition-all cursor-pointer"
                           >
                             {crt.status === 'VERIFIED' ? 'Revoke' : 'Re-Validate'}
                           </button>
@@ -740,56 +812,56 @@ export default function AdminDashboardPage() {
 
           {/* TAB 6: SYSTEM SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="p-6 md:p-8 rounded-3xl bg-white border border-slate-200 shadow-xs max-w-2xl space-y-6">
-              <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-lg font-black text-slate-900">Platform Global Settings</h2>
-                <p className="text-xs text-slate-500">Configure platform identity, AI engines, and system flags</p>
+            <div className="p-6 md:p-8 rounded-3xl bg-white border border-line shadow-xs max-w-2xl space-y-6">
+              <div className="border-b border-line pb-4">
+                <h2 className="text-lg font-extrabold text-ink tracking-tight">Platform Global Settings</h2>
+                <p className="text-xs text-muted">Configure branding parameters, AI reasoning engines, and maintenance flags</p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Platform Brand Name:</label>
+                  <label className="text-xs font-bold text-ink">Platform Brand Identity:</label>
                   <input
                     type="text"
                     value={platformName}
                     onChange={(e) => setPlatformName(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                    className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-bold text-ink focus:outline-none focus:border-primary focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Official Support Email:</label>
+                  <label className="text-xs font-bold text-ink">Official Platform Support Email:</label>
                   <input
                     type="email"
                     value={supportEmail}
                     onChange={(e) => setSupportEmail(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                    className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-bold text-ink focus:outline-none focus:border-primary focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Primary AI Reasoning Engine:</label>
+                  <label className="text-xs font-bold text-ink">Primary AI Tutoring &amp; Assessment Engine:</label>
                   <select
                     value={aiEngine}
                     onChange={(e) => setAiEngine(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none"
+                    className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-bold text-ink focus:outline-none focus:border-primary focus:bg-white transition-all"
                   >
-                    <option value="Gemini 1.5 Pro (Adaptive)">Gemini 1.5 Pro (High Accuracy &amp; Multimodal)</option>
-                    <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet (Advanced Reasoning)</option>
-                    <option value="GPT-4o">GPT-4o (Standard)</option>
+                    <option value="Gemini 1.5 Pro (Adaptive)">Gemini 1.5 Pro (Multimodal &amp; Socratic Reasoning)</option>
+                    <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet (Advanced Pedagogy)</option>
+                    <option value="GPT-4o">GPT-4o (General Purpose)</option>
                   </select>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="pt-3 border-t border-line flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-slate-900 block">Maintenance Mode</span>
-                    <span className="text-[11px] text-slate-500">Only Admins can log in while maintenance mode is active.</span>
+                    <span className="text-xs font-bold text-ink block">Platform Maintenance Mode</span>
+                    <span className="text-[11px] text-muted">Restrict access to system administrators during schema deployments.</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={maintenanceMode}
                     onChange={(e) => setMaintenanceMode(e.target.checked)}
-                    className="w-4 h-4 accent-[#027FFF]"
+                    className="w-4 h-4 accent-primary"
                   />
                 </div>
 
@@ -797,9 +869,9 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={handleSaveSettings}
-                    className="w-full py-3 rounded-2xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                    className="w-full py-3 rounded-2xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
                   >
-                    Save Global Configuration
+                    Save Platform Configuration
                   </button>
                 </div>
               </div>
@@ -812,62 +884,79 @@ export default function AdminDashboardPage() {
 
       {/* CREATE COURSE MODAL FOR ADMIN */}
       {showCreateCourseModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900">Create Platform Master Course</h3>
-              <button onClick={() => setShowCreateCourseModal(false)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in duration-200 border border-line">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-base font-extrabold text-ink">Create Master Curriculum Course</h3>
+              <button 
+                onClick={() => setShowCreateCourseModal(false)} 
+                className="text-subtle hover:text-ink p-1 rounded-lg hover:bg-canvas"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleAdminCreateCourse} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Course Title:</label>
+                <label className="text-xs font-bold text-ink">Course Title:</label>
                 <input
                   type="text"
-                  placeholder="e.g. Full-Stack Web Development with React & Node"
+                  placeholder="e.g. Algorithmic Problem Solving & Python Logic"
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:border-primary focus:bg-white"
                   required
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Academic Subject Category:</label>
-                <select
-                  value={newCourseSubject}
-                  onChange={(e) => setNewCourseSubject(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none"
-                >
-                  <option value="Computer Science">💻 Computer Science</option>
-                  <option value="English & Languages">📖 English &amp; Languages</option>
-                  <option value="Mathematics">📐 Mathematics</option>
-                  <option value="Science">🔬 Science</option>
-                  <option value="Business & Finance">📊 Business &amp; Finance</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-ink">Academic Subject:</label>
+                  <select
+                    value={newCourseSubject}
+                    onChange={(e) => setNewCourseSubject(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink focus:outline-none"
+                  >
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Science">Science</option>
+                    <option value="English">English</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-ink">Target Grade Level:</label>
+                  <select
+                    value={newCourseGrade}
+                    onChange={(e) => setNewCourseGrade(Number(e.target.value))}
+                    className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink focus:outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(g => (
+                      <option key={g} value={g}>Grade {g}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Assigned Lead Instructor:</label>
+                <label className="text-xs font-bold text-ink">Assigned Faculty Lead:</label>
                 <input
                   type="text"
-                  placeholder="e.g. Dr. Alan Turing / Faculty Lead"
+                  placeholder="e.g. Dr. Alan Turing / Faculty Chair"
                   value={newCourseInstructor}
                   onChange={(e) => setNewCourseInstructor(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:border-primary focus:bg-white"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Course Description:</label>
+                <label className="text-xs font-bold text-ink">Curriculum Summary:</label>
                 <textarea
                   rows={3}
-                  placeholder="Summarize the core syllabus curriculum..."
+                  placeholder="Outline module topics, learning outcomes and syllabus scope..."
                   value={newCourseDesc}
                   onChange={(e) => setNewCourseDesc(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs text-ink focus:outline-none focus:border-primary focus:bg-white"
                 />
               </div>
 
@@ -875,15 +964,15 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateCourseModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl border border-line text-muted hover:text-ink font-semibold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs"
                 >
-                  Publish to Platform
+                  Publish to Catalog
                 </button>
               </div>
             </form>
@@ -893,46 +982,49 @@ export default function AdminDashboardPage() {
 
       {/* ADD USER MODAL */}
       {showAddUserModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900">Add Platform User</h3>
-              <button onClick={() => setShowAddUserModal(false)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl space-y-5 animate-in fade-in duration-200 border border-line">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-base font-extrabold text-ink">Provision Platform User</h3>
+              <button 
+                onClick={() => setShowAddUserModal(false)} 
+                className="text-subtle hover:text-ink p-1 rounded-lg hover:bg-canvas"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddUser} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Full Name:</label>
+                <label className="text-xs font-bold text-ink">Full Name:</label>
                 <input
                   type="text"
                   placeholder="e.g. Maria Gonzalez"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:border-primary focus:bg-white"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Email Address:</label>
+                <label className="text-xs font-bold text-ink">Email Address:</label>
                 <input
                   type="email"
-                  placeholder="e.g. maria.g@example.com"
+                  placeholder="e.g. maria.g@penpage.academy"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#027FFF]"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-medium text-ink focus:outline-none focus:border-primary focus:bg-white"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Assigned Platform Role:</label>
+                <label className="text-xs font-bold text-ink">Assigned Role:</label>
                 <select
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value as any)}
-                  className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none"
+                  className="w-full p-3 rounded-xl bg-canvas border border-line text-xs font-semibold text-ink focus:outline-none"
                 >
                   <option value="Student">Student</option>
                   <option value="Instructor">Instructor / Teacher</option>
@@ -944,15 +1036,15 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs"
+                  className="px-4 py-2.5 rounded-xl border border-line text-muted hover:text-ink font-semibold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#027FFF] hover:bg-blue-600 text-white font-bold text-xs shadow-xs"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-strong text-white font-bold text-xs shadow-xs"
                 >
-                  Create User
+                  Provision Account
                 </button>
               </div>
             </form>

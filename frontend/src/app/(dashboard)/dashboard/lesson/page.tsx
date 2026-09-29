@@ -642,7 +642,7 @@ function LessonPlayerContent() {
         {activeLesson.type === 'video' ? (
           <div className="w-full bg-[#0B1221] border-b border-slate-800 flex items-center justify-center p-0 md:p-6 lg:p-8">
             {/* Embedded Responsive 16:9 Video Player */}
-            <div className="w-full max-w-4xl aspect-video rounded-none md:rounded-3xl overflow-hidden shadow-2xl bg-black relative border border-slate-800">
+            <div className="w-full max-w-6xl aspect-video rounded-none md:rounded-3xl overflow-hidden shadow-2xl bg-black relative border border-slate-800">
               {activeLesson.videoUrl && (activeLesson.videoUrl.endsWith('.mp4') || activeLesson.videoUrl.includes('.mp4')) ? (
                 <video
                   key={activeLesson.videoUrl}
@@ -746,7 +746,7 @@ function LessonPlayerContent() {
         )}
 
         {/* ── 3. LESSON DETAILS, NOTES & INTERACTIVE TABS ── */}
-        <div className="max-w-5xl mx-auto w-full p-6 md:p-8 flex-1">
+        <div className="max-w-7xl mx-auto w-full p-6 md:p-8 flex-1">
           
           {/* Header Action Row */}
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6 pb-6 border-b border-slate-200">
