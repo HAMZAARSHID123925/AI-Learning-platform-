@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
@@ -52,15 +52,9 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      setError('Password must contain at least one special symbol (!@#$%^&*...).');
-      toast.error('Password Requirement', 'Include at least one special symbol.');
-      return;
-    }
-    
     if (!token) {
-      setError('Invalid or missing reset token');
-      toast.error('Invalid Token', 'Reset token is missing or expired');
+      setError('Invalid or expired reset link. Please request a new one.');
+      toast.error('Invalid Link', 'No valid reset token found in URL.');
       return;
     }
 
@@ -68,27 +62,27 @@ function ResetPasswordContent() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/reset-password', {
+      const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token, new_password: password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to reset password. The link may have expired.');
-      }
+      const data = await response.json();
 
-      toast.success('Password Reset Successful!', 'Redirecting you to login...');
-      setIsSuccess(true);
-      setTimeout(() => {
-        router.push('/login?reset=success');
-      }, 2000);
-    } catch (err: unknown) {
-      const msg = (err as Error).message || 'An error occurred. Please try again.';
-      setError(msg);
-      toast.error('Reset Failed', msg);
+      if (response.ok) {
+        setIsSuccess(true);
+        toast.success('Password Reset Successful', 'You can now log in with your new password.');
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        setError(data.message || 'Failed to reset password');
+        toast.error('Error', data.message || 'Could not reset password. Link may be expired.');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      toast.error('Network Error', 'Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -96,80 +90,106 @@ function ResetPasswordContent() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4">
-        <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-        <div className="bg-[#0f182c] border border-emerald-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_40px_rgba(16,185,129,0.1)] text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
-          
-          <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen bg-[#070b14] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#027FFF]/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
+          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
           </div>
-          
-          <h2 className="text-2xl font-bold text-white mb-3">Password Reset!</h2>
-          <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-            Your password has been successfully updated. Redirecting you to login...
+          <h2 className="text-2xl font-black text-white tracking-tight mb-2">Password Successfully Reset</h2>
+          <p className="text-sm text-slate-400 mb-8 max-w-sm mx-auto">
+            Your password has been securely updated. Redirecting you to login in a few seconds...
           </p>
-          
-          <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto"></div>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#027FFF] to-[#026bd6] text-white text-sm font-bold shadow-[0_0_20px_rgba(2,127,255,0.3)] hover:scale-[1.02] transition-all"
+          >
+            Go to Login
+          </Link>
         </div>
       </div>
-        </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="bg-[#0f182c] border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-[#027FFF]/5 to-transparent rounded-full blur-[100px] pointer-events-none"></div>
-        
-        <div className="relative z-10">
-          <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">New Password</h2>
-          <p className="text-slate-400 text-sm mb-8">
-            Please enter your new password below.
-          </p>
+    <div className="min-h-screen bg-[#070b14] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#027FFF]/10 rounded-full blur-[120px] pointer-events-none" />
 
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <Link href="/login" className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors mb-6 group">
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          Back to Login
+        </Link>
+        <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mb-4">
+          <Lock className="w-6 h-6 text-[#027FFF]" />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Set New Password</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Create a strong password for your PPAcademia account.
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-[#0f172a]/80 backdrop-blur-xl py-8 px-6 shadow-2xl rounded-3xl sm:px-10 border border-white/5">
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-200/80 leading-relaxed">{error}</p>
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">New Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-500" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-3.5 bg-[#0B1221] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#027FFF]/50 focus:border-[#027FFF] transition-all sm:text-sm"
-                    placeholder="••••••••"
-                  />
-                </div>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                New Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#1e293b]/50 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#027FFF] focus:ring-1 focus:ring-[#027FFF] transition-all"
+                  placeholder="••••••••••••"
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-300">Confirm Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-500" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-3.5 bg-[#0B1221] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#027FFF]/50 focus:border-[#027FFF] transition-all sm:text-sm"
-                    placeholder="••••••••"
-                  />
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-[#1e293b]/50 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#027FFF] focus:ring-1 focus:ring-[#027FFF] transition-all"
+                  placeholder="••••••••••••"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#1e293b]/30 border border-white/5 space-y-2">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Password Requirements:</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
+                <div className={`flex items-center gap-1.5 ${password.length >= 10 ? 'text-emerald-400' : ''}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${password.length >= 10 ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                  10+ Characters
+                </div>
+                <div className={`flex items-center gap-1.5 ${/[A-Z]/.test(password) && /[a-z]/.test(password) ? 'text-emerald-400' : ''}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${/[A-Z]/.test(password) && /[a-z]/.test(password) ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                  Upper &amp; Lowercase
+                </div>
+                <div className={`flex items-center gap-1.5 ${/[0-9]/.test(password) ? 'text-emerald-400' : ''}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${/[0-9]/.test(password) ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                  1+ Number
+                </div>
+                <div className={`flex items-center gap-1.5 ${password && password === confirmPassword ? 'text-emerald-400' : ''}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${password && password === confirmPassword ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                  Passwords Match
                 </div>
               </div>
             </div>
@@ -189,6 +209,5 @@ function ResetPasswordContent() {
         </div>
       </div>
     </div>
-      </div>
   );
 }
