@@ -1,0 +1,6 @@
+node_modules
+.DS_Store
+*.log
+52142e14-afbe-4582-937f-3b043f24510a/
+.env
+.env*.local

@@ -405,7 +405,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('admin@elarion.com');
+                  setEmail('admin@ppacademia.com');
                   setPassword('Admin123!');
                 }}
                 className="py-1.5 px-2.5 rounded-lg bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-purple-700 text-xs font-bold transition-all text-center shadow-xs"
@@ -415,7 +415,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('instructor@elarion.com');
+                  setEmail('instructor@ppacademia.com');
                   setPassword('Instructor123!');
                 }}
                 className="py-1.5 px-2.5 rounded-lg bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 text-xs font-bold transition-all text-center shadow-xs"
@@ -425,7 +425,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('student@elarion.com');
+                  setEmail('student@ppacademia.com');
                   setPassword('Student123!');
                 }}
                 className="py-1.5 px-2.5 rounded-lg bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-bold transition-all text-center shadow-xs"

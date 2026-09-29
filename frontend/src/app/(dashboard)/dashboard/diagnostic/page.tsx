@@ -516,7 +516,7 @@ export default function DashboardDiagnosticPage() {
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#F0F4F8]">
         {/* TOP BANNER */}
         <div className="bg-[#0F172A] text-white px-6 lg:px-10 py-8 border-b border-slate-800 shadow-md">
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
                 <Link href="/dashboard" className="hover:text-white flex items-center gap-1">
@@ -546,7 +546,7 @@ export default function DashboardDiagnosticPage() {
         </div>
 
         {/* CONTENT CONTAINER */}
-        <div className="max-w-4xl w-full mx-auto px-6 lg:px-10 py-8">
+        <div className="max-w-7xl w-full mx-auto px-6 lg:px-10 py-8">
           
           {/* STEP 1: CHOOSE SUBJECT */}
           {currentStep === "choose_subject" && (

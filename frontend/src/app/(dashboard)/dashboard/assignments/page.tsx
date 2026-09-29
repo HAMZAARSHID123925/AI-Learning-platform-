@@ -159,7 +159,7 @@ export default function AssignmentsPage() {
         </header>
 
         {/* Content Body */}
-        <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
           
           {/* Summary Metric Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

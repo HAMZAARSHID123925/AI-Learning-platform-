@@ -71,7 +71,7 @@ export default function CertificatesPage() {
         </header>
 
         {/* Content Body */}
-        <div className="max-w-6xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
           {/* Top Summary Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-4">
