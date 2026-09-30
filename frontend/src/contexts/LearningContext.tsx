@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { student } from '../data/student';
+import { courses } from '@/data/student/courses'; const student = { courses: [], grade: 5 as Grade };
 import { Grade } from '../types/learning';
 
 interface LearningContextValue {

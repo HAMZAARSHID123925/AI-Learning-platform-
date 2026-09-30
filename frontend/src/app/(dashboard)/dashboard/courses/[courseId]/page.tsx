@@ -1,115 +1,124 @@
-"use client";
-
-import React, { use } from 'react';
+'use client';
+import React from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, ChevronLeft, Layers } from 'lucide-react';
-import { SubjectArt } from '@/components/SubjectArt';
-import { ProgressBar } from '@/components/ProgressBar';
-import { LearningPath } from '@/components/course/LearningPath';
-import { buildModules, getCourse, getCourseStatus, getCurrentLesson, getSubjectName } from '@/utils/courses';
-import { subjectTheme } from '@/utils/subjectTheme';
+import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, LayersIcon, SparklesIcon, TrophyIcon } from 'lucide-react';
+import { ButtonLink } from '@/components/student/ButtonLink';
+import { ProgressBar } from '@/components/student/ProgressBar';
+import { StateMessage } from '@/components/student/StateMessage';
+import { LearningPath } from '@/components/student/course/LearningPath';
+import { useProgress } from '@/contexts/student/ProgressContext';
+import { useAsync } from '@/hooks/student/useAsync';
+import { learningApi } from '@/utils/student/learningApi';
+import { getCourseProgress, isCourseComplete } from '@/utils/student/progress';
+import { courseName, subjectStyles } from '@/utils/student/subjects';
 
-interface CourseDetailPageProps {
-  params: Promise<{ courseId: string }>;
-}
+export default function CourseDetail() {
+  const params = useParams();
+  const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
+  const { lessons, latestAttempt } = useProgress();
+  const q = useAsync(() => learningApi.getCourse(courseId), [courseId]);
 
-export default function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const resolvedParams = use(params);
-  const courseId = resolvedParams.courseId;
-  const course = courseId ? getCourse(courseId) : undefined;
-
-  if (!course) {
-    return (
-      <div className="mx-auto flex max-w-6xl flex-col items-center px-5 py-24 text-center">
-        <p className="text-2xl font-semibold">Course not found</p>
-        <Link
-          href="/dashboard/courses"
-          className="mt-6 inline-flex h-12 items-center rounded-xl bg-ink px-6 font-semibold text-white"
-        >
-          Back to Courses
-        </Link>
-      </div>
-    );
+  if (q.loading) return <StateMessage kind="loading" title="Loading learning path…" />;
+  if (q.error || !q.data) {
+    return <StateMessage kind="error" message={q.error?.message} onRetry={q.reload} action={<ButtonLink href="/dashboard/courses" variant="secondary">All courses</ButtonLink>} />;
   }
 
-  const modules = buildModules(course);
-  const current = getCurrentLesson(modules);
-  const status = getCourseStatus(course);
-  const theme = subjectTheme[course.subject];
-  const moduleCount = modules.filter((m) => !m.isFinal).length;
-
-  const ctaLabel =
-    status === 'completed'
-      ? 'Review course'
-      : status === 'not-started'
-      ? 'Start · Lesson 1'
-      : current?.isChallenge
-      ? 'Start Final Challenge'
-      : `Continue · Lesson ${current?.number}`;
+  const course = q.data;
+  const s = subjectStyles[course.subject];
+  const progress = getCourseProgress(course, lessons);
+  const attempt = latestAttempt(course.id);
+  const minutes = course.lessons.reduce((n, l) => n + l.minutes, 0);
+  const complete = isCourseComplete(course, lessons);
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-10">
-      <Link
-        href="/dashboard/courses"
-        className="-ml-2 inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-medium text-muted transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        Courses
+    <div className="space-y-10">
+      <Link href="/dashboard/courses" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink-muted transition-colors duration-150 hover:text-ink">
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> All courses
       </Link>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-12 lg:gap-12">
-        <aside className="self-start lg:sticky lg:top-24 lg:col-span-5">
-          <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
-            <div className={`flex h-40 items-center justify-center ${theme.softBg}`}>
-              <SubjectArt subject={course.subject} size={96} />
-            </div>
-            <div className="p-6 md:p-7">
-              <p className={`text-sm font-semibold ${theme.text}`}>
-                {getSubjectName(course.subject)} · Grade {course.grade}
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">{course.title}</h1>
-              <div className="mt-3 flex items-center gap-4 text-sm text-muted">
-                <span className="inline-flex items-center gap-1.5">
-                  <BookOpen className="h-4 w-4" aria-hidden="true" />
-                  {course.lessonCount} lessons
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Layers className="h-4 w-4" aria-hidden="true" />
-                  {moduleCount} modules
-                </span>
-              </div>
+      <section className={`grid overflow-hidden rounded-[28px] ${s.bg} md:grid-cols-[1.2fr_1fr]`}>
+        <div className="flex flex-col p-7 sm:p-9">
+          <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-extrabold ${s.soft} ${s.text}`}>
+            <s.icon className="h-4 w-4" aria-hidden="true" />
+            {courseName(course.grade, course.subject)}
+          </span>
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-ink sm:text-5xl">{course.title}</h1>
+          <p className="mt-2 text-lg text-ink-soft">{course.description}</p>
 
+          {course.lessons.length > 0 &&
+          <div className="mt-auto pt-8">
+              <div className="mb-2 flex items-center justify-between text-sm font-extrabold">
+                <span className="text-ink-soft">{progress.completed} of {progress.total} lessons</span>
+                <span className="text-ink">{progress.percent}%</span>
+              </div>
+              <ProgressBar value={progress.percent} barClassName={s.solid} trackClassName="bg-white" label={`${course.title} progress`} />
               <div className="mt-6">
-                <div className="mb-2 flex items-baseline justify-between">
-                  <span className="text-2xl font-semibold tabular-nums">{course.progress}%</span>
-                  <span className="text-sm text-muted">complete</span>
-                </div>
-                <ProgressBar
-                  value={course.progress}
-                  label={`${course.title} progress`}
-                  colorClass="bg-success"
-                  heightClass="h-3"
-                />
+                {progress.nextLesson ?
+              <ButtonLink href={`/dashboard/learn/${course.id}/${progress.nextLesson.id}`} size="lg">
+                    {progress.started ? 'Continue' : 'Start'}: {progress.nextLesson.title} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
+                  </ButtonLink> :
+
+              <ButtonLink href={attempt ? `/dashboard/courses/${course.id}/personalized` : `/dashboard/courses/${course.id}/challenge`} size="lg">
+                    {attempt ? 'My personalized learning' : 'Take the Challenge Test'} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
+                  </ButtonLink>
+              }
               </div>
-
-              <Link
-                href={`/dashboard/courses/${course.id}/learn`}
-                className="mt-7 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-lg font-semibold text-white transition-transform duration-150 ease-out-strong hover:bg-primary-strong active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                {ctaLabel}
-                <ArrowRight className="h-5 w-5" aria-hidden="true" />
-              </Link>
             </div>
-          </div>
-        </aside>
+          }
+        </div>
+        <img src={course.image} alt="" className="order-first h-56 w-full object-cover md:order-none md:h-full" />
+      </section>
 
-        <section aria-labelledby="path-title" className="lg:col-span-7">
-          <h2 id="path-title" className="sr-only">
-            Lessons
-          </h2>
-          <LearningPath modules={modules} courseId={course.id} />
-        </section>
-      </div>
-    </div>
-  );
+      {course.lessons.length === 0 ?
+      <StateMessage kind="empty" title="This path is being built" message="Interactive lessons for this course are on their way. Check back soon!" /> :
+
+      <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
+          <section aria-labelledby="path-title">
+            <h2 id="path-title" className="mb-8 text-2xl font-black text-ink">Your learning path</h2>
+            <LearningPath course={course} lessons={lessons} latestAttempt={attempt} />
+          </section>
+
+          <aside className="space-y-8 lg:border-l-2 lg:border-line lg:pl-10">
+            <section aria-labelledby="about-title">
+              <h2 id="about-title" className="text-sm font-black text-ink-muted">About this path</h2>
+              <ul className="mt-3 space-y-2 text-[15px] font-bold text-ink">
+                <li className="flex items-center gap-2"><LayersIcon className="h-4 w-4 text-ink-muted" aria-hidden="true" />{course.lessons.length} interactive lessons</li>
+                <li className="flex items-center gap-2"><ClockIcon className="h-4 w-4 text-ink-muted" aria-hidden="true" />About {minutes} minutes</li>
+                <li className="flex items-center gap-2"><TrophyIcon className="h-4 w-4 text-ink-muted" aria-hidden="true" />10-question Challenge Test</li>
+              </ul>
+            </section>
+
+            <section aria-labelledby="skills-title">
+              <h2 id="skills-title" className="text-sm font-black text-ink-muted">Skills you’ll build</h2>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {course.skills.map((sk) =>
+              <li key={sk} className={`rounded-full px-3 py-1.5 text-sm font-extrabold ${s.bg} ${s.text}`}>{sk}</li>
+              )}
+              </ul>
+            </section>
+
+            {attempt ?
+          <section aria-labelledby="last-title" className="rounded-3xl bg-surface p-5">
+                <h2 id="last-title" className="text-sm font-black text-ink-muted">Latest Challenge Test</h2>
+                <p className="mt-1 text-3xl font-black text-ink">
+                  {attempt.correct}
+                  <span className="text-lg text-ink-muted">/{attempt.total}</span>
+                </p>
+                <Link href={`/dashboard/courses/${course.id}/results`} className="mt-3 inline-flex items-center gap-1 text-sm font-extrabold text-brand-500 hover:text-brand-700">
+                  <SparklesIcon className="h-4 w-4" aria-hidden="true" /> View AI analysis
+                </Link>
+              </section> :
+
+          <p className="rounded-3xl bg-surface p-5 text-sm font-bold text-ink-soft">
+                {complete ?
+            'Every lesson is done. Take the Challenge Test to unlock your personalized learning.' :
+            `Finish all ${course.lessons.length} lessons to unlock the Challenge Test.`}
+              </p>
+          }
+          </aside>
+        </div>
+      }
+    </div>);
+
 }

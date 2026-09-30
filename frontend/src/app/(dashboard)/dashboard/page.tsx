@@ -1,97 +1,89 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import { AIChatCard } from '@/components/home/AIChatCard';
-import { CourseGrid } from '@/components/CourseGrid';
-import { useLearning } from '@/contexts/LearningContext';
-import { student as defaultStudent } from '@/data/student';
-import { getCoursesForGrade } from '@/utils/courses';
+import { ChevronRightIcon } from 'lucide-react';
+import { AiAssistant } from '@/components/all_dashbord/student/AiAssistant';
+import { ContinueCard } from '@/components/all_dashbord/student/ContinueCard';
+import { DailyGoalCard } from '@/components/all_dashbord/student/DailyGoalCard';
+import { WarmupCard } from '@/components/all_dashbord/student/WarmupCard';
+import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
+import { useAuth } from '@/contexts/AuthContext';
+import { courses } from '@/data/all_dashbord/courses';
+import { subjectImages } from '@/data/all_dashbord/illustrations';
+import { profileStats } from '@/data/all_dashbord/profile';
+import { subjectStyles } from '@/utils/all_dashbord/subjects';
+import type { Grade } from '@/types/all_dashbord/index';
 
-export default function DashboardHomePage() {
-  const { grade } = useLearning();
-  const [studentName, setStudentName] = useState(defaultStudent.name);
+export default function Home() {
+  const { user } = useAuth();
+  const grade = (user?.grade ?? 5) as Grade;
+  const name = user?.name ?? 'Alex';
+  const myCourses = courses.filter((c) => c.grade === grade);
+  const current = myCourses.find((c) => c.subject === 'math') ?? myCourses[0];
+  const others = myCourses.filter((c) => c.id !== current.id);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedName = localStorage.getItem('user_name');
-      const storedRole = localStorage.getItem('user_role');
-      
-      const genericRoles = ['instructor', 'teacher', 'admin', 'administrator', 'student', 'user'];
-      
-      if (storedName && storedName.trim()) {
-        const clean = storedName.trim();
-        const first = clean.split(' ')[0];
-        if (!genericRoles.includes(first.toLowerCase())) {
-          setStudentName(first);
-          return;
-        }
-      }
-
-      // If user_name is just "Instructor" or "Student", try extracting from email or fallback to learner name
-      const token = localStorage.getItem('access_token');
-      const savedEmail = localStorage.getItem('user_email');
-      if (savedEmail && savedEmail.includes('@')) {
-        const raw = savedEmail.split('@')[0];
-        if (!genericRoles.includes(raw.toLowerCase())) {
-          const capitalized = raw.charAt(0).toUpperCase() + raw.slice(1);
-          setStudentName(capitalized);
-          return;
-        }
-      }
-
-      // Default friendly learner name
-      setStudentName('Alex');
-    }
-  }, []);
-
-  const explore = getCoursesForGrade(grade).slice(0, 4);
+  const getCourseHref = (courseId: string) => {
+    // Map grade 5 course ids to their respective learning paths
+    const map: Record<string, string> = {
+      'g5-math': '/dashboard/courses/g5-fractions',
+      'g5-science': '/dashboard/courses/g5-plants-animals',
+      'g5-english': '/dashboard/courses/g5-reading',
+      'g5-computer': '/dashboard/courses/g5-digital-basics'
+    };
+    return map[courseId] || `/dashboard/courses/${courseId}`;
+  };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8 px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10">
-      
-      {/* 1. TOP GREETING & ACTIVE GRADE BADGE */}
-      <header className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
-              Hello, {studentName}! 👋
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Class {grade}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-muted font-medium">
-            Welcome! Here are your lessons and daily challenges for Class {grade}.
-          </p>
-        </div>
+    <div className="space-y-10">
+      <header>
+        <h1 className="text-4xl font-black tracking-tight text-ink sm:text-5xl">Hi, {name} 👋</h1>
+        <p className="mt-2 text-lg text-ink-soft">
+          Grade {grade} · You’re on a <span className="font-extrabold text-streak-700">{profileStats.streak}-day streak</span>. Keep it going!
+        </p>
       </header>
 
-      {/* 2. AI HELPER - SIMPLE QUESTIONS */}
-      <AIChatCard name={studentName} />
+      <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
+        <ContinueCard course={current} />
+        <div className="flex flex-col gap-5">
+          <DailyGoalCard minutes={profileStats.minutesToday} goal={profileStats.dailyGoalMinutes} />
+          <WarmupCard grade={grade} />
+        </div>
+      </div>
 
-      {/* 4. SUBJECTS FOR THIS CLASS */}
-      <section aria-labelledby="explore-title" className="pt-1">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <h2 id="explore-title" className="text-lg sm:text-xl font-extrabold tracking-tight text-ink">
-              Subjects for Class {grade}
-            </h2>
-            <p className="text-xs text-muted">
-              Math, Science, English, and Computer
-            </p>
-          </div>
-          <Link
-            href="/dashboard/courses"
-            className="inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-bold text-primary transition-colors hover:bg-primary-soft"
-          >
-            All Lessons
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      <AiAssistant name={name} grade={grade} />
+
+      <section aria-labelledby="more-title">
+        <div className="mb-4 flex items-end justify-between">
+          <h2 id="more-title" className="text-2xl font-black text-ink">More in Grade {grade}</h2>
+          <Link href="/dashboard/courses" className="inline-flex items-center gap-0.5 text-sm font-extrabold text-brand-500 hover:text-brand-700">
+            All courses <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
-        <CourseGrid courses={explore} columns={4} />
+        <ul className="-mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
+          {others.map((c) => {
+            const s = subjectStyles[c.subject];
+            const pct = Math.round((c.completedLessons / c.lessons) * 100);
+            return (
+              <li key={c.id} className="w-64 shrink-0 snap-start sm:w-auto">
+                <Link
+                  href={getCourseHref(c.id)}
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border-2 border-line bg-white transition-[transform,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-ink/20 cursor-pointer"
+                >
+                  <img src={subjectImages[c.subject]} alt="" className={`h-32 w-full object-cover ${s.bg}`} />
+                  <div className="flex flex-1 flex-col p-4">
+                    <span className={`text-xs font-extrabold ${s.text}`}>{s.label}</span>
+                    <span className="mt-0.5 text-lg font-black text-ink">{c.title}</span>
+                    <div className="mt-auto flex items-center gap-3 pt-4">
+                      <ProgressBar value={pct} barClassName={s.solid} label={`${c.title} progress`} />
+                      <span className="text-xs font-extrabold text-ink-soft">{pct}%</span>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </section>
     </div>
   );
