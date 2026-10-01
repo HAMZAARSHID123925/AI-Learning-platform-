@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { ArrowRightIcon } from 'lucide-react';
 import { ButtonLink } from './ButtonLink';
 import { ProgressBar } from './ProgressBar';
-import { courseName, subjectStyles } from '@/utils/student/subjects';
-import type { Course, CourseProgress } from '@/types/student/learning';
+import { courseName, subjectStyles } from '@/utils/subjects';
+import type { Course, CourseProgress } from '@/types/learning';
 
 export function ContinueCard({ course, progress }: {course: Course;progress: CourseProgress;}) {
   const s = subjectStyles[course.subject];

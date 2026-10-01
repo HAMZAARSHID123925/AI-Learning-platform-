@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import { CheckCircle2Icon, SparklesIcon, TrendingUpIcon } from 'lucide-react';
-import type { LearningAnalysis, SkillResult } from '@/types/student/learning';
+import type { LearningAnalysis, SkillResult } from '@/types/learning';
 
 function SkillList({ items, empty }: {items: SkillResult[];empty: string;}) {
   if (!items.length) return <p className="text-sm font-bold text-ink-muted">{empty}</p>;

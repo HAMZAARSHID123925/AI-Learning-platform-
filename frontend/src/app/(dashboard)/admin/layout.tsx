@@ -1,5 +1,5 @@
 'use client';
-import StaffLayout from '@/components/all_dashbord/staff/StaffLayout';
+import StaffLayout from '@/components/staff/StaffLayout';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

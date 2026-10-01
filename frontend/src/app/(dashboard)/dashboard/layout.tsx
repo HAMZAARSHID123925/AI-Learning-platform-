@@ -1,7 +1,7 @@
 'use client';
-import { AuthProvider } from '@/contexts/student/AuthContext';
-import { ProgressProvider } from '@/contexts/student/ProgressContext';
-import { ClassesProvider } from '@/contexts/student/ClassesContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProgressProvider } from '@/contexts/ProgressContext';
+import { ClassesProvider } from '@/contexts/ClassesContext';
 import StudentTopNav from '@/components/student/StudentTopNav';
 
 import { motion, AnimatePresence } from 'framer-motion';

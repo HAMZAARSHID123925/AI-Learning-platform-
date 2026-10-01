@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AlertCircleIcon, ArrowRightIcon } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { platformStats, studentsByGrade, teachers, weeklyActiveUsers } from '@/data/all_dashbord/admin';
-import { courseName, subjectStyles } from '@/utils/all_dashbord/subjects';
+import { platformStats, studentsByGrade, teachers, weeklyActiveUsers } from '@/data/admin';
+import { courseName, subjectStyles } from '@/utils/subjects';
 
 export default function AdminOverview() {
   const { courses } = useAdmin();

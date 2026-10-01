@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import type { SubjectStyle } from '@/utils/student/subjects';
+import type { SubjectStyle } from '@/utils/subjects';
 
 interface WordsVisualProps {
   tokens: string[];

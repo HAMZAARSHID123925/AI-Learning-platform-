@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRightIcon, SparklesIcon } from 'lucide-react';
 import { StateMessage } from '@/components/student/StateMessage';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { Recommendation } from '@/types/student/learning';
+import { subjectStyles } from '@/utils/subjects';
+import type { Recommendation } from '@/types/learning';
 
 interface AiRecommendationProps {
   items: Recommendation[] | undefined;

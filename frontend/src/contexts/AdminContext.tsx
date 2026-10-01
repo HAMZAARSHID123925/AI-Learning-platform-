@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { adminCourses } from '@/data/all_dashbord/admin';
-import { courses as catalog } from '@/data/all_dashbord/courses';
-import { students as seedStudents } from '@/data/all_dashbord/students';
-import type { AdminCourse, Grade, StudentRecord } from '@/types/all_dashbord/index';
+import { adminCourses } from '@/data/admin';
+import { courses as catalog } from '@/data/courses';
+import { students as seedStudents } from '@/data/students';
+import type { AdminCourse, Grade, StudentRecord } from '@/types';
 
 interface AdminContextValue {
   courses: AdminCourse[];

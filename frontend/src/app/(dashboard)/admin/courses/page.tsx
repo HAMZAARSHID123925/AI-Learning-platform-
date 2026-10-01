@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { PlusIcon, UserPlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { AssignTeacherModal } from '@/components/all_dashbord/admin/AssignTeacherModal';
-import { CreateCourseModal } from '@/components/all_dashbord/admin/CreateCourseModal';
-import { Button } from '@/components/all_dashbord/Button';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
+import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
+import { CreateCourseModal } from '@/components/admin/CreateCourseModal';
+import { Button } from '@/components/shared/Button';
+import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAdmin } from '@/contexts/AdminContext';
-import { teachers } from '@/data/all_dashbord/admin';
-import { courseName, subjectStyles } from '@/utils/all_dashbord/subjects';
-import type { AdminCourse, Grade } from '@/types/all_dashbord/index';
+import { teachers } from '@/data/admin';
+import { courseName, subjectStyles } from '@/utils/subjects';
+import type { AdminCourse, Grade } from '@/types';
 
 const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 

@@ -2,8 +2,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrophyIcon, ZapIcon } from 'lucide-react';
-import type { Subject } from '@/types/student';
-import { subjectStyles } from '@/utils/student/subjects';
+import type { Subject } from '@/types';
+import { subjectStyles } from '@/utils/subjects';
 
 interface CompletionScreenProps {
   subject: Subject;

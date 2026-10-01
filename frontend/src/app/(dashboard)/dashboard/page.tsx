@@ -3,17 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { ChevronRightIcon } from 'lucide-react';
-import { AiAssistant } from '@/components/all_dashbord/student/AiAssistant';
-import { ContinueCard } from '@/components/all_dashbord/student/ContinueCard';
-import { DailyGoalCard } from '@/components/all_dashbord/student/DailyGoalCard';
-import { WarmupCard } from '@/components/all_dashbord/student/WarmupCard';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
+import { AiAssistant } from '@/components/home/AiAssistant';
+import { ContinueCard } from '@/components/home/ContinueCard';
+import { DailyGoalCard } from '@/components/home/DailyGoalCard';
+import { WarmupCard } from '@/components/home/WarmupCard';
+import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
-import { courses } from '@/data/all_dashbord/courses';
-import { subjectImages } from '@/data/all_dashbord/illustrations';
-import { profileStats } from '@/data/all_dashbord/profile';
-import { subjectStyles } from '@/utils/all_dashbord/subjects';
-import type { Grade } from '@/types/all_dashbord/index';
+import { courses } from '@/data/courses';
+import { subjectImages } from '@/data/illustrations';
+import { profileStats } from '@/data/profile';
+import { subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
 
 export default function Home() {
   const { user } = useAuth();

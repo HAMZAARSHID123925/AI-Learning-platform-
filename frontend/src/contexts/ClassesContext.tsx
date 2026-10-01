@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { liveClasses as seed } from '@/data/all_dashbord/liveClasses';
-import type { LiveClass } from '@/types/all_dashbord/index';
+import { liveClasses as seed } from '@/data/liveClasses';
+import type { LiveClass } from '@/types';
 
 interface ClassesContextValue {
   classes: LiveClass[];

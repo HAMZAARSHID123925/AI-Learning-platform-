@@ -9,9 +9,9 @@ import { PassageVisual } from './PassageVisual';
 import { PizzaVisual } from './PizzaVisual';
 import { ShapesVisual } from './ShapesVisual';
 import { WordsVisual } from './WordsVisual';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { Subject } from '@/types/student';
-import type { Visual as VisualSpec } from '@/types/student/learning';
+import { subjectStyles } from '@/utils/subjects';
+import type { Subject } from '@/types';
+import type { Visual as VisualSpec } from '@/types/learning';
 
 export function Visual({ visual, subject }: {visual: VisualSpec;subject: Subject;}) {
   const tone = subjectStyles[subject];

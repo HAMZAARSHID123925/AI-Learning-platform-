@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { brand } from '@/data/student/brand';
+import { brand } from '@/data/brand';
 
 interface LogoProps {
   /** Show only the school crest + ELARION wordmark (used in tight spaces). */

@@ -1,47 +1,16 @@
-import { QuestionStepData } from '../types/learning';
+import type { WarmupQuestion } from '@/types';
 
-export const warmupQuestions: QuestionStepData[] = [
-{
-  kind: 'question',
-  id: 'wu-1',
-  prompt: 'Which fraction is shaded?',
-  visual: { type: 'pie', parts: 4, filled: 3 },
-  options: ['1/4', '2/4', '3/4', '4/4'],
-  answer: 2,
-  explanation: '3 of the 4 equal parts are shaded.'
-},
-{
-  kind: 'question',
-  id: 'wu-2',
-  prompt: 'How many dots?',
-  visual: { type: 'dots', rows: 3, cols: 4 },
-  options: ['7', '12', '10', '14'],
-  answer: 1,
-  explanation: '3 rows of 4 is 3 × 4 = 12.'
-},
-{
-  kind: 'question',
-  id: 'wu-3',
-  prompt: 'What comes next?',
-  visual: { type: 'pattern', items: ['circle', 'square', 'circle', 'square', 'circle'] },
-  options: ['Circle', 'Square', 'Triangle', 'Star'],
-  answer: 1,
-  explanation: 'The pattern goes circle, square, circle, square…'
-},
-{
-  kind: 'question',
-  id: 'wu-4',
-  prompt: 'What do plants need to make food?',
-  visual: { type: 'icon', icon: 'sprout' },
-  options: ['Sand', 'Sunlight', 'Plastic', 'Noise'],
-  answer: 1,
-  explanation: 'Leaves use sunlight to make food.'
-},
-{
-  kind: 'question',
-  id: 'wu-5',
-  prompt: 'Which word is a noun?',
-  options: ['jump', 'happy', 'river', 'slowly'],
-  answer: 2,
-  explanation: 'A noun names a person, place or thing. A river is a place.'
-}];
+export const earlyWarmup: WarmupQuestion[] = [
+{ prompt: 'What is 4 + 3?', options: ['6', '7', '8'], answer: 1 },
+{ prompt: 'Which word rhymes with “cat”?', options: ['Hat', 'Dog', 'Sun'], answer: 0 },
+{ prompt: 'What do plants need to grow?', options: ['Candy', 'Sunlight', 'Toys'], answer: 1 },
+{ prompt: 'Which number is bigger?', options: ['12', '21', '9'], answer: 1 },
+{ prompt: 'What do you use to click on a computer?', options: ['Mouse', 'Spoon', 'Pencil'], answer: 0 }];
+
+
+export const upperWarmup: WarmupQuestion[] = [
+{ prompt: 'Which fraction is the same as 1/2?', options: ['2/3', '3/6', '1/4'], answer: 1 },
+{ prompt: 'What is 36 ÷ 4?', options: ['8', '9', '7'], answer: 1 },
+{ prompt: 'In a food chain, what eats the grass?', options: ['A rabbit', 'A hawk', 'The sun'], answer: 0 },
+{ prompt: 'Which word is a verb?', options: ['Quickly', 'Jump', 'Blue'], answer: 1 },
+{ prompt: 'Which is the safest password?', options: ['12345', 'myname', 'Tr33!Blue7'], answer: 2 }];

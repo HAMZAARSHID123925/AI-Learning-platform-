@@ -2,8 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowUpIcon, SparklesIcon } from 'lucide-react';
-import { useAiAssistant } from '@/hooks/student/useAiAssistant';
-import type { Grade } from '@/types/student';
+import { useAiAssistant } from '@/hooks/useAiAssistant';
+import type { Grade } from '@/types';
 
 const suggestions = ['Help me with fractions', 'Explain photosynthesis', 'Give me a challenge'];
 

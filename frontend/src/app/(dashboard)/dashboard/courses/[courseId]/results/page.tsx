@@ -10,11 +10,11 @@ import { StateMessage } from '@/components/student/StateMessage';
 import { AnalysisPanel } from '@/components/student/assessment/AnalysisPanel';
 import { AnswerReview } from '@/components/student/assessment/AnswerReview';
 import { ScoreRing } from '@/components/student/assessment/ScoreRing';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { SkillResult } from '@/types/student/learning';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
+import { subjectStyles } from '@/utils/subjects';
+import type { SkillResult } from '@/types/learning';
 
 const levelBar: Record<SkillResult['level'], string> = {
   strong: 'bg-science-500',

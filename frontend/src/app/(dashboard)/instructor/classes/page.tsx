@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { CalendarPlusIcon, RadioIcon } from 'lucide-react';
-import { Button } from '@/components/all_dashbord/Button';
-import { ClassList } from '@/components/all_dashbord/teacher/ClassList';
-import { ScheduleClassModal } from '@/components/all_dashbord/teacher/ScheduleClassModal';
-import { useTeacher } from '@/hooks/all_dashbord/useTeacher';
+import { Button } from '@/components/shared/Button';
+import { ClassList } from '@/components/teacher/ClassList';
+import { ScheduleClassModal } from '@/components/teacher/ScheduleClassModal';
+import { useTeacher } from '@/hooks/useTeacher';
 
 export default function TeacherClasses() {
   const { teacher, myCourses, myClasses } = useTeacher();

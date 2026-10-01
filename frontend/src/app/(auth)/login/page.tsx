@@ -5,11 +5,11 @@ import React, { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { motion } from "framer-motion";
 import { EyeIcon, EyeOffIcon, GraduationCapIcon, Loader2Icon, PresentationIcon, ShieldCheckIcon, BoxIcon } from "lucide-react";
-import { Button } from '@/components/all_dashbord/Button';
-import { Logo } from '@/components/all_dashbord/Logo';
+import { Button } from '@/components/shared/Button';
+import { Logo } from '@/components/shared/Logo';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
-import { subjectImages } from '@/data/all_dashbord/illustrations';
-import { Role } from '@/types/all_dashbord/index';
+import { subjectImages } from '@/data/illustrations';
+import { Role } from '@/types';
 const roles: {
   id: Role;
   label: string;

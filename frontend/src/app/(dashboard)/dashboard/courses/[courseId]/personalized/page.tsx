@@ -7,10 +7,10 @@ import { ArrowLeftIcon, RotateCcwIcon, SparklesIcon } from 'lucide-react';
 import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
 import { PracticeList } from '@/components/student/assessment/PracticeList';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
-import { subjectStyles } from '@/utils/student/subjects';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
+import { subjectStyles } from '@/utils/subjects';
 
 export default function Personalized() {
   const params = useParams();

@@ -8,11 +8,11 @@ import { Button } from '../Button';
 import { FocusTopBar } from '../lesson/FocusTopBar';
 import { QuestionStepView } from '../lesson/QuestionStepView';
 import { QuestionNav } from './QuestionNav';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useChallenge } from '@/hooks/student/useChallenge';
-import { scoreAnswers } from '@/utils/student/assessment';
-import { learningApi } from '@/utils/student/learningApi';
-import type { ChallengeQuestion, Course } from '@/types/student/learning';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useChallenge } from '@/hooks/useChallenge';
+import { scoreAnswers } from '@/utils/assessment';
+import { learningApi } from '@/utils/learningApi';
+import type { ChallengeQuestion, Course } from '@/types/learning';
 
 export function ChallengeRunner({ course, questions }: {course: Course;questions: ChallengeQuestion[];}) {
   const router = useRouter();

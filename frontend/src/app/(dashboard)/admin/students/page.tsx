@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/all_dashbord/Button';
-import { Modal } from '@/components/all_dashbord/Modal';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
+import { Button } from '@/components/shared/Button';
+import { Modal } from '@/components/shared/Modal';
+import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAdmin } from '@/contexts/AdminContext';
-import { courses as catalog } from '@/data/all_dashbord/courses';
-import { initials, performanceLabel, subjectStyles } from '@/utils/all_dashbord/subjects';
-import type { Grade } from '@/types/all_dashbord/index';
+import { courses as catalog } from '@/data/courses';
+import { initials, performanceLabel, subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
 
 const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 

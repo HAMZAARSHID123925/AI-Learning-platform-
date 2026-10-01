@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { buttonClasses, type ButtonSize, type ButtonVariant } from '@/utils/student/buttonStyles';
+import { buttonClasses, type ButtonSize, type ButtonVariant } from '@/utils/buttonStyles';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;

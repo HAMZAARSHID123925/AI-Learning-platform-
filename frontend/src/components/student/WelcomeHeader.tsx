@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
 import { FlameIcon, GraduationCapIcon, UserRoundIcon } from 'lucide-react';
-import { studentAvatar } from '@/data/student/illustrations';
-import type { Grade } from '@/types/student';
+import { studentAvatar } from '@/data/illustrations';
+import type { Grade } from '@/types';
 
 interface WelcomeHeaderProps {
   name: string;

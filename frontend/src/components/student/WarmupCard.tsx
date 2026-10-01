@@ -3,8 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { RotateCcwIcon, TrophyIcon, ZapIcon } from 'lucide-react';
 import { Button } from './Button';
-import { earlyWarmup, upperWarmup } from '@/data/student/warmup';
-import type { Grade } from '@/types/student';
+import { earlyWarmup, upperWarmup } from '@/data/warmup';
+import type { Grade } from '@/types';
 
 type Status = 'idle' | 'playing' | 'done';
 

@@ -7,11 +7,11 @@ import { ButtonLink } from '@/components/student/ButtonLink';
 import { ProgressBar } from '@/components/student/ProgressBar';
 import { StateMessage } from '@/components/student/StateMessage';
 import { LearningPath } from '@/components/student/course/LearningPath';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
-import { getCourseProgress, isCourseComplete } from '@/utils/student/progress';
-import { courseName, subjectStyles } from '@/utils/student/subjects';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
+import { getCourseProgress, isCourseComplete } from '@/utils/progress';
+import { courseName, subjectStyles } from '@/utils/subjects';
 
 export default function CourseDetail() {
   const params = useParams();

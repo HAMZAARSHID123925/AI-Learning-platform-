@@ -2,8 +2,8 @@
 import React from 'react';
 import { ArrowRightIcon } from 'lucide-react';
 import { flowIcons } from './flowIcons';
-import type { IconKey } from '@/types/student/learning';
-import type { SubjectStyle } from '@/utils/student/subjects';
+import type { IconKey } from '@/types/learning';
+import type { SubjectStyle } from '@/utils/subjects';
 
 interface FlowVisualProps {
   nodes: {icon: IconKey;label: string;}[];

@@ -6,10 +6,10 @@ import { LessonFooter } from './LessonFooter';
 import { QuestionStepView } from './QuestionStepView';
 import { Interaction } from '../interactions/Interaction';
 import { Visual, VisualStage } from '../visuals/Visual';
-import { useLessonPlayer } from '@/hooks/student/useLessonPlayer';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { Subject } from '@/types/student';
-import type { LessonStep } from '@/types/student/learning';
+import { useLessonPlayer } from '@/hooks/useLessonPlayer';
+import { subjectStyles } from '@/utils/subjects';
+import type { Subject } from '@/types';
+import type { LessonStep } from '@/types/learning';
 
 interface LessonPlayerProps {
   title: string;

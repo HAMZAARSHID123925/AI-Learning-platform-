@@ -1,5 +1,5 @@
 'use client';
-import StaffLayout from '@/components/all_dashbord/staff/StaffLayout';
+import StaffLayout from '@/components/staff/StaffLayout';
 
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {
   // In a real app we'd get the assigned courses here to build the nav dynamically

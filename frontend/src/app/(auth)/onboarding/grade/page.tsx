@@ -6,12 +6,12 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRightIcon, CheckIcon } from 'lucide-react';
-import { Button } from '@/components/all_dashbord/Button';
-import { Logo } from '@/components/all_dashbord/Logo';
+import { Button } from '@/components/shared/Button';
+import { Logo } from '@/components/shared/Logo';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
-import { courses } from '@/data/all_dashbord/courses';
-import { subjectStyles } from '@/utils/all_dashbord/subjects';
-import type { Grade } from '@/types/all_dashbord/index';
+import { courses } from '@/data/courses';
+import { subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
 
 const grades: Grade[] = [1, 2, 3, 4, 5];
 

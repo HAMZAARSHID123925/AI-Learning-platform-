@@ -3,8 +3,8 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRightIcon, CheckIcon, ClockIcon, LayersIcon } from 'lucide-react';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { Course, CourseProgress } from '@/types/student/learning';
+import { subjectStyles } from '@/utils/subjects';
+import type { Course, CourseProgress } from '@/types/learning';
 
 interface CourseCardProps {
   course: Course;

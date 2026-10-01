@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import Link, { LinkProps } from 'next/link';
-import { buttonClasses, type ButtonSize, type ButtonVariant } from '@/utils/student/buttonStyles';
+import { buttonClasses, type ButtonSize, type ButtonVariant } from '@/utils/buttonStyles';
 
 interface ButtonLinkProps extends LinkProps {
   variant?: ButtonVariant;

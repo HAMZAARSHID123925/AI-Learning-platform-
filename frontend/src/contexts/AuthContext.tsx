@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { Grade, Role, User } from '@/types/all_dashbord/index';
+import type { Grade, Role, User } from '@/types';
 
 interface AuthContextValue {
   user: User | null;

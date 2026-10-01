@@ -1,4 +1,4 @@
-import type { SubjectStyle } from '@/utils/student/subjects';
+import type { SubjectStyle } from '@/utils/subjects';
 
 export interface InteractionProps {
   solved: boolean;

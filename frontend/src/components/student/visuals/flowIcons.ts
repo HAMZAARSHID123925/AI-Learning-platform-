@@ -35,7 +35,7 @@ import {
   WindIcon,
   type LucideIcon } from
 'lucide-react';
-import type { IconKey } from '@/types/student/learning';
+import type { IconKey } from '@/types/learning';
 
 export const flowIcons: Record<IconKey, LucideIcon> = {
   sun: SunIcon,

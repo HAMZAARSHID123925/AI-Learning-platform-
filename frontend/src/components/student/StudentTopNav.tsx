@@ -4,9 +4,9 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { FlameIcon, HouseIcon, UserRoundIcon, VideoIcon, ZapIcon, BookOpenIcon } from 'lucide-react';
 import { Logo } from './Logo';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { studentAvatar } from '@/data/student/illustrations';
-import { profileStats } from '@/data/student/profile';
+import { useProgress } from '@/contexts/ProgressContext';
+import { studentAvatar } from '@/data/illustrations';
+import { profileStats } from '@/data/profile';
 
 const nav = [
   { to: '/dashboard', label: 'Home', icon: HouseIcon, exact: true },

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckIcon, ChevronDownIcon, XIcon } from 'lucide-react';
-import type { AssessmentAttempt, ChallengeQuestion } from '@/types/student/learning';
+import type { AssessmentAttempt, ChallengeQuestion } from '@/types/learning';
 
 export function AnswerReview({ questions, attempt }: {questions: ChallengeQuestion[];attempt: AssessmentAttempt;}) {
   const [open, setOpen] = useState(false);

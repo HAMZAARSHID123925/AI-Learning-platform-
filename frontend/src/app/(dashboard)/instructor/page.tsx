@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon, CalendarPlusIcon, RadioIcon } from 'lucide-react';
-import { Button } from '@/components/all_dashbord/Button';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
-import { ClassList } from '@/components/all_dashbord/teacher/ClassList';
-import { ScheduleClassModal } from '@/components/all_dashbord/teacher/ScheduleClassModal';
-import { useTeacher } from '@/hooks/all_dashbord/useTeacher';
-import { subjectImages } from '@/data/all_dashbord/illustrations';
-import { courseName, initials, subjectStyles } from '@/utils/all_dashbord/subjects';
+import { Button } from '@/components/shared/Button';
+import { ProgressBar } from '@/components/shared/ProgressBar';
+import { ClassList } from '@/components/teacher/ClassList';
+import { ScheduleClassModal } from '@/components/teacher/ScheduleClassModal';
+import { useTeacher } from '@/hooks/useTeacher';
+import { subjectImages } from '@/data/illustrations';
+import { courseName, initials, subjectStyles } from '@/utils/subjects';
 
 export default function TeacherDashboard() {
   const { teacher, myCourses, myClasses } = useTeacher();

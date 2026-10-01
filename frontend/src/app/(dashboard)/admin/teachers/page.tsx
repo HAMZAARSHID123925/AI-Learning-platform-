@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { AssignTeacherModal } from '@/components/all_dashbord/admin/AssignTeacherModal';
-import { teachers } from '@/data/all_dashbord/admin';
-import { initials, subjectStyles } from '@/utils/all_dashbord/subjects';
-import type { AdminCourse } from '@/types/all_dashbord/index';
+import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
+import { teachers } from '@/data/admin';
+import { initials, subjectStyles } from '@/utils/subjects';
+import type { AdminCourse } from '@/types';
 
 export default function AdminTeachers() {
   const { courses } = useAdmin();

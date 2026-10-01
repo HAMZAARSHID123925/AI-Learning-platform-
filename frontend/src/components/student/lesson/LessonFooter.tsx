@@ -3,7 +3,7 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2Icon, LightbulbIcon, XCircleIcon } from 'lucide-react';
 import { Button } from '../Button';
-import type { LessonStep } from '@/types/student/learning';
+import type { LessonStep } from '@/types/learning';
 
 interface LessonFooterProps {
   step: LessonStep;

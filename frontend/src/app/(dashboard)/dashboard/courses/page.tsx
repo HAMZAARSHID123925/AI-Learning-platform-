@@ -3,13 +3,13 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CourseCard } from '@/components/student/CourseCard';
 import { StateMessage } from '@/components/student/StateMessage';
-import { useAuth } from '@/contexts/student/AuthContext';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
-import { getCourseProgress } from '@/utils/student/progress';
-import { subjectOrder, subjectStyles } from '@/utils/student/subjects';
-import type { Grade } from '@/types/student';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
+import { getCourseProgress } from '@/utils/progress';
+import { subjectOrder, subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
 
 export default function Courses() {
   const { user, setGrade } = useAuth();

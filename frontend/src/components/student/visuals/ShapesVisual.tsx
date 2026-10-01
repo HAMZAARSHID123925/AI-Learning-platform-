@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import type { ShapeName } from '@/types/student/learning';
+import type { ShapeName } from '@/types/learning';
 
 interface ShapesVisualProps {
   items: {shape: ShapeName;label?: string;}[];

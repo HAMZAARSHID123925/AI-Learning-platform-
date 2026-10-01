@@ -4,8 +4,8 @@ import { useParams } from 'next/navigation';
 import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
 import { ChallengeRunner } from '@/components/student/assessment/ChallengeRunner';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
 
 export default function Challenge() {
   const params = useParams();

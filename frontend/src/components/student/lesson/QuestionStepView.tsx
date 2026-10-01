@@ -2,8 +2,8 @@
 import React from 'react';
 import { OptionButton, type OptionState } from './OptionButton';
 import { Visual, VisualStage } from '../visuals/Visual';
-import type { Subject } from '@/types/student';
-import type { QuestionStep } from '@/types/student/learning';
+import type { Subject } from '@/types';
+import type { QuestionStep } from '@/types/learning';
 
 interface QuestionStepViewProps {
   step: QuestionStep;

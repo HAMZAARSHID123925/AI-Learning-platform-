@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link'
 import { useParams } from 'next/navigation';
 import { ArrowLeftIcon, CalendarPlusIcon, LockIcon, SearchIcon } from 'lucide-react';
-import { Button } from '@/components/all_dashbord/Button';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
-import { ScheduleClassModal } from '@/components/all_dashbord/teacher/ScheduleClassModal';
-import { StudentDetail } from '@/components/all_dashbord/teacher/StudentDetail';
-import { useTeacher } from '@/hooks/all_dashbord/useTeacher';
-import { courseName, initials, performanceLabel, subjectStyles } from '@/utils/all_dashbord/subjects';
+import { Button } from '@/components/shared/Button';
+import { ProgressBar } from '@/components/shared/ProgressBar';
+import { ScheduleClassModal } from '@/components/teacher/ScheduleClassModal';
+import { StudentDetail } from '@/components/teacher/StudentDetail';
+import { useTeacher } from '@/hooks/useTeacher';
+import { courseName, initials, performanceLabel, subjectStyles } from '@/utils/subjects';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 

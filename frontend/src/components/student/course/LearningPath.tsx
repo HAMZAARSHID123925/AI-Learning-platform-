@@ -2,9 +2,9 @@
 import React from 'react';
 import { PlayIcon, SparklesIcon, TrophyIcon } from 'lucide-react';
 import { PathNode, type PathNodeState } from './PathNode';
-import { getLessonState, isCourseComplete } from '@/utils/student/progress';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { AssessmentAttempt, Course, LessonProgress } from '@/types/student/learning';
+import { getLessonState, isCourseComplete } from '@/utils/progress';
+import { subjectStyles } from '@/utils/subjects';
+import type { AssessmentAttempt, Course, LessonProgress } from '@/types/learning';
 
 interface LearningPathProps {
   course: Course;

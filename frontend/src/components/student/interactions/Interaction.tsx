@@ -6,9 +6,9 @@ import { GridShade } from './GridShade';
 import { NumberLineSlide } from './NumberLineSlide';
 import { PizzaShade } from './PizzaShade';
 import { WordTap } from './WordTap';
-import { subjectStyles } from '@/utils/student/subjects';
-import type { Subject } from '@/types/student';
-import type { Interaction as InteractionSpec } from '@/types/student/learning';
+import { subjectStyles } from '@/utils/subjects';
+import type { Subject } from '@/types';
+import type { Interaction as InteractionSpec } from '@/types/learning';
 
 interface InteractionViewProps {
   interaction: InteractionSpec;

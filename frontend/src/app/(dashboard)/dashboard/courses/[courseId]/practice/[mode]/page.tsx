@@ -7,10 +7,10 @@ import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
 import { CompletionScreen } from '@/components/student/lesson/CompletionScreen';
 import { LessonPlayer } from '@/components/student/lesson/LessonPlayer';
-import { useProgress } from '@/contexts/student/ProgressContext';
-import { useAsync } from '@/hooks/student/useAsync';
-import { learningApi } from '@/utils/student/learningApi';
-import type { PracticeMode } from '@/types/student/learning';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
+import type { PracticeMode } from '@/types/learning';
 
 const modes: PracticeMode[] = ['skill', 'visual', 'challenge'];
 

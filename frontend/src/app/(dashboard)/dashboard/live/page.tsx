@@ -5,12 +5,12 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { BellIcon, BellRingIcon, ClockIcon, UsersIcon, VideoIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/all_dashbord/Button';
+import { Button } from '@/components/shared/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClasses } from '@/contexts/ClassesContext';
-import { subjectImages } from '@/data/all_dashbord/illustrations';
-import { courseName, subjectStyles } from '@/utils/all_dashbord/subjects';
-import { dateFromOffset, relativeDayLabel, timeToMinutes } from '@/utils/all_dashbord/dates';
+import { subjectImages } from '@/data/illustrations';
+import { courseName, subjectStyles } from '@/utils/subjects';
+import { dateFromOffset, relativeDayLabel, timeToMinutes } from '@/utils/dates';
 
 const week = Array.from({ length: 7 }, (_, i) => i);
 

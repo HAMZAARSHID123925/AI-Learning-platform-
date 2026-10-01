@@ -5,13 +5,13 @@ import React from "react";
 import { useRouter } from 'next/navigation';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { BookOpenTextIcon, CodeIcon, FlameIcon, LeafIcon, LockIcon, LogOutIcon, SigmaIcon, ZapIcon, BoxIcon } from "lucide-react";
-import { Button } from '@/components/all_dashbord/Button';
-import { ProgressBar } from '@/components/all_dashbord/ProgressBar';
+import { Button } from '@/components/shared/Button';
+import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
-import { courses } from '@/data/all_dashbord/courses';
-import { studentAvatar } from '@/data/all_dashbord/illustrations';
-import { badges, profileStats, recentActivity, weeklyXp, BadgeIcon } from '@/data/all_dashbord/profile';
-import { subjectStyles } from '@/utils/all_dashbord/subjects';
+import { courses } from '@/data/courses';
+import { studentAvatar } from '@/data/illustrations';
+import { badges, profileStats, recentActivity, weeklyXp, BadgeIcon } from '@/data/profile';
+import { subjectStyles } from '@/utils/subjects';
 const badgeIcons: Record<BadgeIcon, any> = {
   sigma: SigmaIcon,
   leaf: LeafIcon,

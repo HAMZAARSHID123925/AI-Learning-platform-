@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRightIcon } from 'lucide-react';
 import { flowIcons } from '../visuals/flowIcons';
-import type { IconKey } from '@/types/student/learning';
+import type { IconKey } from '@/types/learning';
 import type { InteractionProps } from './types';
 
 interface FlowRevealProps extends InteractionProps {

@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon, ImageIcon, TargetIcon, ZapIcon, BoxIcon } from "lucide-react";
-import { PracticeItem, PracticeMode } from "@/types/student/learning";
+import { PracticeItem, PracticeMode } from "@/types/learning";
 const modeIcons: Record<PracticeMode, {
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
   tile: string;
