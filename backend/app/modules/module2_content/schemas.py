@@ -23,6 +23,7 @@ class CreateCourseRequest(BaseModel):
 
     title: str = Field(min_length=3, max_length=500)
     description: str | None = None
+    grade: int | None = Field(default=None, ge=1, le=5)
     slug: str | None = None  # Auto-generated if not provided
 
     @field_validator("slug", mode="before")
@@ -39,6 +40,7 @@ class UpdateCourseRequest(BaseModel):
 
     title: str | None = Field(default=None, min_length=3, max_length=500)
     description: str | None = None
+    grade: int | None = Field(default=None, ge=1, le=5)
     thumbnail_url: str | None = None
 
 
@@ -49,6 +51,7 @@ class CourseResponse(BaseModel):
     slug: str
     description: str | None
     status: str
+    grade: int | None = None
     thumbnail_url: str | None
     module_count: int = 0
     created_at: datetime
@@ -101,6 +104,9 @@ class CreateLessonRequest(BaseModel):
     body_markdown: str | None = None
     sequence_order: int = Field(ge=1)
     estimated_minutes: int | None = Field(default=None, ge=1, le=600)
+    video_url: str | None = None
+    thumbnail_url: str | None = None
+    duration_seconds: int | None = Field(default=None, ge=0)
     skill_ids: list[uuid.UUID] = Field(default_factory=list)
 
     @field_validator("slug", mode="before")
@@ -119,6 +125,9 @@ class UpdateLessonRequest(BaseModel):
     body_markdown: str | None = None
     sequence_order: int | None = Field(default=None, ge=1)
     estimated_minutes: int | None = Field(default=None, ge=1, le=600)
+    video_url: str | None = None
+    thumbnail_url: str | None = None
+    duration_seconds: int | None = Field(default=None, ge=0)
     skill_ids: list[uuid.UUID] | None = None
 
 
@@ -131,6 +140,9 @@ class LessonResponse(BaseModel):
     sequence_order: int
     content_version: int
     estimated_minutes: int | None
+    video_url: str | None = None
+    thumbnail_url: str | None = None
+    duration_seconds: int | None = None
     skill_ids: list[uuid.UUID] = Field(default_factory=list)
     published_at: datetime | None
     created_at: datetime
@@ -168,3 +180,28 @@ class ModuleWithLessonsResponse(ModuleResponse):
 
 class CourseDetailResponse(CourseResponse):
     modules: list[ModuleWithLessonsResponse] = Field(default_factory=list)
+
+
+# =============================================================================
+# Upload Schemas
+# =============================================================================
+
+class PresignedUploadRequest(BaseModel):
+    course_id: uuid.UUID
+    lesson_id: uuid.UUID | None = None
+    media_type: str = Field(pattern="^(lesson_video|lesson_thumbnail|course_thumbnail)$")
+    filename: str
+    content_type: str
+    size_bytes: int
+
+class PresignedUploadResponse(BaseModel):
+    upload_id: str
+    presigned_url: str
+    object_key: str
+    expires_in: int
+
+class ConfirmUploadRequest(BaseModel):
+    upload_id: str
+    course_id: uuid.UUID
+    lesson_id: uuid.UUID | None = None
+    media_type: str = Field(pattern="^(lesson_video|lesson_thumbnail|course_thumbnail)$")

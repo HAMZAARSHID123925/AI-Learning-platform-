@@ -26,6 +26,7 @@ from typing import BinaryIO
 
 import aiobotocore.session
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 from app.config import get_settings
 from app.shared.exceptions import StorageError
@@ -66,7 +67,13 @@ async def _get_s3_client():
     if settings.S3_ENDPOINT_URL:
         config_kwargs["endpoint_url"] = settings.S3_ENDPOINT_URL
 
-    async with session.create_client(**config_kwargs) as client:
+    boto_config = Config(
+        retries={"max_attempts": 3, "mode": "standard"},
+        connect_timeout=10,
+        read_timeout=30,
+    )
+
+    async with session.create_client(**config_kwargs, config=boto_config) as client:
         yield client
 
 
@@ -145,6 +152,40 @@ async def generate_presigned_url(storage_key: str, expires_in: int = 3600) -> st
     except ClientError as e:
         logger.error("presigned_url_failed", key=storage_key, error=str(e))
         raise StorageError("presigned_url", str(e)) from e
+
+
+async def generate_presigned_upload_url(storage_key: str, content_type: str, expires_in: int = 3600) -> str:
+    settings = get_settings()
+    try:
+        async with _get_s3_client() as s3:
+            url = await s3.generate_presigned_url(
+                "put_object",
+                Params={
+                    "Bucket": settings.S3_BUCKET_NAME,
+                    "Key": storage_key,
+                    "ContentType": content_type
+                },
+                ExpiresIn=expires_in,
+            )
+        return url
+    except ClientError as e:
+        logger.error("presigned_upload_url_failed", key=storage_key, error=str(e))
+        raise StorageError("presigned_url", str(e)) from e
+
+
+async def object_exists(storage_key: str) -> bool:
+    settings = get_settings()
+    try:
+        async with _get_s3_client() as s3:
+            await s3.head_object(
+                Bucket=settings.S3_BUCKET_NAME,
+                Key=storage_key,
+            )
+        return True
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            return False
+        raise StorageError("head_object", str(e)) from e
 
 
 async def download_file_bytes(storage_key: str) -> bytes:

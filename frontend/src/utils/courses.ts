@@ -1,21 +1,34 @@
 import { courses } from '../data/courses';
 import { subjects } from '../data/subjects';
 import { student } from '../data/student';
-import { Course, CourseModule, CourseStatus, Grade, Lesson, LessonStatus, SubjectId } from '../types/learning';
+import type { LegacyCourseData, LegacyLessonData } from '../types/learning';
+import type { Grade, Subject } from '../types';
 
-export function getCourse(id: string): Course | undefined {
+export type SubjectId = Subject;
+export type CourseStatus = 'completed' | 'not-started' | 'in-progress';
+export type LessonStatus = 'completed' | 'current' | 'upcoming' | 'locked';
+
+export interface LegacyCourseModule {
+  id: string;
+  label: string;
+  title: string;
+  lessons: LegacyLessonData[];
+  isFinal: boolean;
+}
+
+export function getCourse(id: string): LegacyCourseData | undefined {
   return courses.find((c) => c.id === id);
 }
 
-export function getCoursesForGrade(grade: Grade): Course[] {
+export function getCoursesForGrade(grade: Grade): LegacyCourseData[] {
   return courses.filter((c) => c.grade === grade);
 }
 
-export function getMyCourses(): Course[] {
+export function getMyCourses(): LegacyCourseData[] {
   return courses.filter((c) => c.progress > 0 || c.grade === student.grade);
 }
 
-export function getCourseStatus(course: Course): CourseStatus {
+export function getCourseStatus(course: LegacyCourseData): CourseStatus {
   if (course.progress >= 100) return 'completed';
   if (course.progress <= 0) return 'not-started';
   return 'in-progress';
@@ -33,11 +46,11 @@ export function getSubjectName(id: SubjectId): string {
 
 const statusOrder: Record<CourseStatus, number> = { 'in-progress': 0, 'not-started': 1, completed: 2 };
 
-export function sortByStatus(list: Course[]): Course[] {
+export function sortByStatus(list: LegacyCourseData[]): LegacyCourseData[] {
   return [...list].sort((a, b) => statusOrder[getCourseStatus(a)] - statusOrder[getCourseStatus(b)]);
 }
 
-export function buildModules(course: Course): CourseModule[] {
+export function buildModules(course: LegacyCourseData): LegacyCourseModule[] {
   const regularCount = course.lessonCount - 1;
   const done = course.completedLessons;
 
@@ -48,7 +61,7 @@ export function buildModules(course: Course): CourseModule[] {
     return 'upcoming';
   };
 
-  const makeLesson = (n: number, isChallenge: boolean): Lesson => ({
+  const makeLesson = (n: number, isChallenge: boolean): any => ({
     id: `${course.id}-l${n}`,
     number: n,
     title: isChallenge ? 'Final Challenge' : course.lessonTitles?.[n - 1] ?? `Lesson ${n}`,
@@ -60,11 +73,11 @@ export function buildModules(course: Course): CourseModule[] {
   const base = Math.floor(regularCount / moduleCount);
   const extra = regularCount % moduleCount;
 
-  const modules: CourseModule[] = [];
+  const modules: LegacyCourseModule[] = [];
   let next = 1;
   course.moduleTitles.forEach((title, i) => {
     const size = base + (i < extra ? 1 : 0);
-    const lessons: Lesson[] = [];
+    const lessons: any[] = [];
     for (let k = 0; k < size; k++) lessons.push(makeLesson(next++, false));
     modules.push({ id: `${course.id}-m${i + 1}`, label: `Module ${i + 1}`, title, lessons, isFinal: false });
   });
@@ -80,9 +93,9 @@ export function buildModules(course: Course): CourseModule[] {
   return modules;
 }
 
-export function getCurrentLesson(modules: CourseModule[]): Lesson | undefined {
+export function getCurrentLesson(modules: LegacyCourseModule[]): any | undefined {
   for (const m of modules) {
-    const found = m.lessons.find((l) => l.status === 'current');
+    const found = m.lessons.find((l: any) => l.status === 'current');
     if (found) return found;
   }
   return undefined;

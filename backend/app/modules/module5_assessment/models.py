@@ -45,13 +45,17 @@ class Test(Base):
     __tablename__ = "tests"
     __table_args__ = (
         Index("ix_tests_lesson_id", "lesson_id"),
+        Index("ix_tests_course_id", "course_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    lesson_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False
+    lesson_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="CASCADE"), nullable=True
     )
-    lesson_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    course_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
+    )
+    lesson_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     is_focused_retest: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(

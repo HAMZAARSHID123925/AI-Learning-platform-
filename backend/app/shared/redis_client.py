@@ -45,15 +45,20 @@ def _get_pool() -> redis.ConnectionPool | None:
     return _redis_pool
 
 def get_redis_client() -> Any:
+    settings = get_settings()
     pool = _get_pool()
     if pool:
         try:
             return redis.Redis(connection_pool=pool)
-        except Exception:
-            pass
+        except Exception as e:
+            if settings.is_production:
+                raise RuntimeError(f"Redis connection failed in production: {e}") from e
+    if settings.is_production:
+        raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
     return _mock_redis
 
 async def get_redis() -> AsyncGenerator[Any, None]:
+    settings = get_settings()
     pool = _get_pool()
     client = None
     if pool:
@@ -61,12 +66,15 @@ async def get_redis() -> AsyncGenerator[Any, None]:
             test_client = redis.Redis(connection_pool=pool)
             await test_client.ping()
             client = test_client
-        except Exception:
-            client = None
+        except Exception as e:
+            if settings.is_production:
+                raise RuntimeError(f"Redis ping failed in production: {e}") from e
     
     if client is not None:
         yield client
     else:
+        if settings.is_production:
+            raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
         yield _mock_redis
 
 

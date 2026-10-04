@@ -1,0 +1,27 @@
+# =============================================================================
+# ELARION Adaptive Worker — Dockerfile
+# =============================================================================
+# Lightweight worker for the adaptive learning engine (Redis consumer)
+# =============================================================================
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash elarion
+USER elarion
+WORKDIR /home/elarion/app
+
+COPY --chown=elarion:elarion requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+COPY --chown=elarion:elarion . .
+
+ENV PATH="/home/elarion/.local/bin:${PATH}"
+
+CMD ["python", "-m", "app.workers.adaptive_consumer"]

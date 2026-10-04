@@ -102,6 +102,7 @@ async def list_courses(
     params: PaginationParams,
     instructor_id: uuid.UUID | None = None,
     status_filter: str | None = None,
+    grade: int | None = None,
 ) -> tuple[list[Course], int]:
     """List courses with pagination. Instructors see only their own; Admins see all."""
     query = select(Course)
@@ -113,6 +114,9 @@ async def list_courses(
     if status_filter:
         query = query.where(Course.status == status_filter)
         count_query = count_query.where(Course.status == status_filter)
+    if grade is not None:
+        query = query.where(Course.grade == grade)
+        count_query = count_query.where(Course.grade == grade)
 
     # Students only see published courses
     query = query.offset(params.offset).limit(params.limit).order_by(Course.created_at.desc())
@@ -127,9 +131,10 @@ async def update_course(
     course_id: uuid.UUID,
     actor_id: uuid.UUID,
     is_admin: bool,
-    title: str | None,
-    description: str | None,
-    thumbnail_url: str | None,
+    title: str | None = None,
+    description: str | None = None,
+    thumbnail_url: str | None = None,
+    thumbnail_object_key: str | None = None,
 ) -> Course:
     """Update course fields. Only the owning instructor or Admin may update."""
     course = await get_course(db, course_id)
@@ -143,6 +148,8 @@ async def update_course(
         course.description = description
     if thumbnail_url is not None:
         course.thumbnail_url = thumbnail_url
+    if thumbnail_object_key is not None:
+        course.thumbnail_object_key = thumbnail_object_key
 
     return course
 

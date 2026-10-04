@@ -7,22 +7,23 @@
 
 import { getStoredAccessToken, saveAuthSession } from './auth-storage';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "" : 'http://localhost:8000/api/v1');
 
+if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is required in production");
+}
 let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
 async function tryRefreshToken(): Promise<string | null> {
-  const token = getStoredAccessToken();
-  if (!token) return null;
 
   try {
     const res = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
+      credentials: 'include',
     });
     if (!res.ok) {
       return null;
@@ -30,7 +31,7 @@ async function tryRefreshToken(): Promise<string | null> {
     const data = await res.json();
     const newToken = data.access_token;
     if (newToken) {
-      localStorage.setItem('access_token', newToken);
+      saveAuthSession(newToken);
     }
     return newToken;
   } catch {
@@ -40,6 +41,7 @@ async function tryRefreshToken(): Promise<string | null> {
 
 // Synthetic fallback generator for local studio development without database dependency
 function getMockFallbackResponse(path: string): Response | null {
+  if (process.env.NODE_ENV === 'production') return null;
   const cleanPath = path.split('?')[0];
 
   if (cleanPath === '/students/me/dashboard') {
@@ -120,13 +122,14 @@ function getMockFallbackResponse(path: string): Response | null {
 
 export async function fetchWithAuth(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit & { __isRetry?: boolean } = {}
 ): Promise<Response> {
   let token = getStoredAccessToken();
 
   const makeRequest = async (t: string | null): Promise<Response> => {
     return await fetch(`${API_BASE}${path}`, {
       ...options,
+      credentials: options.credentials || 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(t ? { Authorization: `Bearer ${t}` } : {}),
@@ -154,7 +157,7 @@ export async function fetchWithAuth(
   }
 
   // If unauthorized and we had a token, try refreshing once
-  if (response.status === 401 && token) {
+  if (response.status === 401 && !options.__isRetry) {
     const refreshedToken = await tryRefreshToken();
     if (refreshedToken) {
       try {

@@ -49,6 +49,9 @@ anthropic==0.34.2                # Claude API (production — wired but disabled
 # --- HTTP Client (for webhooks, provider SDKs) --------------------------------
 httpx==0.27.2
 
+# --- Audio -------------------------------------------------------------------
+mutagen==1.47.0                  # Audio metadata / duration measurement (MP3, FLAC, OGG)
+
 # --- Observability -----------------------------------------------------------
 structlog==24.4.0                # Structured JSON logging
 opentelemetry-api==1.27.0

@@ -59,13 +59,19 @@ async def generate_assessment_endpoint(
     Generates a RAG-grounded assessment for the given lesson.
     Persists test questions with balanced MCQs and short answers.
     """
-    test = await generate_lesson_assessment(
-        lesson_id=body.lesson_id,
-        db=db,
-        is_focused_retest=body.is_focused_retest,
-        skill_filter=body.skill_filter,
-        num_questions=body.num_questions
-    )
+    if body.course_id:
+        from app.modules.module5_assessment.services.generation_service import generate_course_assessment
+        test = await generate_course_assessment(course_id=body.course_id, db=db)
+    elif body.lesson_id:
+        test = await generate_lesson_assessment(
+            lesson_id=body.lesson_id,
+            db=db,
+            is_focused_retest=body.is_focused_retest,
+            skill_filter=body.skill_filter,
+            num_questions=body.num_questions
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Must provide course_id or lesson_id")
     return {
         "message": "Assessment generated successfully",
         "test_id": test.id,
@@ -97,6 +103,7 @@ async def get_lesson_assessment(
     query = (
         select(Test)
         .where(Test.lesson_id == lesson_id)
+        .where(Test.is_focused_retest == False)
         .order_by(desc(Test.lesson_version), desc(Test.created_at))
         .options(selectinload(Test.questions))
         .limit(1)
@@ -113,6 +120,87 @@ async def get_lesson_assessment(
     return AssessmentStudentViewResponse(
         id=test.id,
         lesson_id=test.lesson_id,
+        course_id=test.course_id,
+        title=test.title,
+        is_focused_retest=test.is_focused_retest,
+        questions=student_questions
+    )
+
+
+@router.get(
+    "/courses/{course_id}/assessment",
+    response_model=AssessmentStudentViewResponse,
+    summary="Get current assessment for a course (Anti-cheat sanitized)"
+)
+async def get_course_assessment(
+    course_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> AssessmentStudentViewResponse:
+    """
+    Fetches the ready final assessment for a course.
+    Verifies that the student has completed all published lessons in the course.
+    """
+    from app.modules.module4_experience.services.progress_service import get_course_progress
+    from app.modules.module5_assessment.services.generation_service import generate_course_assessment
+
+    progress = await get_course_progress(db, course_id, current_user.id)
+    if progress.total_lessons == 0 or progress.completed_lessons < progress.total_lessons:
+        raise BusinessRuleError("Course is not fully completed.")
+
+    query = (
+        select(Test)
+        .where(Test.course_id == course_id)
+        .where(Test.is_focused_retest == False)
+        .order_by(desc(Test.created_at))
+        .options(selectinload(Test.questions))
+        .limit(1)
+    )
+    result = await db.execute(query)
+    test = result.scalar_one_or_none()
+
+    if not test:
+        test = await generate_course_assessment(course_id=course_id, db=db)
+
+    student_questions = [QuestionStudentView.from_orm_model(q) for q in test.questions]
+
+    return AssessmentStudentViewResponse(
+        id=test.id,
+        lesson_id=None,
+        course_id=test.course_id,
+        title=test.title,
+        is_focused_retest=test.is_focused_retest,
+        questions=student_questions
+    )
+
+
+@router.get(
+    "/assessments/tests/{test_id}",
+    response_model=AssessmentStudentViewResponse,
+    summary="Get a specific test by ID (Anti-cheat sanitized)"
+)
+async def get_test(
+    test_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> AssessmentStudentViewResponse:
+    query = (
+        select(Test)
+        .where(Test.id == test_id)
+        .options(selectinload(Test.questions))
+    )
+    result = await db.execute(query)
+    test = result.scalar_one_or_none()
+
+    if not test:
+        raise NotFoundError("Test", test_id)
+
+    student_questions = [QuestionStudentView.from_orm_model(q) for q in test.questions]
+
+    return AssessmentStudentViewResponse(
+        id=test.id,
+        lesson_id=test.lesson_id,
+        course_id=test.course_id,
         title=test.title,
         is_focused_retest=test.is_focused_retest,
         questions=student_questions
@@ -180,7 +268,7 @@ async def submit_assessment(
     sub_query = (
         select(Submission)
         .where(Submission.id == graded_sub.id)
-        .options(selectinload(Submission.skill_scores))
+        .options(selectinload(Submission.skill_scores).selectinload(SkillScore.skill))
     )
     sub_res = await db.execute(sub_query)
     final_sub = sub_res.scalar_one()
@@ -198,6 +286,8 @@ async def submit_assessment(
             SkillScoreResponse(
                 id=ss.id,
                 skill_id=ss.skill_id,
+                skill_name=ss.skill.name if ss.skill else None,
+                skill_slug=ss.skill.slug if ss.skill else None,
                 score=float(ss.score),
                 max_score=float(ss.max_score),
                 grader_type=ss.grader_type,
@@ -229,7 +319,7 @@ async def get_submission_detail(
     query = (
         select(Submission)
         .where(Submission.id == submission_id)
-        .options(selectinload(Submission.skill_scores))
+        .options(selectinload(Submission.skill_scores).selectinload(SkillScore.skill))
     )
     res = await db.execute(query)
     submission = res.scalar_one_or_none()
@@ -257,6 +347,8 @@ async def get_submission_detail(
             SkillScoreResponse(
                 id=ss.id,
                 skill_id=ss.skill_id,
+                skill_name=ss.skill.name if ss.skill else None,
+                skill_slug=ss.skill.slug if ss.skill else None,
                 score=float(ss.score),
                 max_score=float(ss.max_score),
                 grader_type=ss.grader_type,

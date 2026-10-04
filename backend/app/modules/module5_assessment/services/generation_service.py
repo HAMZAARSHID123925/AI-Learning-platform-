@@ -195,3 +195,117 @@ JSON SCHEMA TO RETURN:
     await db.refresh(test_obj)
     logger.info("test_generated_successfully", test_id=str(test_obj.id), title=test_obj.title)
     return test_obj
+
+
+async def generate_course_assessment(
+    course_id: uuid.UUID,
+    db: AsyncSession
+) -> Test:
+    """
+    Generates a course-level assessment with exactly 10 MCQs.
+    """
+    from app.modules.module2_content.models import Course
+    
+    query = (
+        select(Course)
+        .where(Course.id == course_id)
+        .options(selectinload(Course.skills))
+    )
+    res = await db.execute(query)
+    course = res.scalar_one_or_none()
+    if not course:
+        raise NotFoundError("Course", course_id)
+
+    skill_names = course.skills if course.skills else ["Core Knowledge"]
+    
+    # Retrieve authoritative chunks via RAG across the course
+    from app.modules.module5_assessment.services.rag_service import retrieve_course_chunks
+    chunks = await retrieve_course_chunks(
+        course_id=course.id,
+        query_text=f"{course.title} comprehensive test",
+        db=db,
+        top_k=20
+    )
+
+    rag_text = "\n\n".join(
+        f"[Source Chunk #{c.chunk_index}]:\n{c.chunk_text}" for c in chunks
+    ) or f"Course Title: {course.title}"
+
+    source_chunk_ids = [str(c.chunk_id) for c in chunks]
+
+    user_prompt = f"""
+COURSE TITLE: {course.title}
+TARGET SKILLS TO ASSESS:
+{chr(10).join(f"- {s}" for s in skill_names)}
+
+AUTHORITATIVE CURRICULUM CONTEXT:
+{rag_text}
+
+Generate a structured test with EXACTLY 10 questions. ALL 10 questions MUST be "mcq".
+Do NOT generate any short_answer questions.
+
+JSON SCHEMA TO RETURN:
+{{
+  "title": "{course.title} - Final Assessment",
+  "questions": [
+    {{
+      "question_type": "mcq",
+      "prompt": "Question text here?",
+      "options": [
+        {{"id": "opt-1", "text": "Correct explanation", "is_correct": true}},
+        {{"id": "opt-2", "text": "Distractor 1", "is_correct": false}},
+        {{"id": "opt-3", "text": "Distractor 2", "is_correct": false}},
+        {{"id": "opt-4", "text": "Distractor 3", "is_correct": false}}
+      ],
+      "rubric": null,
+      "max_score": 1.0,
+      "skill_name": "{skill_names[0]}"
+    }}
+  ]
+}}
+"""
+
+    raw_response = await generate_llm_completion(
+        system_prompt=ASSESSMENT_SYSTEM_PROMPT,
+        user_prompt=user_prompt,
+        temperature=0.2,
+        json_mode=True
+    )
+
+    try:
+        data = json.loads(raw_response)
+    except Exception as e:
+        logger.error("llm_json_parse_failed", error=str(e), raw=raw_response[:200])
+        raise BusinessRuleError("AI generation failed to produce valid structured JSON")
+
+    # We need a default Skill ID for the DB relationship
+    fallback_res = await db.execute(select(SkillTaxonomy).limit(1))
+    def_skill = fallback_res.scalar_one_or_none()
+    default_skill_id = def_skill.id if def_skill else uuid.uuid4()
+
+    test_title = data.get("title", f"{course.title} Final Assessment")
+    test_obj = Test(
+        course_id=course.id,
+        title=test_title,
+        is_focused_retest=False
+    )
+    db.add(test_obj)
+    await db.flush()
+
+    for q_data in data.get("questions", []):
+        question_obj = Question(
+            test_id=test_obj.id,
+            skill_id=default_skill_id,
+            question_type=QuestionType.mcq,
+            prompt=q_data.get("prompt", "Question Prompt"),
+            options=q_data.get("options"),
+            rubric=None,
+            max_score=float(q_data.get("max_score", 1.0)),
+            source_chunk_ids=source_chunk_ids
+        )
+        db.add(question_obj)
+
+    await db.commit()
+    await db.refresh(test_obj)
+    logger.info("course_test_generated", test_id=str(test_obj.id))
+    return test_obj

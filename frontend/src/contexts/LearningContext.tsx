@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { student } from '../data/student';
-import { Grade } from '../types/learning';
-
+import { courses } from '@/data/courses';
+import type { Grade } from '@/types';
+const student = { courses: [], grade: 5 as Grade };
 interface LearningContextValue {
   grade: Grade;
   setGrade: (grade: Grade) => void;
@@ -13,7 +13,28 @@ interface LearningContextValue {
 const LearningContext = createContext<LearningContextValue | null>(null);
 
 export function LearningProvider({ children }: {children: React.ReactNode;}) {
-  const [grade, setGrade] = useState<Grade>(student.grade);
+  const [grade, setGradeState] = useState<Grade>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('student_grade');
+        if (stored) {
+          const parsed = parseInt(stored, 10);
+          if (parsed >= 1 && parsed <= 5) return parsed as Grade;
+        }
+      } catch (e) {}
+    }
+    return student.grade;
+  });
+
+  const setGrade = useCallback((newGrade: Grade) => {
+    setGradeState(newGrade);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('student_grade', String(newGrade));
+      } catch (e) {}
+    }
+  }, []);
+
   const [warmupResults, setWarmupResults] = useState<boolean[]>([]);
 
   const recordWarmupResult = useCallback((correct: boolean) => {

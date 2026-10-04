@@ -67,7 +67,10 @@ if len(course_detail.get("modules", [])) == 0:
         "slug": f"lesson-1-syntax-{uuid.uuid4().hex[:6]}",
         "body_markdown": "# Inverted Syntax\n\nInversion creates formal academic emphasis:\n- *Rarely have examiners seen...*\n- *Not only did the candidate demonstrate...*",
         "sequence_order": 1,
-        "estimated_minutes": 15
+        "estimated_minutes": 15,
+        "video_url": "https://example.com/video1.mp4",
+        "thumbnail_url": "https://example.com/thumb1.png",
+        "duration_seconds": 180
     }, token=admin_token)
     lesson_id = lesson["id"]
     api_call(f"/lessons/{lesson_id}/publish", method="POST", token=admin_token)
@@ -81,7 +84,10 @@ else:
             "slug": f"lesson-1-syntax-{uuid.uuid4().hex[:6]}",
             "body_markdown": "# Inverted Syntax\n\nInversion creates formal academic emphasis.",
             "sequence_order": 1,
-            "estimated_minutes": 15
+            "estimated_minutes": 15,
+            "video_url": "https://example.com/video1.mp4",
+            "thumbnail_url": "https://example.com/thumb1.png",
+            "duration_seconds": 180
         }, token=admin_token)
         lesson_id = lesson["id"]
         api_call(f"/lessons/{lesson_id}/publish", method="POST", token=admin_token)

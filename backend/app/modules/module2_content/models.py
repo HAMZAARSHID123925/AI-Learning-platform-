@@ -33,6 +33,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -97,7 +98,11 @@ class Course(Base):
     status: Mapped[CourseStatus] = mapped_column(
         Enum(CourseStatus, name="course_status"), nullable=False, default=CourseStatus.draft
     )
+    grade: Mapped[int | None] = mapped_column(
+        Integer, CheckConstraint("grade >= 1 AND grade <= 5", name="ck_courses_grade"), nullable=True
+    )
     thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
@@ -161,6 +166,7 @@ class Lesson(Base):
         Index("ix_lessons_module_id", "module_id"),
         Index("ix_lessons_status", "status"),
         Index("ix_lessons_sequence", "module_id", "sequence_order"),
+        CheckConstraint("duration_seconds >= 0", name="ck_lessons_duration_seconds"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -176,6 +182,11 @@ class Lesson(Base):
     sequence_order: Mapped[int] = mapped_column(Integer, nullable=False)
     content_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     estimated_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    video_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)

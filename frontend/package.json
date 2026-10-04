@@ -10,13 +10,18 @@
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.2",
-    "framer-motion": "^13.4.4",
+    "date-fns": "^4.4.0",
+    "framer-motion": "^13.4.6",
     "lucide-react": "^1.45.0",
     "next": "16.3.4",
     "nodemailer": "^10.0.10",
+    "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.0",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

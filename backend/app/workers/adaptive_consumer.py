@@ -34,8 +34,9 @@ from app.shared.redis_client import get_redis_client
 
 logger = get_logger(__name__)
 
+import socket
 CONSUMER_GROUP = "module6-adaptive"
-CONSUMER_NAME = "adaptive-worker-1"
+CONSUMER_NAME = f"adaptive-worker-{socket.gethostname()}-{uuid.uuid4().hex[:6]}"
 
 
 async def process_test_graded_event(event_payload: dict, db: AsyncSession) -> dict:
@@ -97,6 +98,24 @@ async def run_consumer_loop(poll_delay: float = 1.0):
 
     while True:
         try:
+            # Recover pending messages idle for > 5 minutes (300000 ms)
+            try:
+                claim_res = await redis.xautoclaim(stream_key, CONSUMER_GROUP, CONSUMER_NAME, 300000, "0-0", count=5)
+                claimed_msgs = claim_res[1] if isinstance(claim_res, tuple) and len(claim_res) >= 2 else []
+                if claimed_msgs:
+                    for msg_id, data in claimed_msgs:
+                        try:
+                            payload_raw = data.get("data")
+                            if payload_raw:
+                                event = json.loads(payload_raw)
+                                async with AsyncSessionLocal() as session:
+                                    await process_test_graded_event(event, session)
+                            await redis.xack(stream_key, CONSUMER_GROUP, msg_id)
+                        except Exception as e:
+                            logger.error("error_processing_claimed_msg", msg_id=msg_id, error=str(e))
+            except Exception as e:
+                logger.error("error_claiming_pending_messages", error=str(e))
+
             # Read new messages for this consumer group
             entries = await redis.xreadgroup(
                 CONSUMER_GROUP,

@@ -1,43 +1,80 @@
-"use client";
+'use client';
+import React from 'react';
+import { useParams } from 'next/navigation';
+import { ArrowRightIcon, TrophyIcon } from 'lucide-react';
+import { ButtonLink } from '@/components/student/ButtonLink';
+import { StateMessage } from '@/components/student/StateMessage';
+import { CompletionScreen } from '@/components/student/lesson/CompletionScreen';
+import { LessonPlayer } from '@/components/student/lesson/LessonPlayer';
+import { useProgress } from '@/contexts/ProgressContext';
+import { useAsync } from '@/hooks/useAsync';
+import { learningApi } from '@/utils/learningApi';
 
-import React, { use } from 'react';
-import { useRouter } from 'next/navigation';
-import { StepSession } from '@/components/learning/StepSession';
-import { lessonStepsBySubject } from '@/data/lessonSteps';
-import { buildModules, getCourse, getCurrentLesson } from '@/utils/courses';
+export default function Lesson() {
+  const params = useParams();
+  const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
+  const lessonId = Array.isArray(params.lessonId) ? params.lessonId[0] : (params.lessonId || '');
+  const { updateLessonProgress, completeLesson } = useProgress();
+  const q = useAsync(() => learningApi.getLesson(courseId, lessonId), [courseId, lessonId]);
 
-interface CourseLearnPageProps {
-  params: Promise<{ courseId: string }>;
-}
+  if (q.loading) {
+    return (
+      <div className="min-h-screen w-full bg-white pt-24">
+        <StateMessage kind="loading" title="Getting your lesson ready…" />
+      </div>);
 
-export default function CourseLearnPage({ params }: CourseLearnPageProps) {
-  const resolvedParams = use(params);
-  const courseId = resolvedParams.courseId;
-  const router = useRouter();
-  const course = courseId ? getCourse(courseId) : undefined;
+  }
+  if (q.error || !q.data) {
+    return (
+      <div className="min-h-screen w-full bg-white px-5 pt-24">
+        <StateMessage kind="error" message={q.error?.message} onRetry={q.reload} action={<ButtonLink href={`/dashboard/courses/${courseId}`} variant="secondary">Back to course</ButtonLink>} />
+      </div>);
 
-  if (!course) {
-    if (typeof window !== 'undefined') {
-      router.replace('/dashboard/courses');
-    }
-    return null;
   }
 
-  const modules = buildModules(course);
-  const lesson = getCurrentLesson(modules) ?? modules[0].lessons[0];
-  const steps = lessonStepsBySubject[course.subject];
-  const backToCourse = () => router.push(`/dashboard/courses/${course.id}`);
+  const { course, lesson, index } = q.data;
+  const next = (course.lessons || [])[index + 1];
+  const subjectStr = course.slug?.includes('science') ? 'science' : course.slug?.includes('english') ? 'english' : course.slug?.includes('computer') ? 'computer' : 'math';
 
   return (
-    <div className="h-[100dvh] w-full bg-canvas fixed inset-0 z-50 overflow-hidden">
-      <StepSession
-        steps={steps}
-        label={`${course.title} · ${lesson.title}`}
-        onClose={backToCourse}
-        finishTitle="Lesson complete"
-        finishActionLabel="Back to course"
-        onFinish={backToCourse}
-      />
-    </div>
-  );
+    <LessonPlayer
+      key={lesson.id}
+      title={course.title}
+      subtitle={`Lesson ${index + 1}: ${lesson.title}`}
+      subject={subjectStr as any}
+      steps={(lesson as any).steps || []}
+      exitTo={`/dashboard/courses/${course.id}`}
+      onProgress={(p) => p < 100 && updateLessonProgress(lesson.id, p)}
+      onComplete={(score) => completeLesson(lesson.id, score)}
+      renderComplete={(score) =>
+      <CompletionScreen
+        subject={subjectStr as any}
+        heading="Lesson complete!"
+        message={
+        next ?
+        `You finished “${lesson.title}”. Up next: ${next.title}.` :
+        `That’s every lesson in ${course.title}. Time to show what you know!`
+        }
+        score={score}
+        xp={20 + score.correct * 10}
+        actions={
+        <>
+              {next ?
+          <ButtonLink href={`/dashboard/learn/${course.id}/${next.id}`} size="lg">
+                  Next lesson <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
+                </ButtonLink> :
+
+          <ButtonLink href={`/dashboard/courses/${course.id}/challenge`} size="lg" variant="brand">
+                  <TrophyIcon className="h-5 w-5" aria-hidden="true" /> Take the Challenge Test
+                </ButtonLink>
+          }
+              <ButtonLink href={`/dashboard/courses/${course.id}`} size="lg" variant="secondary">
+                Back to learning path
+              </ButtonLink>
+            </>
+        } />
+
+      } />);
+
+
 }

@@ -19,16 +19,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.modules.module1_auth.models import User
+from app.modules.module2_content.models import Course
 from app.modules.module4_experience.models import LearningPathState
-from app.modules.module6_adaptive.models import PlanStatus, RemediationPlan, WeaknessFlag
+from app.modules.module6_adaptive.models import PlanStatus, RemediationPlan, WeaknessFlag, VideoGenerationJob
 from app.modules.module6_adaptive.schemas import (
     CompleteStudyResponse,
     EscalationResponse,
     LearningPathStateResponse,
     RemediationPlanResponse,
     WeaknessFlagResponse,
+    VideoGenerationJobCreateRequest,
+    VideoGenerationJobResponse,
 )
 from app.modules.module6_adaptive.services.retest_service import complete_remedial_study_and_trigger_retest
+from app.modules.module6_adaptive.services.video_job_service import create_video_generation_job
 from app.shared.dependencies import get_current_user, require_permission
 from app.shared.exceptions import NotFoundError
 from app.shared.logging_config import get_logger
@@ -260,3 +264,115 @@ async def list_instructor_escalations(
         )
         for p in escalated_plans
     ]
+
+
+# =============================================================================
+# 5. Video Generation Jobs
+# =============================================================================
+
+@router.post(
+    "/remediation/video-jobs",
+    response_model=VideoGenerationJobResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new personalized video generation job"
+)
+async def create_video_job(
+    payload: VideoGenerationJobCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> VideoGenerationJobResponse:
+    """
+    Initiates the personalized video generation pipeline.
+    """
+    job = await create_video_generation_job(
+        db=db,
+        student_id=current_user.id,
+        weakness_flag_id=payload.weakness_flag_id
+    )
+    # Sign URLs if keys exist
+    from app.config import get_settings
+    from app.shared.s3_client import generate_presigned_url
+    settings = get_settings()
+
+    video_url = job.video_url
+    thumbnail_url = job.thumbnail_url
+    if getattr(job, 'video_object_key', None):
+        video_url = await generate_presigned_url(job.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+    if getattr(job, 'thumbnail_object_key', None):
+        thumbnail_url = await generate_presigned_url(job.thumbnail_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+
+    return VideoGenerationJobResponse(
+        id=job.id,
+        weakness_flag_id=job.weakness_flag_id,
+        status=job.status,
+        title=job.title,
+        target_duration_seconds=job.target_duration_seconds,
+        video_url=video_url,
+        thumbnail_url=thumbnail_url,
+        error_code=job.error_code,
+        created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at
+    )
+
+
+@router.get(
+    "/remediation/video-jobs/{job_id}",
+    response_model=VideoGenerationJobResponse,
+    summary="Get status of a personalized video generation job"
+)
+async def get_video_job_status(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> VideoGenerationJobResponse:
+    """
+    Get safe status details of a video job.
+    """
+    job = await db.get(VideoGenerationJob, job_id)
+    if not job:
+        raise NotFoundError("VideoGenerationJob", job_id)
+
+    # Authorization
+    is_admin = any(r.name == "Admin" for r in current_user.roles)
+    is_instructor = any(r.name == "Instructor" for r in current_user.roles)
+    
+    if job.student_id != current_user.id and not is_admin:
+        if is_instructor:
+            course = await db.get(Course, job.course_id)
+            if not course or course.instructor_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You are not authorized to view this job."
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to view this job."
+            )
+
+    # Sign URLs if keys exist
+    from app.config import get_settings
+    from app.shared.s3_client import generate_presigned_url
+    settings = get_settings()
+
+    video_url = job.video_url
+    thumbnail_url = job.thumbnail_url
+    if getattr(job, 'video_object_key', None):
+        video_url = await generate_presigned_url(job.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+    if getattr(job, 'thumbnail_object_key', None):
+        thumbnail_url = await generate_presigned_url(job.thumbnail_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+
+    return VideoGenerationJobResponse(
+        id=job.id,
+        weakness_flag_id=job.weakness_flag_id,
+        status=job.status,
+        title=job.title,
+        target_duration_seconds=job.target_duration_seconds,
+        video_url=video_url,
+        thumbnail_url=thumbnail_url,
+        error_code=job.error_code,
+        created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at
+    )

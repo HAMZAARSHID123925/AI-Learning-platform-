@@ -1,6 +1,6 @@
-import { LearningStep, SubjectId } from '../types/learning';
+import type { Subject } from '@/types';
 
-export const lessonStepsBySubject: Record<SubjectId, LearningStep[]> = {
+export const lessonStepsBySubject: Record<Subject, any[]> = {
   math: [
   { kind: 'explain', id: 'm-1', text: '2 of 4 equal parts are shaded. That’s 2/4.', visual: { type: 'pie', parts: 4, filled: 2 } },
   { kind: 'explain', id: 'm-2', text: '1 of 2 parts is shaded. That’s 1/2 — the same amount!', visual: { type: 'bar', parts: 2, filled: 1 } },
@@ -18,7 +18,7 @@ export const lessonStepsBySubject: Record<SubjectId, LearningStep[]> = {
   { kind: 'question', id: 'e-2', prompt: 'Who is this sentence about?', visual: { type: 'word', text: 'Mia fed her puppy.' }, options: ['The puppy', 'Mia', 'The food', 'A cat'], answer: 1, explanation: 'Mia is the one doing the action.' },
   { kind: 'question', id: 'e-3', prompt: 'What is the main idea?', visual: { type: 'word', text: 'Bees make honey. Bees help flowers grow.' }, options: ['Flowers', 'Honey', 'Bees are helpful', 'Gardens'], answer: 2, explanation: 'Both sentences tell how bees help.' }],
 
-  cs: [
+  computer: [
   { kind: 'explain', id: 'c-1', text: 'A keyboard lets you type letters and numbers.', visual: { type: 'icon', icon: 'keyboard' } },
   { kind: 'explain', id: 'c-2', text: 'A mouse lets you point and click.', visual: { type: 'icon', icon: 'mouse' } },
   { kind: 'question', id: 'c-3', prompt: 'Which one shows pictures and words?', options: ['Keyboard', 'Mouse', 'Screen', 'Speaker'], answer: 2, explanation: 'The screen shows what the computer is doing.' }]

@@ -1,6 +1,11 @@
-import { Subject } from '../types/learning';
+import type { Subject } from '@/types';
 
-export const subjects: Subject[] = [
+export interface SubjectItem {
+  id: Subject | 'cs';
+  name: string;
+}
+
+export const subjects: SubjectItem[] = [
 { id: 'math', name: 'Math' },
 { id: 'science', name: 'Science' },
 { id: 'english', name: 'English' },

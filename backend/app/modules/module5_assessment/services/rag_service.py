@@ -71,14 +71,15 @@ async def retrieve_relevant_chunks(
             LIMIT :top_k
         """)
 
-        result = await db.execute(
-            sql,
-            {
-                "query_vector": vector_literal,
-                "lesson_id": lesson_id,
-                "top_k": top_k
-            }
-        )
+        async with db.begin_nested():
+            result = await db.execute(
+                sql,
+                {
+                    "query_vector": vector_literal,
+                    "lesson_id": lesson_id,
+                    "top_k": top_k
+                }
+            )
         rows = result.fetchall()
 
         chunks = [
@@ -119,3 +120,86 @@ async def retrieve_relevant_chunks(
         )
         for e in embeds
     ]
+
+async def retrieve_course_chunks(
+    course_id: uuid.UUID,
+    query_text: str,
+    db: AsyncSession,
+    top_k: int = 15
+) -> list[RetrievedChunk]:
+    """
+    Performs cosine similarity search over ALL published lessons in a course.
+    """
+    query_vector = await get_embedding(query_text)
+    vector_literal = f"[{','.join(f'{x:.6f}' for x in query_vector)}]"
+
+    try:
+        sql = text("""
+            SELECT
+                ce.id,
+                ce.lesson_id,
+                ce.lesson_version,
+                ce.chunk_index,
+                ce.chunk_text,
+                1 - (ce.vector <=> :query_vector::vector) AS similarity
+            FROM content_embeddings ce
+            JOIN lessons l ON l.id = ce.lesson_id
+            JOIN course_modules m ON m.id = l.module_id
+            WHERE m.course_id = :course_id
+              AND l.status = 'published'
+            ORDER BY ce.vector <=> :query_vector::vector ASC
+            LIMIT :top_k
+        """)
+
+        async with db.begin_nested():
+            result = await db.execute(
+                sql,
+                {
+                    "query_vector": vector_literal,
+                    "course_id": course_id,
+                    "top_k": top_k
+                }
+            )
+        rows = result.fetchall()
+
+        chunks = [
+            RetrievedChunk(
+                chunk_id=row.id,
+                lesson_id=row.lesson_id,
+                lesson_version=row.lesson_version,
+                chunk_index=row.chunk_index,
+                chunk_text=row.chunk_text,
+                similarity=float(row.similarity or 0.0)
+            )
+            for row in rows
+        ]
+
+        if chunks:
+            return chunks
+
+    except Exception as e:
+        logger.warning("pgvector_course_query_fallback", error=str(e))
+
+    # Fallback
+    from app.modules.module2_content.models import Lesson, CourseModule
+    fallback_query = (
+        select(ContentEmbedding)
+        .join(Lesson, Lesson.id == ContentEmbedding.lesson_id)
+        .join(CourseModule, CourseModule.id == Lesson.module_id)
+        .where(CourseModule.course_id == course_id, Lesson.status == "published")
+        .limit(top_k)
+    )
+    res = await db.execute(fallback_query)
+    embeds = res.scalars().all()
+    return [
+        RetrievedChunk(
+            chunk_id=e.id,
+            lesson_id=e.lesson_id,
+            lesson_version=e.lesson_version,
+            chunk_index=e.chunk_index,
+            chunk_text=e.chunk_text,
+            similarity=0.90
+        )
+        for e in embeds
+    ]
+

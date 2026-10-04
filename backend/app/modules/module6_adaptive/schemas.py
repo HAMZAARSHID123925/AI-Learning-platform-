@@ -14,7 +14,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.modules.module4_experience.models import PathState
-from app.modules.module6_adaptive.models import PlanStatus, WeaknessStatus
+from app.modules.module6_adaptive.models import PlanStatus, WeaknessStatus, VideoJobStatus
 
 
 class WeaknessFlagResponse(BaseModel):
@@ -64,3 +64,21 @@ class EscalationResponse(BaseModel):
     weakness_flag_id: uuid.UUID
     retest_attempt_count: int
     created_at: datetime
+
+
+class VideoGenerationJobCreateRequest(BaseModel):
+    weakness_flag_id: uuid.UUID
+
+
+class VideoGenerationJobResponse(BaseModel):
+    id: uuid.UUID
+    weakness_flag_id: uuid.UUID
+    status: VideoJobStatus
+    title: str | None = None
+    target_duration_seconds: int | None = None
+    video_url: str | None = None
+    thumbnail_url: str | None = None
+    error_code: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None

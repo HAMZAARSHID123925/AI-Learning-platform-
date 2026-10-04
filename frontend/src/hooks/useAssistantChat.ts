@@ -26,9 +26,16 @@ export function useAssistantChat() {
       timer.current = window.setTimeout(() => {
         const reply = findAssistantReply(trimmed);
         setMessages((prev) => [
-        ...prev,
-        { id: nextId(), role: 'assistant', text: reply.text, followUps: reply.followUps }]
-        );
+          ...prev,
+          { 
+            id: nextId(), 
+            role: 'assistant', 
+            text: reply.text, 
+            secondaryText: reply.secondaryText,
+            recommendation: reply.recommendation,
+            followUps: reply.followUps 
+          }
+        ]);
         setIsTyping(false);
       }, REPLY_DELAY_MS);
     },

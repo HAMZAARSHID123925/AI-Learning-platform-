@@ -34,6 +34,11 @@ class CourseProgressSummary(BaseModel):
     completed_lessons: int
     locked_lessons: int
     percentage: float = Field(ge=0.0, le=100.0)
+    assessment_status: str = Field(
+        default="not_started",
+        description="'not_started', 'in_progress', or 'completed'"
+    )
+    latest_submission_id: uuid.UUID | None = None
 
 
 class NextRecommendedLesson(BaseModel):

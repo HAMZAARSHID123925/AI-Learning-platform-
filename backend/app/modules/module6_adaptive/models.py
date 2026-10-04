@@ -15,10 +15,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean, DateTime, Enum, ForeignKey, Index, Integer,
-    Numeric, String, Text, UniqueConstraint,
+    Numeric, String, Text, UniqueConstraint, text
 )
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database import Base
 
@@ -38,6 +38,20 @@ class PlanItemStatus(str, enum.Enum):
     pending = "pending"
     completed = "completed"
     skipped = "skipped"
+
+
+class VideoJobStatus(str, enum.Enum):
+    queued = "queued"
+    planning = "planning"
+    scripting = "scripting"
+    storyboard_ready = "storyboard_ready"
+    assets_preparing = "assets_preparing"
+    audio_generating = "audio_generating"
+    audio_ready = "audio_ready"
+    rendering = "rendering"
+    uploading = "uploading"
+    ready = "ready"
+    failed = "failed"
 
 
 class WeaknessFlag(Base):
@@ -150,3 +164,111 @@ class RemediationPlanItem(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     plan: Mapped[RemediationPlan] = relationship("RemediationPlan", back_populates="items")
+
+
+class VideoGenerationJob(Base):
+    """
+    Represents the lifecycle of ONE personalized remedial video generation request.
+    Created when an active WeaknessFlag triggers adaptive remediation.
+    """
+    __tablename__ = "video_generation_jobs"
+    __table_args__ = (
+        Index("ix_video_generation_jobs_student_id", "student_id"),
+        Index("ix_video_generation_jobs_status", "status"),
+        Index("ix_video_generation_jobs_weakness_flag_id", "weakness_flag_id"),
+        Index(
+            "uq_active_video_job_per_weakness",
+            "weakness_flag_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'planning', 'scripting', 'audio_generating', 'assets_preparing', 'rendering', 'uploading')")
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
+    )
+    submission_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False
+    )
+    weakness_flag_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("weakness_flags.id", ondelete="CASCADE"), nullable=False
+    )
+    skill_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("skill_taxonomy.id", ondelete="RESTRICT"), nullable=False
+    )
+    remediation_plan_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("remediation_plans.id", ondelete="SET NULL"), nullable=True
+    )
+
+    status: Mapped[VideoJobStatus] = mapped_column(
+        Enum(VideoJobStatus, name="video_job_status"), nullable=False, default=VideoJobStatus.queued
+    )
+
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target_duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # JSONB for structured metadata
+    script_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    scene_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    audio_manifest_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    asset_manifest_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    video_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    video_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    thumbnail_object_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @validates("status")
+    def validate_status_transition(self, key, new_status):
+        # Initial creation allows default (queued)
+        if not getattr(self, "status", None) or self.status == new_status:
+            return new_status
+            
+        old_status = self.status
+        
+        # Any state can go to failed
+        if new_status == VideoJobStatus.failed:
+            return new_status
+            
+        valid_transitions = {
+            VideoJobStatus.queued: [VideoJobStatus.planning],
+            VideoJobStatus.planning: [VideoJobStatus.scripting],
+            VideoJobStatus.scripting: [VideoJobStatus.storyboard_ready],
+            VideoJobStatus.storyboard_ready: [VideoJobStatus.assets_preparing],
+            VideoJobStatus.assets_preparing: [VideoJobStatus.audio_generating],
+            VideoJobStatus.audio_generating: [VideoJobStatus.audio_ready],
+            VideoJobStatus.audio_ready: [VideoJobStatus.rendering],
+            VideoJobStatus.rendering: [VideoJobStatus.uploading],
+            VideoJobStatus.uploading: [VideoJobStatus.ready],
+            VideoJobStatus.failed: [VideoJobStatus.queued], # Retry
+            VideoJobStatus.ready: [] # Terminal
+        }
+        
+        allowed_next_states = valid_transitions.get(old_status, [])
+        if new_status not in allowed_next_states:
+            raise ValueError(f"Invalid state transition from {old_status} to {new_status}")
+            
+        return new_status
+
+    weakness_flag: Mapped[WeaknessFlag] = relationship("WeaknessFlag")
+    remediation_plan: Mapped[RemediationPlan | None] = relationship("RemediationPlan")
+

@@ -39,12 +39,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 def _get_test_db_url() -> str:
-    if os.environ.get("TEST_DATABASE_URL"):
-        return os.environ["TEST_DATABASE_URL"]
-    db_url = os.environ.get("DATABASE_URL", "")
-    if "@postgres:" in db_url or os.path.exists("/.dockerenv"):
-        return "postgresql+asyncpg://elarion_user:elarion_pass@postgres_test:5432/elarion_test"
-    return "postgresql+asyncpg://elarion_user:elarion_pass@localhost:5433/elarion_test"
+    if os.environ.get("ENVIRONMENT") != "test":
+        raise RuntimeError("Tests must be run with ENVIRONMENT=test")
+    test_url = os.environ.get("TEST_DATABASE_URL")
+    if not test_url:
+        raise RuntimeError("TEST_DATABASE_URL environment variable is required to run tests.")
+    return test_url
 
 TEST_DATABASE_URL = _get_test_db_url()
 
@@ -123,9 +123,12 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    settings = get_settings()
+    test_redis_url = os.environ.get("TEST_REDIS_URL")
+    if not test_redis_url:
+        raise RuntimeError("TEST_REDIS_URL environment variable is required to run tests (preventing accidental flushdb).")
+
     test_redis = aioredis.from_url(
-        settings.REDIS_URL,
+        test_redis_url,
         decode_responses=True,
         socket_timeout=5,
         socket_connect_timeout=3,

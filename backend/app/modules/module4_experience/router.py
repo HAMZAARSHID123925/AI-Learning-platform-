@@ -175,6 +175,26 @@ async def complete_lesson(
 
 
 @router.get(
+    "/students/me/progress/lessons",
+    response_model=list[uuid.UUID],
+    summary="Get list of completed lesson IDs",
+)
+async def get_completed_lessons(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import select
+    from app.modules.module4_experience.models import StudentProgress
+    result = await db.execute(
+        select(StudentProgress.lesson_id).where(
+            StudentProgress.student_id == current_user.id,
+            StudentProgress.completed == True
+        )
+    )
+    return [row[0] for row in result.all()]
+
+
+@router.get(
     "/courses/{course_id}/progress",
     summary="Get course completion statistics",
 )

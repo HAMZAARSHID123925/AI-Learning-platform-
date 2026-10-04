@@ -26,6 +26,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -70,6 +71,9 @@ class User(Base):
         Enum(UserStatus, name="user_status"),
         nullable=False,
         default=UserStatus.pending_verification,
+    )
+    grade: Mapped[int | None] = mapped_column(
+        Integer, CheckConstraint("grade >= 1 AND grade <= 5", name="ck_users_grade"), nullable=True
     )
     email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     parental_consent: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
