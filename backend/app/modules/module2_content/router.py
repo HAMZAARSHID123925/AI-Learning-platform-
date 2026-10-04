@@ -77,6 +77,7 @@ async def create_course(
         title=body.title,
         description=body.description,
         slug=body.slug,
+        grade=body.grade,
     )
     return CourseResponse(
         id=course.id,
@@ -227,7 +228,7 @@ async def update_course(
     course = await course_service.update_course(
         db=db, course_id=course_id, actor_id=current_user.id,
         is_admin=_is_admin(current_user), title=body.title,
-        description=body.description, thumbnail_url=body.thumbnail_url,
+        description=body.description, grade=body.grade, thumbnail_url=body.thumbnail_url,
     )
     return CourseResponse(
         id=course.id, instructor_id=course.instructor_id, title=course.title,

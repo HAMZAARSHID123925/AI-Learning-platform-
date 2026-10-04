@@ -6,6 +6,8 @@ import { Button } from '@/components/shared/Button';
 import { Modal } from '@/components/shared/Modal';
 import { useAdmin } from '@/contexts/AdminContext';
 import { teachers } from '@/data/admin';
+import { adminApi } from '@/utils/adminApi';
+import { useRouter } from 'next/navigation';
 import { subjectStyles } from '@/utils/subjects';
 import type { Grade, Subject } from '@/types';
 
@@ -21,6 +23,8 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   const [teacherId, setTeacherId] = useState('');
   const [publish, setPublish] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (open) {
@@ -35,12 +39,24 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
 
   const eligible = teachers.filter((t) => t.subject === subject);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return setError('Give the course a title');
-    createCourse({ title: title.trim(), grade, subject, teacherId: teacherId || null, status: publish ? 'published' : 'draft' });
-    toast.success(`${title.trim()} created for Grade ${grade}`);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      const res = await adminApi.createCourse({ 
+        title: title.trim(), 
+        grade, 
+        description: `Subject: ${subject}` 
+      });
+      toast.success(`${title.trim()} created for Grade ${grade}`);
+      onClose();
+      router.push(`/dashboard/admin/courses/${res.id}/builder`);
+    } catch (err) {
+      setError('Failed to create course. Ensure backend is running.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,8 +104,8 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
         </label>
         {error && <p role="alert" className="text-sm font-semibold text-danger-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit">Create course</Button>
+          <Button variant="ghost" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create course'}</Button>
         </div>
       </form>
     </Modal>);

@@ -57,7 +57,7 @@ logger = get_logger(__name__)
 
 RENDER_TIMEOUT_SECONDS = 600       # 10 minutes hard limit
 UPLOAD_TIMEOUT_SECONDS = 120       # 2 minutes for S3 upload
-VIDEO_RENDER_DIR = Path(__file__).resolve().parents[6] / "video-render"
+VIDEO_RENDER_DIR = Path(__file__).resolve().parents[5] / "video-render"
 RENDER_SCRIPT = VIDEO_RENDER_DIR / "src" / "render.ts"
 
 # H.264 expected output
@@ -265,8 +265,7 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
 
     # Try tsx first (faster, no tsconfig overhead), then ts-node
     executors = [
-        ["node", "--import", "tsx/esm", str(RENDER_SCRIPT), input_path, output_path],
-        ["npx", "ts-node", "--esm", str(RENDER_SCRIPT), input_path, output_path],
+        ["npm", "run", "render", "--", input_path, output_path]
     ]
 
     last_error: Optional[str] = None
@@ -279,6 +278,7 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
                 timeout=RENDER_TIMEOUT_SECONDS,
                 cwd=str(VIDEO_RENDER_DIR),
                 env=node_env,
+                shell=os.name == 'nt',
             )
 
             # Parse stdout JSON result

@@ -28,6 +28,14 @@ export const adminApi = {
   },
 
   // Module CRUD
+  async publishCourse(courseId: string) {
+    const res = await fetchWithAuth(`/courses/${courseId}/publish`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to publish course');
+    return res.json();
+  },
+
   async createModule(courseId: string, data: { title: string; description?: string; sequence_order: number }) {
     const res = await fetchWithAuth(`/courses/${courseId}/modules`, {
       method: 'POST',

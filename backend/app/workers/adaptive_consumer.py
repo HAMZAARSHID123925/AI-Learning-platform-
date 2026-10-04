@@ -22,7 +22,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import AsyncSessionLocal
+from app.modules.module1_auth.models import User
+from app.modules.module2_content.models import Course
+from app.modules.module4_experience.models import Enrollment
 from app.modules.module5_assessment.models import Submission
+from app.modules.module6_adaptive.models import WeaknessFlag, RemediationPlan
 from app.modules.module6_adaptive.services.path_gating_service import (
     lock_lessons_for_weakness,
     unlock_lessons_if_clear,

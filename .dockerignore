@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.*
+backend/venv
+backend/env
+backend/__pycache__
+backend/.pytest_cache
+video-render/node_modules
+frontend/node_modules
+frontend/.next
+frontend/out
+tmp/
+scratch/

@@ -116,9 +116,17 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
     }
   };
 
-  const handlePublishLesson = async (lessonId: string) => {
+  const handlePublishLesson = async (lesson: any) => {
+    if (!lesson.bodyMarkdown) {
+      toast.error('Lesson must have markdown content to be published');
+      return;
+    }
+    if (!lesson.videoUrl) {
+      toast.error('Lesson must have an uploaded video to be published');
+      return;
+    }
     try {
-      await adminApi.publishLesson(lessonId);
+      await adminApi.publishLesson(lesson.id);
       toast.success('Lesson published');
       loadCourse();
     } catch (e) {
@@ -139,14 +147,30 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
         <div>
           <h1 className="text-3xl font-black text-ink">{course.title} (Builder)</h1>
           <p className="text-ink-soft">{course.description || 'No description'}</p>
+          <p className="text-sm font-bold text-ink-muted">Status: {(course as any).status || 'draft'}</p>
         </div>
-        <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm font-bold text-ink hover:bg-line">
+        <div className="flex items-center gap-2">
+          {(course as any).status !== 'published' && (
+            <Button variant="brand" onClick={async () => {
+              try {
+                await adminApi.publishCourse(course.id);
+                toast.success('Course published');
+                loadCourse();
+              } catch (e) {
+                toast.error('Failed to publish course');
+              }
+            }}>
+              Publish Course
+            </Button>
+          )}
+          <label className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm font-bold text-ink hover:bg-line">
           <UploadIcon className="h-4 w-4" /> Course Thumbnail
           <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) handleMediaUpload(f, 'course_thumbnail');
           }} />
         </label>
+        </div>
       </header>
 
       <div className="space-y-6">
@@ -164,7 +188,7 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
                       </p>
                     </div>
                     {l.status !== 'published' && (
-                      <Button variant="secondary" onClick={() => handlePublishLesson(l.id)}>
+                      <Button variant="secondary" onClick={() => handlePublishLesson(l)}>
                         Publish
                       </Button>
                     )}

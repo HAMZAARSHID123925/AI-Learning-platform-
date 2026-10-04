@@ -65,6 +65,7 @@ async def create_course(
     title: str,
     description: str | None,
     slug: str | None,
+    grade: int | None = None,
 ) -> Course:
     """Create a new course owned by the given instructor."""
     auto_slug = slug or _slugify(title)
@@ -76,6 +77,7 @@ async def create_course(
         description=description,
         slug=final_slug,
         status=CourseStatus.draft,
+        grade=grade,
     )
     db.add(course)
     await db.flush()
@@ -133,6 +135,7 @@ async def update_course(
     is_admin: bool,
     title: str | None = None,
     description: str | None = None,
+    grade: int | None = None,
     thumbnail_url: str | None = None,
     thumbnail_object_key: str | None = None,
 ) -> Course:
@@ -146,6 +149,8 @@ async def update_course(
         course.title = title
     if description is not None:
         course.description = description
+    if grade is not None:
+        course.grade = grade
     if thumbnail_url is not None:
         course.thumbnail_url = thumbnail_url
     if thumbnail_object_key is not None:

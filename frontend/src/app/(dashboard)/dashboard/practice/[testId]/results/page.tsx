@@ -54,7 +54,7 @@ export default function PracticeResultsPage() {
     );
   }
 
-  const flag = weaknesses.find(w => w.skill_id === targetSkill.skill_id);
+  const flag = weaknesses.find((w: any) => w.skill_id === targetSkill.skill_id);
   
   const newScore = targetSkill.score / (targetSkill.max_score || 1);
   const previousScore = flag ? flag.score_at_flag : 0;

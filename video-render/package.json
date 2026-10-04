@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "ELARION AI Learning Platform — Remotion render service",
   "private": true,
+  "type": "module",
   "scripts": {
-    "render": "node --loader ts-node/esm src/render.ts",
+    "render": "tsx src/render.ts",
     "validate": "node --loader ts-node/esm src/validate_payload.ts",
     "studio": "npx remotion studio",
     "test": "node --experimental-vm-modules node_modules/.bin/jest"
@@ -23,6 +24,7 @@
     "jest": "^30.5.2",
     "ts-jest": "^29.4.14",
     "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
+    "tsx": "^4.23.15",
+    "typescript": "^5.5.4"
   }
 }

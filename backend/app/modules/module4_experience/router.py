@@ -161,6 +161,9 @@ async def complete_lesson(
     Idempotent: safe to call multiple times.
     Updates LearningPathState to 'mastered' and automatically invalidates Redis dashboard cache.
     """
+    if not current_user.has_role("Student"):
+        raise AuthorizationError("Only students can track progress.")
+
     progress = await progress_service.mark_lesson_complete(
         db=db,
         student_id=current_user.id,
@@ -183,6 +186,8 @@ async def get_completed_lessons(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if not current_user.has_role("Student"):
+        raise AuthorizationError("Only students can track progress.")
     from sqlalchemy import select
     from app.modules.module4_experience.models import StudentProgress
     result = await db.execute(
@@ -204,6 +209,8 @@ async def get_course_progress(
     db: AsyncSession = Depends(get_db),
 ):
     """Return completion statistics (total, completed, locked, percentage) for a course."""
+    if not current_user.has_role("Student"):
+        raise AuthorizationError("Only students can track progress.")
     return await progress_service.get_course_progress(
         db=db,
         student_id=current_user.id,

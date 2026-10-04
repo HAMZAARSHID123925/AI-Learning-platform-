@@ -4,3 +4,4 @@ node_modules
 52142e14-afbe-4582-937f-3b043f24510a/
 .env
 .env*.local
+backend/ai-learning/

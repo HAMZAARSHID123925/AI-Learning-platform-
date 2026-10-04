@@ -2,6 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { progressSeed } from '@/data/progressSeed';
 import { learningApi } from '@/utils/learningApi';
+import { useAuth } from '@/contexts/AuthContext';
 import type { AssessmentAttempt, LessonProgress } from '@/types/learning';
 
 interface ProgressState {
@@ -36,13 +37,35 @@ export function ProgressProvider({ children }: {children: React.ReactNode;}) {
     }
   });
 
+  const { user } = useAuth();
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-
-      /* storage unavailable */}
+      /* storage unavailable */
+    }
   }, [state]);
+
+  useEffect(() => {
+    if (user?.role === 'student') {
+      learningApi.getStudentProgress()
+        .then(completed => {
+          setState((s) => {
+            const nextLessons = { ...s.lessons };
+            let changed = false;
+            completed.forEach((id) => {
+              if (nextLessons[id]?.status !== 'completed') {
+                nextLessons[id] = { status: 'completed', progress: 100 };
+                changed = true;
+              }
+            });
+            return changed ? { ...s, lessons: nextLessons } : s;
+          });
+        })
+        .catch(err => console.error('Failed to sync progress:', err));
+    }
+  }, [user]);
 
   const updateLessonProgress = useCallback((lessonId: string, progress: number) => {
     setState((s) => {

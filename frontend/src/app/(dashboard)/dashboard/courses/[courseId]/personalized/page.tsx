@@ -18,7 +18,15 @@ export default function Personalized() {
   const { latestAttempt, attempts, practiceDone } = useProgress();
   const attempt = latestAttempt(courseId);
   const q = useAsync(
-    () => attempt ? learningApi.getPersonalizedPlan(attempt) : Promise.reject(new Error('no-attempt')),
+    async () => {
+      if (!attempt) throw new Error('no-attempt');
+      const [data, weaknesses, plans] = await Promise.all([
+        learningApi.getPersonalizedPlan(attempt),
+        learningApi.getActiveWeaknesses(),
+        learningApi.getRemediationPlans()
+      ]);
+      return { ...data, weaknesses, plans };
+    },
     [attempt?.id]
   );
 
@@ -35,7 +43,7 @@ export default function Personalized() {
   if (q.loading) return <StateMessage kind="loading" title="Building your personalized plan…" />;
   if (q.error || !q.data) return <StateMessage kind="error" message="We couldn’t load your plan right now." onRetry={q.reload} />;
 
-  const { course, analysis, plan } = q.data;
+  const { course, analysis, plan, weaknesses, plans } = q.data;
   const s = subjectStyles[course.subject];
   const isDone = (key: string) => practiceDone.includes(`${course.id}:${key}`);
   const doneCount = plan.items.filter((i) => isDone(i.key)).length;
@@ -63,8 +71,44 @@ export default function Personalized() {
         </p>
         <h2 id="focus-title" className="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">{plan.headline}</h2>
         <p className="mt-3 max-w-2xl text-lg text-ink-soft">{analysis.summary}</p>
+        
+        {plans.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-xl font-bold text-ink mb-3">AI Remedial Courses</h3>
+            <ul className="flex flex-col gap-3" aria-label="Remediation Plans">
+              {plans.map((p: any) => (
+                <li key={p.id} className="rounded-2xl border-2 border-line bg-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-bold text-ink">{p.remedial_course_title || "Targeted Review"}</h4>
+                    <p className="text-sm text-ink-soft mt-1 capitalize">Status: {p.status}</p>
+                  </div>
+                  <button
+                    onClick={async (e) => {
+                      const btn = e.currentTarget;
+                      const orig = btn.innerText;
+                      try {
+                        btn.innerText = 'Creating...';
+                        btn.disabled = true;
+                        const job = await learningApi.requestPersonalizedVideo(p.weakness_flag_id);
+                        window.location.href = `/dashboard/review/${job.id}`;
+                      } catch (err) {
+                        btn.innerText = orig;
+                        btn.disabled = false;
+                        alert('Failed to request video');
+                      }
+                    }}
+                    className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-2.5 text-sm font-extrabold text-white transition-all hover:bg-ink-soft"
+                  >
+                    Generate Video Review
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {weak.length > 0 &&
-        <ul className="mt-5 flex flex-wrap gap-2" aria-label="Skills to practice">
+        <ul className="mt-5 flex flex-wrap gap-2 opacity-50" aria-label="Skills to practice">
             {weak.map((w) =>
           <li key={w.skill} className="rounded-full bg-white px-3 py-1.5 text-sm font-extrabold text-ink">
                 {w.skill} · {w.correct}/{w.total}

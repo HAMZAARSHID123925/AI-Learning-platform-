@@ -10,15 +10,13 @@ import type { Course } from '@/types/learning';
 
 const DUMMY_COURSE: Course = {
   id: 'focused-practice',
-  instructorId: '',
   title: 'Focused Practice',
-  slug: 'focused-practice',
   description: '',
-  status: 'published',
   grade: 5,
-  moduleCount: 0,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
+  subject: 'math',
+  image: '',
+  skills: [],
+  lessons: []
 };
 
 export default function PracticeTestPage() {

@@ -20,6 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.modules.module6_adaptive.models import VideoGenerationJob, VideoJobStatus
+from app.modules.module1_auth.models import User
+from app.modules.module2_content.models import Course
+from app.modules.module4_experience.models import Enrollment
+from app.modules.module5_assessment.models import Submission
+from app.modules.module6_adaptive.models import WeaknessFlag, RemediationPlan
 from app.modules.module6_adaptive.services.script_generation_service import generate_personalized_script_and_scenes
 from app.modules.module6_adaptive.services.audio_generation_service import generate_scene_audio
 from app.modules.module6_adaptive.services.render_service import render_video

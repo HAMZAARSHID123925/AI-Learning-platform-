@@ -198,3 +198,67 @@ export interface Recommendation {
   cta: string;
   to: string;
 }
+
+export interface RealAssessmentOption {
+  id: string;
+  text: string;
+}
+
+export interface RealAssessmentQuestion {
+  id: string;
+  prompt: string;
+  options: RealAssessmentOption[];
+}
+
+export interface RealAssessment {
+  id: string;
+  lessonId: string | null;
+  courseId: string;
+  title: string;
+  isFocusedRetest: boolean;
+  questions: RealAssessmentQuestion[];
+}
+
+export interface RealSubmission {
+  id: string;
+  testId: string;
+  studentId: string;
+  scorePercent: number;
+  isPassed: boolean;
+  feedbackSummary: string;
+  createdAt?: string;
+  answers?: any[];
+  weaknesses?: WeaknessFlag[];
+}
+
+export interface WeaknessFlag {
+  id: string;
+  skillId: string;
+  skillName: string;
+  severity: string;
+  description: string;
+}
+
+export interface RemediationPlan {
+  id: string;
+  remedial_course_markdown: string;
+}
+
+export interface VideoGenerationJob {
+  id: string;
+  status: string;
+  title: string;
+  video_url: string | null;
+  thumbnail_url: string | null;
+}
+
+export interface LegacyCourseData {
+  id: string;
+  subject: Subject;
+  grade: Grade;
+  title: string;
+  description: string;
+  image: string;
+  skills: string[];
+  lessons: any[];
+}
