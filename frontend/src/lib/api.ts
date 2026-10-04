@@ -7,11 +7,7 @@
 
 import { getStoredAccessToken, saveAuthSession } from './auth-storage';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === "production" ? "" : 'http://localhost:8000/api/v1');
-
-if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is required in production");
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
