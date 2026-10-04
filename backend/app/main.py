@@ -41,6 +41,7 @@ from app.shared.exceptions import (
     TokenExpiredError,
     TokenInvalidError,
     TokenRevokedError,
+    ValidationError,
 )
 from app.shared.logging_config import configure_logging, get_logger
 from app.shared.redis_client import close_redis_pool
@@ -184,7 +185,7 @@ def create_app() -> FastAPI:
         app.add_exception_handler(exc_cls, handle_403)
     app.add_exception_handler(ResourceNotFoundError, handle_404)
     app.add_exception_handler(DuplicateResourceError, handle_409)
-    for exc_cls in (BusinessRuleError, InvalidStateTransitionError):
+    for exc_cls in (BusinessRuleError, InvalidStateTransitionError, ValidationError):
         app.add_exception_handler(exc_cls, handle_422)
     app.add_exception_handler(RateLimitExceededError, handle_429)
     app.add_exception_handler(StorageError, handle_storage_error)
@@ -213,9 +214,41 @@ def create_app() -> FastAPI:
     #   Docker healthchecks, load balancers, and k8s liveness probes
     #   call this endpoint to determine if the app is ready to serve traffic.
     # -------------------------------------------------------------------------
-    @app.get("/health", tags=["System"], summary="Health check")
-    async def health_check():
-        return {"status": "healthy", "version": "1.0.0", "environment": settings.ENVIRONMENT}
+    @app.get("/health/live", tags=["System"], summary="Liveness check")
+    async def health_live():
+        return {"status": "ok"}
+
+    @app.get("/health/ready", tags=["System"], summary="Readiness check")
+    async def health_ready():
+        from app.database import AsyncSessionLocal
+        from sqlalchemy import text
+        from app.shared.redis_client import get_redis_client
+        import json
+        
+        status_dict = {"status": "ok", "components": {}}
+        
+        # Check DB
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+            status_dict["components"]["database"] = "ok"
+        except Exception as e:
+            status_dict["status"] = "error"
+            status_dict["components"]["database"] = f"error: {str(e)}"
+            
+        # Check Redis
+        try:
+            redis = get_redis_client()
+            await redis.ping()
+            status_dict["components"]["redis"] = "ok"
+        except Exception as e:
+            status_dict["status"] = "error"
+            status_dict["components"]["redis"] = f"error: {str(e)}"
+            
+        return JSONResponse(
+            status_code=200 if status_dict["status"] == "ok" else 503,
+            content=status_dict
+        )
 
     return app
 

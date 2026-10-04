@@ -54,9 +54,18 @@ function LoginInner() {
     setErrors(next);
     if (Object.keys(next).length) return;
     setLoading(true);
+
     window.setTimeout(() => {
-      signIn(email, role);
-      router.push(role === 'student' ? '/onboarding/grade' : role === 'teacher' ? '/instructor' : '/admin');
+      const success = signIn(email, password, role);
+      if (!success) {
+        setLoading(false);
+        setErrors({
+          email: 'Invalid email, password, or account role selected.',
+        });
+        return;
+      }
+
+      router.push(role === 'student' ? '/dashboard' : role === 'teacher' ? '/instructor' : '/admin');
     }, 500);
   };
   return <div className="grid min-h-screen w-full bg-white lg:grid-cols-[1fr_1.05fr]">
@@ -102,7 +111,15 @@ function LoginInner() {
               {loading ? <Loader2Icon className="h-5 w-5 animate-spin" aria-label="Signing in" /> : 'Sign in'}
             </Button>
           </form>
-          <p className="mt-6 text-center text-sm text-ink-muted">Use any email and a 6+ character password to explore.</p>
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-sm text-ink-muted">
+              Don&apos;t have an account?{' '}
+              <a href="/signup" className="font-bold text-ink hover:underline">
+                Sign up
+              </a>
+            </p>
+            <p className="text-xs text-ink-muted">Use any email and a 6+ character password to explore.</p>
+          </div>
         </div>
       </main>
 

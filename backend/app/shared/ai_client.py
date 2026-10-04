@@ -43,7 +43,7 @@ async def get_embedding(text: str) -> list[float]:
     if settings.EMBEDDING_PROVIDER == "openai" and settings.OPENAI_API_KEY:
         try:
             import openai
-            client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=60.0)
             resp = await client.embeddings.create(
                 model=settings.EMBEDDING_MODEL,
                 input=text,
@@ -107,9 +107,9 @@ async def generate_llm_completion(
     for attempt in range(max_retries):
         try:
             # 1. Anthropic Claude API
-            if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY:
+            if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY and not settings.ANTHROPIC_API_KEY.startswith("#"):
                 import anthropic
-                client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+                client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY, timeout=60.0)
                 resp = await client.messages.create(
                     model=settings.ANTHROPIC_LLM_MODEL,
                     max_tokens=max_tokens,
@@ -120,11 +120,12 @@ async def generate_llm_completion(
                 return resp.content[0].text
 
             # 2. Groq API
-            elif settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY:
+            elif settings.LLM_PROVIDER == "groq" and settings.GROQ_API_KEY and not settings.GROQ_API_KEY.startswith("#"):
                 import openai
                 client = openai.AsyncOpenAI(
                     base_url="https://api.groq.com/openai/v1",
-                    api_key=settings.GROQ_API_KEY
+                    api_key=settings.GROQ_API_KEY,
+                    timeout=60.0
                 )
                 kwargs: dict[str, Any] = {
                     "model": settings.GROQ_LLM_MODEL,
@@ -141,8 +142,34 @@ async def generate_llm_completion(
                 resp = await client.chat.completions.create(**kwargs)
                 return resp.choices[0].message.content or ""
 
-            # 3. If no external key is configured in local dev, provide safe structured fallback
+            # 3. OpenAI API
+            elif settings.LLM_PROVIDER == "openai" and settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("#"):
+                import openai
+                client = openai.AsyncOpenAI(
+                    api_key=settings.OPENAI_API_KEY,
+                    timeout=60.0
+                )
+                kwargs: dict[str, Any] = {
+                    "model": settings.OPENAI_LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                }
+                if json_mode:
+                    kwargs["response_format"] = {"type": "json_object"}
+
+                resp = await client.chat.completions.create(**kwargs)
+                return resp.choices[0].message.content or ""
+
+            # 4. If no external key is configured:
+            # - In production: raise clear configuration error
+            # - In development/test: provide safe structured fallback
             else:
+                if settings.is_production:
+                    raise Exception(f"Missing required LLM credentials for provider '{settings.LLM_PROVIDER}' in production environment.")
                 logger.warning("no_llm_api_key_configured", provider=settings.LLM_PROVIDER)
                 return _generate_mock_llm_response(user_prompt)
 
@@ -193,6 +220,36 @@ def _generate_mock_llm_response(user_prompt: str) -> str:
             "summary": "Detailed conceptual review addressing paragraph transitions and linking words.",
             "content_markdown": "# Remedial Mastery Guide\n\n## 1. The Core Misconception\nCohesive devices are not just decorative words...",
             "key_takeaways": ["Use transitions intentionally", "Vary sentence openings", "Maintain logical progression"]
+        })
+    elif "generation context:" in user_prompt.lower():
+        return json.dumps({
+            "lesson_plan": {
+                "title": "Understanding the CPU",
+                "target_skill_name": "Basic Computer Hardware",
+                "learning_objectives": ["Identify the CPU", "Understand CPU vs RAM"],
+                "student_misconceptions": ["Confusing short-term memory (RAM) with processing (CPU)"],
+                "teaching_strategy": "Compare CPU to a chef and RAM to the counter.",
+                "target_duration_seconds": 120
+            },
+            "scenes": [
+                {
+                    "scene_id": "scene-1",
+                    "scene_type": "intro",
+                    "duration_seconds": 15,
+                    "heading": "Meet the CPU",
+                    "narration": "Hello! Today we are learning about the CPU. Think of the CPU like the chef in a kitchen.",
+                    "visual_intent": {
+                        "type": "concept_intro",
+                        "concepts": ["CPU"]
+                    },
+                    "on_screen_text": ["CPU = The Brain"]
+                }
+            ],
+            "validation": {
+                "grounding_check": "Used the chef analogy from the lesson.",
+                "misconception_alignment": "Directly compares CPU to RAM.",
+                "grade_level_check": "Passed."
+            }
         })
     else:
         # Default grading response

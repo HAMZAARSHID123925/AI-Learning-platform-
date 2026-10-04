@@ -144,6 +144,8 @@ async def get_course_progress(
     }
     """
     from app.modules.module2_content.models import CourseModule, Lesson, LessonStatus
+    from app.modules.module5_assessment.models import Test, Submission, SubmissionStatus
+    from sqlalchemy.orm import selectinload
 
     # Count total published lessons in course
     total_result = await db.execute(
@@ -187,9 +189,41 @@ async def get_course_progress(
 
     percentage = round((completed / total) * 100, 1) if total > 0 else 0.0
 
+    # Determine assessment status
+    # 1. Check if there's a final course test
+    test_query = await db.execute(
+        select(Test.id)
+        .where(Test.course_id == course_id, Test.is_focused_retest == False)
+        .order_by(Test.created_at.desc())
+        .limit(1)
+    )
+    test_id = test_query.scalar_one_or_none()
+
+    assessment_status = "not_started"
+    latest_submission_id = None
+
+    if test_id:
+        # 2. Check if student has a submission for this test
+        sub_query = await db.execute(
+            select(Submission)
+            .where(Submission.test_id == test_id, Submission.student_id == student_id)
+            .order_by(Submission.attempt_number.desc())
+            .limit(1)
+        )
+        submission = sub_query.scalar_one_or_none()
+
+        if submission:
+            latest_submission_id = submission.id
+            if submission.status == SubmissionStatus.graded:
+                assessment_status = "completed"
+            else:
+                assessment_status = "in_progress"
+
     return {
         "total_lessons": total,
         "completed_lessons": completed,
         "percentage": percentage,
         "locked_lessons": locked,
+        "assessment_status": assessment_status,
+        "latest_submission_id": latest_submission_id,
     }

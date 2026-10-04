@@ -34,6 +34,7 @@ from app.shared.exceptions import (
     InvalidStateTransitionError,
     PermissionDeniedError,
     ResourceNotFoundError,
+    ValidationError,
 )
 from app.shared.logging_config import get_logger
 
@@ -129,11 +130,15 @@ async def update_lesson(
     lesson_id: uuid.UUID,
     actor_id: uuid.UUID,
     is_admin: bool,
-    title: str | None,
-    body_markdown: str | None,
-    sequence_order: int | None,
-    estimated_minutes: int | None,
-    skill_ids: list[uuid.UUID] | None,
+    title: str | None = None,
+    body_markdown: str | None = None,
+    sequence_order: int | None = None,
+    estimated_minutes: int | None = None,
+    skill_ids: list[uuid.UUID] | None = None,
+    video_url: str | None = None,
+    thumbnail_url: str | None = None,
+    video_object_key: str | None = None,
+    thumbnail_object_key: str | None = None,
 ) -> Lesson:
     """Update lesson fields and optionally replace skill tags."""
     lesson = await get_lesson(db, lesson_id)
@@ -149,6 +154,14 @@ async def update_lesson(
         lesson.sequence_order = sequence_order
     if estimated_minutes is not None:
         lesson.estimated_minutes = estimated_minutes
+    if video_url is not None:
+        lesson.video_url = video_url
+    if thumbnail_url is not None:
+        lesson.thumbnail_url = thumbnail_url
+    if video_object_key is not None:
+        lesson.video_object_key = video_object_key
+    if thumbnail_object_key is not None:
+        lesson.thumbnail_object_key = thumbnail_object_key
 
     if skill_ids is not None:
         # Replace all skill tags
@@ -189,6 +202,14 @@ async def publish_lesson(
 
     if lesson.status == LessonStatus.archived:
         raise InvalidStateTransitionError("Lesson", "archived", "published")
+
+    # Publish rules enforcement
+    if not lesson.title:
+        raise ValidationError("Lesson must have a title to be published")
+    if not lesson.body_markdown:
+        raise ValidationError("Lesson must have body_markdown to be published")
+    if not lesson.video_url:
+        raise ValidationError("Lesson must have a confirmed video_url to be published")
 
     is_republish = lesson.status == LessonStatus.published
     if is_republish:

@@ -23,7 +23,8 @@ from app.modules.module5_assessment.models import GraderType, QuestionType, Subm
 # =============================================================================
 
 class AssessmentGenerateRequest(BaseModel):
-    lesson_id: uuid.UUID
+    lesson_id: uuid.UUID | None = None
+    course_id: uuid.UUID | None = None
     is_focused_retest: bool = False
     skill_filter: list[uuid.UUID] | None = None
     num_questions: int = Field(default=5, ge=1, le=20)
@@ -80,7 +81,8 @@ class QuestionStudentView(BaseModel):
 
 class AssessmentStudentViewResponse(BaseModel):
     id: uuid.UUID
-    lesson_id: uuid.UUID
+    lesson_id: uuid.UUID | None = None
+    course_id: uuid.UUID | None = None
     title: str
     is_focused_retest: bool
     questions: list[QuestionStudentView]
@@ -93,6 +95,8 @@ class AssessmentStudentViewResponse(BaseModel):
 class SkillScoreResponse(BaseModel):
     id: uuid.UUID
     skill_id: uuid.UUID
+    skill_name: str | None = None
+    skill_slug: str | None = None
     score: float
     max_score: float
     grader_type: GraderType

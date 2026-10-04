@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
-from app.modules.module5_assessment.models import Submission, Test
+from app.modules.module5_assessment.models import Submission, Test, Question
 from app.modules.module5_assessment.services.generation_service import generate_lesson_assessment
 from app.modules.module6_adaptive.models import PlanStatus, RemediationPlan, WeaknessFlag
 from app.shared.exceptions import BusinessRuleError, NotFoundError
@@ -54,6 +54,35 @@ async def complete_remedial_study_and_trigger_retest(
 
     if plan.status != PlanStatus.active:
         raise BusinessRuleError("This remediation plan is already completed or closed.")
+
+    if plan.study_completed:
+        # Idempotency check: if already completed, return the previously generated test
+        flag = plan.weakness_flag
+        sub_query = select(Submission).where(Submission.id == flag.submission_id)
+        sub_res = await db.execute(sub_query)
+        submission = sub_res.scalar_one_or_none()
+        if not submission:
+            return plan, None
+            
+        test_query = select(Test).where(Test.id == submission.test_id)
+        test_res = await db.execute(test_query)
+        orig_test = test_res.scalar_one_or_none()
+        lesson_id = orig_test.lesson_id if orig_test else uuid.uuid4()
+        
+        existing_retest_query = (
+            select(Test)
+            .join(Question)
+            .where(
+                Test.lesson_id == lesson_id,
+                Test.is_focused_retest == True,
+                Question.skill_id == flag.skill_id
+            )
+            .order_by(Test.created_at.desc())
+            .limit(1)
+        )
+        existing_retest_res = await db.execute(existing_retest_query)
+        existing_retest = existing_retest_res.scalar_one_or_none()
+        return plan, existing_retest
 
     # Mark study completed
     plan.study_completed = True

@@ -147,6 +147,12 @@ class BusinessRuleError(ElarionError):
         super().__init__(message=message, code="BUSINESS_RULE_VIOLATION")
 
 
+class ValidationError(ElarionError):
+    """Validation rule violation. Maps to 422."""
+    def __init__(self, message: str) -> None:
+        super().__init__(message=message, code="VALIDATION_ERROR")
+
+
 class InvalidStateTransitionError(ElarionError):
     """State machine transition not allowed. Maps to 422."""
     def __init__(self, entity: str, from_state: str, to_state: str) -> None:

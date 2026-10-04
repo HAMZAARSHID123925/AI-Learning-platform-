@@ -39,6 +39,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=10, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
+    grade: int | None = Field(default=None, ge=1, le=5)
 
     @field_validator("password")
     @classmethod
@@ -131,6 +132,7 @@ class UserInTokenResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
+    grade: int | None = None
     roles: list[str]
 
 
@@ -164,6 +166,7 @@ class UserResponse(BaseModel):
     email: str
     first_name: str
     last_name: str
+    grade: int | None = None
     status: str
     email_verified: bool
     parental_consent: bool | None
@@ -182,6 +185,7 @@ class UpdateUserRequest(BaseModel):
 
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
+    grade: int | None = Field(default=None, ge=1, le=5)
 
 
 class AdminUpdateUserRequest(BaseModel):
@@ -190,6 +194,7 @@ class AdminUpdateUserRequest(BaseModel):
 
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
+    grade: int | None = Field(default=None, ge=1, le=5)
     status: str | None = Field(default=None, pattern="^(active|suspended|pending_verification)$")
     email_verified: bool | None = None
     parental_consent: bool | None = None

@@ -1,5 +1,17 @@
 import type { Grade, Subject } from './index';
 
+export type { Grade, Subject };
+export type SubjectId = Subject;
+export type CourseStatus = 'published' | 'draft' | 'archived';
+export type LessonStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface CourseModule {
+  id: string;
+  title: string;
+  description?: string;
+  lessons: LessonSummary[];
+}
+
 /* ---------- Visuals (static explanations) ---------- */
 
 export type ShapeName = 'triangle' | 'square' | 'rectangle' | 'pentagon' | 'hexagon' | 'octagon' | 'circle' | 'rightAngle';
@@ -59,6 +71,7 @@ export interface QuestionStep {
 }
 
 export type LessonStep = ConceptStep | ExploreStep | QuestionStep;
+export type LearningStep = LessonStep;
 
 /* ---------- Courses & lessons ---------- */
 
@@ -66,6 +79,12 @@ export interface LessonSummary {
   id: string;
   title: string;
   minutes: number;
+  sequence_order?: number;
+  status?: string;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
+  bodyMarkdown?: string | null;
 }
 
 export interface Course {
@@ -77,6 +96,7 @@ export interface Course {
   image: string;
   skills: string[];
   lessons: LessonSummary[];
+  modules?: CourseModule[];
 }
 
 export interface LessonContent {
@@ -87,6 +107,10 @@ export interface LessonContent {
 export interface Lesson extends LessonSummary {
   courseId: string;
   steps: LessonStep[];
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
+  bodyMarkdown?: string | null;
 }
 
 /* ---------- Progress ---------- */

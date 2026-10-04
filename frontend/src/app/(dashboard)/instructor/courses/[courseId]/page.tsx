@@ -30,7 +30,7 @@ export default function TeacherCourse() {
         <LockIcon className="mx-auto h-10 w-10 text-ink-muted" aria-hidden="true" />
         <h1 className="mt-4 text-2xl font-black text-ink">This course isn’t assigned to you</h1>
         <p className="mt-2 text-ink-soft">You can only view courses you teach.</p>
-        <Link href="/teacher" className="mt-6 inline-block font-extrabold text-brand-500">Back to dashboard</Link>
+        <Link href="/instructor" className="mt-6 inline-block font-extrabold text-brand-500">Back to dashboard</Link>
       </div>);
 
   }
@@ -49,7 +49,7 @@ export default function TeacherCourse() {
 
   return (
     <div className="space-y-8">
-      <Link href="/teacher" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink-muted hover:text-ink">
+      <Link href="/instructor" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink-muted hover:text-ink">
         <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> Dashboard
       </Link>
 

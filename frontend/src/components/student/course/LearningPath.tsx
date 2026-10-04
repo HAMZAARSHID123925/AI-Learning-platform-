@@ -48,7 +48,7 @@ export function LearningPath({ course, lessons, latestAttempt }: LearningPathPro
       })}
       <PathNode
         state={challengeState}
-        href={`/dashboard/challenge/${course.id}`}
+        href={`/dashboard/courses/${course.id}/challenge`}
         icon={TrophyIcon}
         meta="Challenge Test · 10 questions"
         title={`${course.title} Challenge`}

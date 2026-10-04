@@ -17,9 +17,11 @@ interface ProgressContextValue extends ProgressState {
   recordAttempt: (attempt: AssessmentAttempt) => void;
   markPracticeDone: (courseId: string, key: string) => void;
   latestAttempt: (courseId: string) => AssessmentAttempt | undefined;
+  resetProgress: () => void;
 }
 
 const STORAGE_KEY = 'elarion-progress-v2';
+const emptyState: ProgressState = { lessons: {}, attempts: [], practiceDone: [], xpEarned: 0 };
 const initialState: ProgressState = { lessons: progressSeed.lessons, attempts: [], practiceDone: [], xpEarned: 0 };
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
@@ -80,9 +82,16 @@ export function ProgressProvider({ children }: {children: React.ReactNode;}) {
     [state.attempts]
   );
 
+  const resetProgress = useCallback(() => {
+    setState(emptyState);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyState));
+    } catch {}
+  }, []);
+
   const value = useMemo(
-    () => ({ ...state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt }),
-    [state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt]
+    () => ({ ...state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt, resetProgress }),
+    [state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt, resetProgress]
   );
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }

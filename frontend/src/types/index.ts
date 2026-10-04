@@ -64,3 +64,5 @@ export interface AdminCourse {
   status: 'published' | 'draft';
   avgProgress: number;
 }
+
+export type { Course, LessonSummary, Lesson, LessonProgress, CourseProgress } from './learning';

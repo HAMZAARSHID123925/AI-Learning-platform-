@@ -8,10 +8,14 @@ import { BookOpenTextIcon, CodeIcon, FlameIcon, LeafIcon, LockIcon, LogOutIcon, 
 import { Button } from '@/components/shared/Button';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProgress } from '@/contexts/ProgressContext';
 import { courses } from '@/data/courses';
 import { studentAvatar } from '@/data/illustrations';
 import { badges, profileStats, recentActivity, weeklyXp, BadgeIcon } from '@/data/profile';
+import { getCourseProgress } from '@/utils/progress';
 import { subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
+
 const badgeIcons: Record<BadgeIcon, any> = {
   sigma: SigmaIcon,
   leaf: LeafIcon,
@@ -32,8 +36,9 @@ export default function Profile() {
     setGrade,
     signOut
   } = useAuth();
+  const { lessons } = useProgress();
   const router = useRouter();
-  const grade = user?.grade ?? 5;
+  const grade = (user?.grade ?? 5) as Grade;
   const myCourses = courses.filter((c) => c.grade === grade);
   const weekTotal = weeklyXp.reduce((n, d) => n + d.xp, 0);
   const stats = [{
@@ -130,16 +135,18 @@ export default function Profile() {
           <h2 id="course-progress-title" className="text-xl font-black text-ink">Course progress</h2>
           <ul className="mt-5 space-y-5">
             {myCourses.map((c) => {
-            const s = subjectStyles[c.subject];
-            const pct = Math.round(c.completedLessons / c.lessons * 100);
-            return <li key={c.id}>
+              const s = subjectStyles[c.subject];
+              const prog = getCourseProgress(c, lessons);
+              return (
+                <li key={c.id}>
                   <div className="mb-1.5 flex items-center justify-between text-sm">
                     <span className="font-extrabold text-ink">{c.title}</span>
-                    <span className="font-bold text-ink-muted">{pct}%</span>
+                    <span className="font-bold text-ink-muted">{prog.percent}%</span>
                   </div>
-                  <ProgressBar value={pct} barClassName={s.solid} label={`${c.title} progress`} />
-                </li>;
-          })}
+                  <ProgressBar value={prog.percent} barClassName={s.solid} label={`${c.title} progress`} />
+                </li>
+              );
+            })}
           </ul>
         </section>
       </div>

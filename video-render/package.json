@@ -1,0 +1,28 @@
+{
+  "name": "elarion-video-render",
+  "version": "1.0.0",
+  "description": "ELARION AI Learning Platform — Remotion render service",
+  "private": true,
+  "scripts": {
+    "render": "node --loader ts-node/esm src/render.ts",
+    "validate": "node --loader ts-node/esm src/validate_payload.ts",
+    "studio": "npx remotion studio",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.532",
+    "@remotion/renderer": "^4.0.532",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.5.2",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}

@@ -114,6 +114,9 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str = ""
     S3_BUCKET_NAME: str = "elarion-assets"
     S3_REGION: str = "us-east-1"
+    MEDIA_SIGNED_URL_TTL_SECONDS: int = 900
+    MAX_VIDEO_SIZE_BYTES: int = 500 * 1024 * 1024  # 500 MB
+    MAX_IMAGE_SIZE_BYTES: int = 5 * 1024 * 1024    # 5 MB
 
     # -------------------------------------------------------------------------
     # AI — Embeddings
@@ -139,11 +142,33 @@ class Settings(BaseSettings):
     #   Groq offers free inference at very high speeds.
     #   Same OpenAI-compatible API. Provider abstraction makes switching trivial.
     # -------------------------------------------------------------------------
-    LLM_PROVIDER: str = "groq"  # groq | anthropic
+    LLM_PROVIDER: str = "groq"  # groq | anthropic | openai
     GROQ_API_KEY: str = ""
     GROQ_LLM_MODEL: str = "llama-3.3-70b-versatile"
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_LLM_MODEL: str = "claude-opus-4-5"
+    OPENAI_LLM_MODEL: str = "gpt-4o"
+
+    # -------------------------------------------------------------------------
+    # TTS — Text-to-Speech (M3.4 — Personalized Video Narration)
+    # Dev:  openai_tts (gpt-4o-mini-tts, "nova" voice — warm, friendly)
+    #       OR explicit mock (TTS_MOCK_MODE=true) when no key is present
+    # Prod: openai_tts | elevenlabs
+    # WHY abstracted:
+    #   Provider swap = env var change only. Service stays unchanged.
+    # -------------------------------------------------------------------------
+    TTS_PROVIDER: str = "openai_tts"     # openai_tts | elevenlabs
+    TTS_MOCK_MODE: bool = False           # Explicit mock — dev/test only
+    OPENAI_TTS_API_KEY: str = ""          # Required if TTS_PROVIDER=openai_tts
+    OPENAI_TTS_MODEL: str = "tts-1"       # tts-1 | tts-1-hd
+    OPENAI_TTS_VOICE: str = "nova"        # alloy | echo | fable | onyx | nova | shimmer
+    ELEVENLABS_API_KEY: str = ""          # Required if TTS_PROVIDER=elevenlabs
+    ELEVENLABS_VOICE_ID: str = ""         # ElevenLabs voice ID
+    TTS_SPEAKING_RATE: float = 1.0        # 0.25–4.0 for OpenAI; 0.7–1.2 for ElevenLabs
+    TTS_OUTPUT_FORMAT: str = "mp3"        # mp3 | opus
+    TTS_AUDIO_OBJECT_PREFIX: str = "personalized-video"  # S3 key prefix for audio clips
+    TTS_SCENE_PADDING_SECONDS: float = 0.5   # Padding added to render_duration after audio
+    TTS_DURATION_TOLERANCE_RATIO: float = 0.20  # ±20% total duration tolerance
 
     # -------------------------------------------------------------------------
     # Live Video Provider (Phase 4)
@@ -196,6 +221,32 @@ class Settings(BaseSettings):
     MAX_RETEST_ATTEMPTS: int = 3         # Max retests before instructor escalation
     REMEDIATION_LESSON_LIMIT: int = 5    # Max lessons in a remediation plan
 
+
+    @model_validator(mode="after")
+    def validate_production_readiness(self) -> "Settings":
+        if self.is_production:
+            if "localhost" in self.CORS_ALLOWED_ORIGINS:
+                raise ValueError("CORS_ALLOWED_ORIGINS must not contain localhost in production.")
+
+            if self.TTS_MOCK_MODE:
+                raise ValueError("TTS_MOCK_MODE=True is not allowed in production.")
+
+            if self.LLM_PROVIDER == "groq" and not self.GROQ_API_KEY:
+                raise ValueError("GROQ_API_KEY is required in production when LLM_PROVIDER=groq")
+            if self.LLM_PROVIDER == "anthropic" and not self.ANTHROPIC_API_KEY:
+                raise ValueError("ANTHROPIC_API_KEY is required in production when LLM_PROVIDER=anthropic")
+            if self.LLM_PROVIDER == "openai" and not self.OPENAI_API_KEY:
+                raise ValueError("OPENAI_API_KEY is required in production when LLM_PROVIDER=openai")
+
+            if self.TTS_PROVIDER == "openai_tts" and not self.OPENAI_TTS_API_KEY and not self.OPENAI_API_KEY:
+                raise ValueError("OPENAI_TTS_API_KEY or OPENAI_API_KEY is required in production when TTS_PROVIDER=openai_tts")
+            if self.TTS_PROVIDER == "elevenlabs" and not self.ELEVENLABS_API_KEY:
+                raise ValueError("ELEVENLABS_API_KEY is required in production when TTS_PROVIDER=elevenlabs")
+
+            if not self.S3_ACCESS_KEY_ID or not self.S3_SECRET_ACCESS_KEY:
+                raise ValueError("S3 credentials (S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY) are required in production.")
+
+        return self
 
 @lru_cache
 def get_settings() -> Settings:
