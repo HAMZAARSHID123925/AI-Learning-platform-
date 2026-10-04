@@ -1,16 +1,31 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import React from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeftIcon, SparklesIcon, ZapIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeftIcon, ArrowRightIcon, SparklesIcon, ZapIcon } from 'lucide-react';
 import { ButtonLink } from '@/components/student/ButtonLink';
+import { ProgressBar } from '@/components/student/ProgressBar';
 import { StateMessage } from '@/components/student/StateMessage';
+import { AnalysisPanel } from '@/components/student/assessment/AnalysisPanel';
+import { AnswerReview } from '@/components/student/assessment/AnswerReview';
 import { ScoreRing } from '@/components/student/assessment/ScoreRing';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useAsync } from '@/hooks/useAsync';
 import { learningApi } from '@/utils/learningApi';
 import { subjectStyles } from '@/utils/subjects';
-import type { RealSubmissionResult, Course } from '@/types/learning';
+import type { SkillResult } from '@/types/learning';
+
+const levelBar: Record<SkillResult['level'], string> = {
+  strong: 'bg-science-500',
+  developing: 'bg-math-500',
+  needs_work: 'bg-danger-500'
+};
+const levelLabel: Record<SkillResult['level'], string> = {
+  strong: 'Strong',
+  developing: 'Getting there',
+  needs_work: 'Needs practice'
+};
 
 function scoreMessage(percent: number): string {
   if (percent >= 90) return 'Brilliant work — you really know this!';
@@ -21,160 +36,97 @@ function scoreMessage(percent: number): string {
 
 export default function ChallengeResults() {
   const params = useParams();
-  const searchParams = useSearchParams();
-  const submissionId = searchParams.get('submissionId');
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
+  const { latestAttempt } = useProgress();
+  const attempt = latestAttempt(courseId);
+  const q = useAsync(
+    () => attempt ? learningApi.analyzeAssessment(attempt) : Promise.reject(new Error('no-attempt')),
+    [attempt?.id]
+  );
 
-  const q = useAsync(async () => {
-    const course = await learningApi.getCourse(courseId);
-    if (!submissionId) {
-      throw new Error('No submission found.');
-    }
-    const submission = await learningApi.getRealSubmission(submissionId);
-    const weaknesses = await learningApi.getActiveWeaknesses();
-    return { course, submission, weaknesses };
-  }, [courseId, submissionId]);
+  if (!attempt) {
+    return (
+      <StateMessage
+        kind="empty"
+        title="No Challenge Test yet"
+        message="Take the Challenge Test and Elo will analyze your strengths."
+        action={<ButtonLink href={`/dashboard/courses/${courseId}/challenge`}>Start the test</ButtonLink>} />);
+
+
+  }
 
   if (q.loading) {
     return (
-      <div className="min-h-screen w-full bg-white pt-24">
-        <StateMessage kind="loading" title="Fetching your results..." />
-      </div>
-    );
+      <div role="status" className="mx-auto flex max-w-md flex-col items-center rounded-[28px] bg-brand-50 px-8 py-14 text-center">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-500 shadow-[0_4px_0_0_#2438B0]" aria-hidden="true">
+          <SparklesIcon className="h-8 w-8 text-white" />
+        </span>
+        <p className="mt-5 text-xl font-black text-ink">Elo is analyzing your answers</p>
+        <p className="mt-1 text-ink-soft">Looking for your strengths and the skills to practice next.</p>
+        <div className="mt-5 flex gap-1.5" aria-hidden="true">
+          {[0, 1, 2].map((i) =>
+          <motion.span key={i} className="h-2.5 w-2.5 rounded-full bg-brand-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15, ease: 'linear' }} />
+          )}
+        </div>
+      </div>);
+
   }
 
-  if (q.error || !q.data) {
-    return (
-      <div className="min-h-screen w-full bg-white pt-24">
-         <StateMessage 
-          kind="error" 
-          message="We couldn't load your results right now." 
-          onRetry={q.reload} 
-          action={<ButtonLink href={`/dashboard/courses/${courseId}`} variant="secondary">Back to course</ButtonLink>} 
-        />
-      </div>
-    );
-  }
+  if (q.error || !q.data) return <StateMessage kind="error" message="We couldn’t analyze this test right now." onRetry={q.reload} />;
 
-  const { course, submission, weaknesses } = q.data;
-  const subjectStr = course.slug?.includes('science') ? 'science' : course.slug?.includes('english') ? 'english' : course.slug?.includes('computer') ? 'computer' : 'math';
-  const s = subjectStyles[subjectStr as 'math' | 'science' | 'english' | 'computer'] || subjectStyles['math'];
-  const percent = submission.overall_score * 100;
-  
-  const [startingFlagId, setStartingFlagId] = useState<string | null>(null);
-
-  let correctCount = 0;
-  let totalCount = 0;
-  const strong: typeof submission.skill_scores = [];
-  const developing: typeof submission.skill_scores = [];
-  const needsWork: typeof submission.skill_scores = [];
-
-  for (const sk of submission.skill_scores) {
-    correctCount += sk.score;
-    totalCount += sk.max_score;
-    const ratio = sk.max_score > 0 ? sk.score / sk.max_score : 0;
-    if (ratio >= 0.8) strong.push(sk);
-    else if (ratio >= 0.6) developing.push(sk);
-    else needsWork.push(sk);
-  }
+  const { course, questions, analysis } = q.data;
+  const s = subjectStyles[course.subject];
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-10">
       <Link href={`/dashboard/courses/${course.id}`} className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink-muted transition-colors duration-150 hover:text-ink">
         <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> {course.title} path
       </Link>
 
       <header>
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-extrabold ${s.bg} ${s.text}`}>
-          <s.icon className="h-4 w-4" aria-hidden="true" /> {course.title} · Final Assessment Results
+          <s.icon className="h-4 w-4" aria-hidden="true" /> {course.title} · Challenge Test
         </span>
         <h1 className="mt-3 text-4xl font-black tracking-tight text-ink sm:text-5xl">Your results</h1>
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
         <section aria-label="Score" className="flex flex-col items-center rounded-[28px] border-2 border-line p-7 text-center">
-          <ScoreRing percent={percent} hex={s.hex} />
+          <ScoreRing percent={analysis.scorePercent} hex={s.hex} />
           <p className="mt-5 text-2xl font-black text-ink">
-            {correctCount} of {totalCount} correct
+            {attempt.correct} of {attempt.total} correct
           </p>
-          <p className="mt-1 text-ink-soft">{scoreMessage(percent)}</p>
+          <p className="mt-1 text-ink-soft">{scoreMessage(analysis.scorePercent)}</p>
           <p className="mt-4 inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-extrabold text-brand-700">
-            <ZapIcon className="h-4 w-4 fill-brand-500 text-brand-500" aria-hidden="true" /> +{Math.round(percent)} XP
+            <ZapIcon className="h-4 w-4 fill-brand-500 text-brand-500" aria-hidden="true" /> +{attempt.correct * 10} XP
           </p>
         </section>
-        
-        <div className="flex flex-col justify-center rounded-[28px] bg-brand-50 p-8 sm:p-12">
-          <div className="mb-6 flex justify-center">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-500 shadow-[0_4px_0_0_#2438B0]">
-              <SparklesIcon className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h2 className="text-center text-2xl font-black tracking-tight text-ink">Personalized review is being prepared</h2>
-          <p className="mx-auto mt-2 text-center text-lg text-ink-soft">
-            Elo is analyzing your performance to generate a personalized video to strengthen areas that need work.
-          </p>
-
-          <div className="mt-8 space-y-6">
-            {needsWork.length > 0 && (
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wide text-danger-600">Needs Practice</h3>
-                <ul className="mt-4 space-y-4">
-                  {needsWork.map(sk => {
-                    const flag = weaknesses.find(w => w.submission_id === submission.id && w.skill_id === sk.skill_id);
-                    return (
-                      <li key={sk.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm border border-line">
-                        <span className="font-bold text-ink text-lg">{sk.skill_name || 'Unknown Topic'}</span>
-                        {flag && (
-                          <button 
-                            onClick={async () => {
-                              try {
-                                setStartingFlagId(flag.id);
-                                const job = await learningApi.createPersonalizedVideoJob(flag.id);
-                                window.location.href = `/dashboard/review/${job.id}`;
-                              } catch (e) {
-                                alert('Could not start review. Please try again.');
-                                setStartingFlagId(null);
-                              }
-                            }}
-                            disabled={startingFlagId !== null}
-                            className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-brand-500 px-4 py-2 text-sm font-extrabold text-white shadow-sm transition-all hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
-                          >
-                            {startingFlagId === flag.id ? 'Preparing...' : 'Start Personalized Review'}
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-            {strong.length > 0 && (
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wide text-science-600">Strong Areas</h3>
-                <ul className="mt-2 space-y-1">
-                  {strong.map(sk => (
-                    <li key={sk.id} className="font-bold text-ink">{sk.skill_name || 'Unknown Topic'}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {developing.length > 0 && (
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wide text-math-600">Developing Areas</h3>
-                <ul className="mt-2 space-y-1">
-                  {developing.map(sk => (
-                    <li key={sk.id} className="font-bold text-ink">{sk.skill_name || 'Unknown Topic'}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
+        <AnalysisPanel analysis={analysis} />
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row pt-8">
+      <section aria-labelledby="skills-title">
+        <h2 id="skills-title" className="text-2xl font-black text-ink">Skill breakdown</h2>
+        <ul className="mt-5 grid gap-x-10 gap-y-5 md:grid-cols-2">
+          {analysis.skills.map((sk) =>
+          <li key={sk.skill}>
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                <span className="font-extrabold text-ink">{sk.skill}</span>
+                <span className="font-bold text-ink-muted">{levelLabel[sk.level]} · {sk.correct}/{sk.total}</span>
+              </div>
+              <ProgressBar value={sk.percent} barClassName={levelBar[sk.level]} label={`${sk.skill} score`} />
+            </li>
+          )}
+        </ul>
+      </section>
+
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <ButtonLink href={`/dashboard/courses/${course.id}/personalized`} size="lg">
+          <SparklesIcon className="h-5 w-5" aria-hidden="true" /> See my personalized learning <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
+        </ButtonLink>
         <ButtonLink href={`/dashboard/courses/${course.id}`} size="lg" variant="secondary">Back to learning path</ButtonLink>
       </div>
-    </div>
-  );
+
+      <AnswerReview questions={questions} attempt={attempt} />
+    </div>);
+
 }

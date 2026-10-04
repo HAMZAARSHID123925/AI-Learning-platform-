@@ -3,12 +3,10 @@ export type Grade = 1 | 2 | 3 | 4 | 5;
 export type Subject = 'math' | 'science' | 'english' | 'computer';
 
 export interface User {
-  id: string;
   name: string;
   email: string;
   role: Role;
   grade?: Grade;
-  status?: string;
 }
 
 export interface LiveClass {
@@ -66,3 +64,5 @@ export interface AdminCourse {
   status: 'published' | 'draft';
   avgProgress: number;
 }
+
+export type { Course, LessonSummary, Lesson, LessonProgress, CourseProgress } from './learning';

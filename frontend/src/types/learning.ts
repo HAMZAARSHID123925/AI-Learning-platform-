@@ -1,5 +1,17 @@
 import type { Grade, Subject } from './index';
 
+export type { Grade, Subject };
+export type SubjectId = Subject;
+export type CourseStatus = 'published' | 'draft' | 'archived';
+export type LessonStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface CourseModule {
+  id: string;
+  title: string;
+  description?: string;
+  lessons: LessonSummary[];
+}
+
 /* ---------- Visuals (static explanations) ---------- */
 
 export type ShapeName = 'triangle' | 'square' | 'rectangle' | 'pentagon' | 'hexagon' | 'octagon' | 'circle' | 'rightAngle';
@@ -59,69 +71,23 @@ export interface QuestionStep {
 }
 
 export type LessonStep = ConceptStep | ExploreStep | QuestionStep;
+export type LearningStep = LessonStep;
 
-/* ---------- Real Backend Types ---------- */
+/* ---------- Courses & lessons ---------- */
 
-export interface Lesson {
-  id: string;
-  moduleId: string;
-  title: string;
-  slug: string;
-  status: string;
-  sequenceOrder: number;
-  contentVersion: number;
-  estimatedMinutes?: number | null;
-  videoUrl?: string | null;
-  thumbnailUrl?: string | null;
-  durationSeconds?: number | null;
-  skillIds: string[];
-  publishedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  // Detail-only
-  bodyMarkdown?: string | null;
-}
-
-export interface CourseModule {
-  id: string;
-  courseId: string;
-  title: string;
-  description?: string | null;
-  sequenceOrder: number;
-  lessonCount: number;
-  lessons?: Lesson[];
-  createdAt: string;
-}
-
-export interface Course {
-  id: string;
-  instructorId: string;
-  title: string;
-  slug: string;
-  description?: string | null;
-  status: string;
-  grade?: Grade | null;
-  thumbnailUrl?: string | null;
-  moduleCount: number;
-  createdAt: string;
-  updatedAt: string;
-  // Detail-only
-  modules?: CourseModule[];
-  // Transformed field for UI mapping
-  lessons?: Lesson[];
-}
-
-/* ---------- Legacy UI / Static Data Types ---------- */
-
-export interface LegacyLessonSummary {
+export interface LessonSummary {
   id: string;
   title: string;
   minutes: number;
+  sequence_order?: number;
   status?: string;
-  isChallenge?: boolean;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
+  bodyMarkdown?: string | null;
 }
 
-export interface LegacyCourseData {
+export interface Course {
   id: string;
   grade: Grade;
   subject: Subject;
@@ -129,12 +95,8 @@ export interface LegacyCourseData {
   description: string;
   image: string;
   skills: string[];
-  lessons: LegacyLessonSummary[];
-  progress: number;
-  completedLessons: number;
-  lessonCount: number;
-  lessonTitles?: string[];
-  moduleTitles: string[];
+  lessons: LessonSummary[];
+  modules?: CourseModule[];
 }
 
 export interface LessonContent {
@@ -142,11 +104,13 @@ export interface LessonContent {
   steps: LessonStep[];
 }
 
-export interface LegacyLessonData extends LegacyLessonSummary {
+export interface Lesson extends LessonSummary {
   courseId: string;
-  moduleId: string;
-  bodyMarkdown?: string | null;
   steps: LessonStep[];
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
+  bodyMarkdown?: string | null;
 }
 
 /* ---------- Progress ---------- */
@@ -161,12 +125,10 @@ export interface CourseProgress {
   completed: number;
   total: number;
   percent: number;
-  nextLesson: any | null;
+  nextLesson: LessonSummary | null;
   nextLessonNumber: number;
   nextLessonProgress: number;
   started: boolean;
-  assessment_status?: string;
-  latest_submission_id?: string;
 }
 
 /* ---------- Assessment ---------- */
@@ -196,56 +158,6 @@ export interface SkillResult {
   total: number;
   percent: number;
   level: 'strong' | 'developing' | 'needs_work';
-}
-
-export interface RealQuestionOption {
-  id: string;
-  text: string;
-}
-
-export interface RealQuestion {
-  id: string;
-  skillId?: string;
-  questionType: string;
-  prompt: string;
-  options: RealQuestionOption[];
-  maxScore: number;
-}
-
-export interface RealAssessment {
-  id: string;
-  courseId: string;
-  title: string;
-  questions: RealQuestion[];
-}
-
-export interface RealSubmissionAnswer {
-  question_id: string;
-  selected_option_id?: string;
-  text_answer?: string;
-}
-
-export interface SkillScoreResponse {
-  id: string;
-  skill_id: string;
-  skill_name?: string;
-  skill_slug?: string;
-  score: number;
-  max_score: number;
-  grader_type: string;
-  llm_feedback?: string;
-}
-
-export interface RealSubmissionResult {
-  id: string;
-  test_id: string;
-  student_id: string;
-  attempt_number: number;
-  status: string;
-  overall_score: number;
-  submitted_at: string;
-  graded_at?: string;
-  skill_scores: SkillScoreResponse[];
 }
 
 export interface LearningAnalysis {
@@ -285,43 +197,4 @@ export interface Recommendation {
   reason: string;
   cta: string;
   to: string;
-}
-
-export interface WeaknessFlag {
-  id: string;
-  student_id: string;
-  skill_id: string;
-  submission_id: string;
-  score_at_flag: number;
-  threshold: number;
-  status: string;
-}
-
-export interface VideoGenerationJob {
-  id: string;
-  weakness_flag_id: string;
-  status: string;
-  title: string;
-  target_duration_seconds: number;
-  video_url?: string;
-  thumbnail_url?: string;
-  error_code?: string;
-  created_at: string;
-  started_at?: string;
-  completed_at?: string;
-}
-
-export interface RemediationPlan {
-  id: string;
-  student_id: string;
-  weakness_flag_id: string;
-  status: string;
-  remedial_course_title?: string;
-  remedial_course_markdown?: string;
-  study_completed: boolean;
-  study_completed_at?: string;
-  retest_attempt_count: number;
-  instructor_escalated: boolean;
-  created_at: string;
-  completed_at?: string;
 }

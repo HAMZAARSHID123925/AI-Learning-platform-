@@ -3,18 +3,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { ChevronRightIcon } from 'lucide-react';
-import { AiAssistant } from '@/components/home/AiAssistant';
-import { ContinueCard } from '@/components/home/ContinueCard';
-import { DailyGoalCard } from '@/components/home/DailyGoalCard';
-import { WarmupCard } from '@/components/home/WarmupCard';
+import { AiAssistant } from '@/components/student/AiAssistant';
+import { DailyGoalCard } from '@/components/student/DailyGoalCard';
+import { WarmupCard } from '@/components/student/WarmupCard';
+import { ContinueCard } from '@/components/student/ContinueCard';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProgress } from '@/contexts/ProgressContext';
 import { courses } from '@/data/courses';
 import { subjectImages } from '@/data/illustrations';
 import { profileStats } from '@/data/profile';
-import { subjectStyles } from '@/utils/subjects';
-import { useProgress } from '@/contexts/ProgressContext';
 import { getCourseProgress } from '@/utils/progress';
+import { subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
 export default function Home() {
@@ -24,32 +24,32 @@ export default function Home() {
   const name = user?.name ?? 'Alex';
   const myCourses = courses.filter((c) => c.grade === grade);
   const current = myCourses.find((c) => c.subject === 'math') ?? myCourses[0];
-  const others = myCourses.filter((c) => c.id !== current.id);
+  const currentProgress = current ? getCourseProgress(current, lessons) : null;
+  const others = myCourses.filter((c) => c.id !== current?.id);
 
   const getCourseHref = (courseId: string) => {
-    // Map grade 5 course ids to their respective learning paths
-    const map: Record<string, string> = {
-      'g5-math': '/dashboard/courses/g5-fractions',
-      'g5-science': '/dashboard/courses/g5-plants-animals',
-      'g5-english': '/dashboard/courses/g5-reading',
-      'g5-computer': '/dashboard/courses/g5-digital-basics'
-    };
-    return map[courseId] || `/dashboard/courses/${courseId}`;
+    return `/dashboard/courses/${courseId}`;
   };
+
+  const completedCount = Object.values(lessons).filter((l) => l.status === 'completed').length;
+  const streak = completedCount > 0 ? profileStats.streak : 1;
+  const minutesToday = completedCount > 0 ? profileStats.minutesToday : 0;
 
   return (
     <div className="space-y-10">
       <header>
         <h1 className="text-4xl font-black tracking-tight text-ink sm:text-5xl">Hi, {name} 👋</h1>
         <p className="mt-2 text-lg text-ink-soft">
-          Grade {grade} · You’re on a <span className="font-extrabold text-streak-700">{profileStats.streak}-day streak</span>. Keep it going!
+          Grade {grade} · You’re on a <span className="font-extrabold text-streak-700">{streak}-day streak</span>. Keep it going!
         </p>
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
-        <ContinueCard course={current} />
+        {current && currentProgress && (
+          <ContinueCard course={current} progress={currentProgress} />
+        )}
         <div className="flex flex-col gap-5">
-          <DailyGoalCard minutes={profileStats.minutesToday} goal={profileStats.dailyGoalMinutes} />
+          <DailyGoalCard minutes={minutesToday} goal={profileStats.dailyGoalMinutes} />
           <WarmupCard grade={grade} />
         </div>
       </div>
@@ -66,21 +66,20 @@ export default function Home() {
         <ul className="-mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
           {others.map((c) => {
             const s = subjectStyles[c.subject];
-            const progress = getCourseProgress(c, lessons);
-            const pct = progress.percent;
+            const prog = getCourseProgress(c, lessons);
             return (
               <li key={c.id} className="w-64 shrink-0 snap-start sm:w-auto">
                 <Link
                   href={getCourseHref(c.id)}
                   className="group flex h-full flex-col overflow-hidden rounded-3xl border-2 border-line bg-white transition-[transform,border-color] duration-200 ease-out hover:-translate-y-1 hover:border-ink/20 cursor-pointer"
                 >
-                  <img src={subjectImages[c.subject]} alt="" className={`h-32 w-full object-cover ${s.bg}`} />
+                  <img src={c.image || subjectImages[c.subject]} alt="" className={`h-32 w-full object-cover ${s.bg}`} />
                   <div className="flex flex-1 flex-col p-4">
                     <span className={`text-xs font-extrabold ${s.text}`}>{s.label}</span>
                     <span className="mt-0.5 text-lg font-black text-ink">{c.title}</span>
                     <div className="mt-auto flex items-center gap-3 pt-4">
-                      <ProgressBar value={pct} barClassName={s.solid} label={`${c.title} progress`} />
-                      <span className="text-xs font-extrabold text-ink-soft">{pct}%</span>
+                      <ProgressBar value={prog.percent} barClassName={s.solid} label={`${c.title} progress`} />
+                      <span className="text-xs font-extrabold text-ink-soft">{prog.percent}%</span>
                     </div>
                   </div>
                 </Link>

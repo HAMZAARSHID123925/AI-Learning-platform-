@@ -1,7 +1,7 @@
 import type {
   AssessmentAttempt,
   ChallengeQuestion,
-  LegacyCourseData,
+  Course,
   LearningAnalysis,
   LessonStep,
   PersonalizedPlan,
@@ -21,7 +21,7 @@ function levelFor(percent: number): SkillResult['level'] {
   return 'needs_work';
 }
 
-export function analyzeAttempt(course: LegacyCourseData, questions: ChallengeQuestion[], attempt: AssessmentAttempt): LearningAnalysis {
+export function analyzeAttempt(course: Course, questions: ChallengeQuestion[], attempt: AssessmentAttempt): LearningAnalysis {
   const byId = new Map(questions.map((q) => [q.id, q]));
   const tally = new Map<string, {correct: number;total: number;}>();
   attempt.questionIds.forEach((id, i) => {
@@ -50,7 +50,7 @@ export function analyzeAttempt(course: LegacyCourseData, questions: ChallengeQue
   return { attemptId: attempt.id, scorePercent, strong, developing, needsWork, skills, summary: buildSummary(course, strong, developing, needsWork, scorePercent) };
 }
 
-function buildSummary(course: LegacyCourseData, strong: SkillResult[], developing: SkillResult[], needsWork: SkillResult[], score: number): string {
+function buildSummary(course: Course, strong: SkillResult[], developing: SkillResult[], needsWork: SkillResult[], score: number): string {
   const list = (items: SkillResult[]) => items.map((s) => s.skill.toLowerCase()).join(' and ');
   if (!needsWork.length && !developing.length) {
     return `Outstanding! You showed strong understanding across every part of ${course.title}. Try the challenge questions to push even further.`;
@@ -75,7 +75,7 @@ function questionPool(lessonSteps: LessonStep[], challenge: ChallengeQuestion[])
   return pool;
 }
 
-export function buildPlan(course: LegacyCourseData, analysis: LearningAnalysis, lessonSteps: LessonStep[], challenge: ChallengeQuestion[]): PersonalizedPlan {
+export function buildPlan(course: Course, analysis: LearningAnalysis, lessonSteps: LessonStep[], challenge: ChallengeQuestion[]): PersonalizedPlan {
   const pool = questionPool(lessonSteps, challenge);
   const weak = weakestSkills(analysis).slice(0, 2);
   const items: PracticeItem[] = weak.map((s) => ({

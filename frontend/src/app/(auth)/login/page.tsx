@@ -10,72 +10,63 @@ import { Logo } from '@/components/shared/Logo';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { subjectImages } from '@/data/illustrations';
 import { Role } from '@/types';
-
+const roles: {
+  id: Role;
+  label: string;
+  hint: string;
+  icon: any;
+}[] = [{
+  id: 'student',
+  label: 'Student',
+  hint: 'Learn & play',
+  icon: GraduationCapIcon
+}, {
+  id: 'teacher',
+  label: 'Teacher',
+  hint: 'Run my classes',
+  icon: PresentationIcon
+}, {
+  id: 'admin',
+  label: 'Admin',
+  hint: 'Manage school',
+  icon: ShieldCheckIcon
+}];
 export default function Login() { return <AuthProvider><LoginInner /></AuthProvider>; }
 function LoginInner() {
   const {
-    signIn,
-    user,
-    isLoading
+    signIn
   } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>('student');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
-    form?: string;
   }>({});
   const [loading, setLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (!isLoading && user) {
-      if (user.role === 'student') {
-        router.replace(user.grade ? '/dashboard' : '/onboarding/grade');
-      } else if (user.role === 'teacher') {
-        router.replace('/instructor');
-      } else {
-        router.replace('/admin');
-      }
-    }
-  }, [user, isLoading, router]);
-
-  if (isLoading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-surface">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-ink border-t-transparent" />
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const next: typeof errors = {};
     if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Enter a valid email address';
     if (password.length < 6) next.password = 'Password needs at least 6 characters';
     setErrors(next);
     if (Object.keys(next).length) return;
-
     setLoading(true);
-    try {
-      const loggedInUser = await signIn(email, password);
-      if (loggedInUser) {
-        if (loggedInUser.role === 'student') {
-          router.push(loggedInUser.grade ? '/dashboard' : '/onboarding/grade');
-        } else if (loggedInUser.role === 'teacher') {
-          router.push('/instructor');
-        } else {
-          router.push('/admin');
-        }
-      } else {
-        setErrors({ form: 'Failed to retrieve user profile.' });
+
+    window.setTimeout(() => {
+      const success = signIn(email, password, role);
+      if (!success) {
         setLoading(false);
+        setErrors({
+          email: 'Invalid email, password, or account role selected.',
+        });
+        return;
       }
-    } catch (err: any) {
-      setErrors({ form: err.message || 'Invalid credentials. Please try again.' });
-      setLoading(false);
-    }
+
+      router.push(role === 'student' ? '/dashboard' : role === 'teacher' ? '/instructor' : '/admin');
+    }, 500);
   };
   return <div className="grid min-h-screen w-full bg-white lg:grid-cols-[1fr_1.05fr]">
       <main className="flex flex-col px-6 py-8 sm:px-12 lg:px-16">
@@ -102,13 +93,33 @@ function LoginInner() {
               {errors.password && <p id="password-error" className="mt-1.5 text-sm font-semibold text-danger-700">{errors.password}</p>}
             </div>
 
-            {errors.form && <div className="rounded-xl bg-danger-50 p-4 text-sm font-medium text-danger-700 border border-danger-200">{errors.form}</div>}
+            <fieldset>
+              <legend className="mb-2 text-sm font-bold text-ink">I am a…</legend>
+              <div role="radiogroup" className="grid grid-cols-3 gap-3">
+                {roles.map((r) => {
+                const active = r.id === role;
+                return <button key={r.id} type="button" role="radio" aria-checked={active} onClick={() => setRole(r.id)} className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-4 transition-[border-color,background-color,transform] duration-150 active:scale-[0.97] ${active ? 'border-ink bg-surface' : 'border-line bg-white hover:border-ink/30'}`}>
+                      <r.icon className={`h-6 w-6 ${active ? 'text-ink' : 'text-ink-muted'}`} aria-hidden="true" />
+                      <span className="text-sm font-extrabold text-ink">{r.label}</span>
+                      <span className="text-xs text-ink-muted">{r.hint}</span>
+                    </button>;
+              })}
+              </div>
+            </fieldset>
 
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? <Loader2Icon className="h-5 w-5 animate-spin" aria-label="Signing in" /> : 'Sign in'}
             </Button>
           </form>
-          <p className="mt-6 text-center text-sm text-ink-muted">Use any email and a 6+ character password to explore.</p>
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-sm text-ink-muted">
+              Don&apos;t have an account?{' '}
+              <a href="/signup" className="font-bold text-ink hover:underline">
+                Sign up
+              </a>
+            </p>
+            <p className="text-xs text-ink-muted">Use any email and a 6+ character password to explore.</p>
+          </div>
         </div>
       </main>
 

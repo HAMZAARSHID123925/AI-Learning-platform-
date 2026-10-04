@@ -13,12 +13,9 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, progress, featured = false }: CourseCardProps) {
-  // Try to guess subject from slug or fallback to math
-  const subjectStr = course.slug?.includes('science') ? 'science' : course.slug?.includes('english') ? 'english' : course.slug?.includes('computer') ? 'computer' : 'math';
-  const s = subjectStyles[subjectStr as 'math' | 'science' | 'english' | 'computer'] || subjectStyles['math'];
-  const lessons = course.lessons || [];
-  const available = lessons.length > 0;
-  const minutes = lessons.reduce((n, l) => n + (l.estimatedMinutes || 10), 0);
+  const s = subjectStyles[course.subject];
+  const available = course.lessons.length > 0;
+  const minutes = course.lessons.reduce((n, l) => n + l.minutes, 0);
   const done = available && progress.completed === progress.total;
   const cta = done ? 'Review' : progress.started ? 'Continue' : 'Start course';
 
@@ -29,7 +26,7 @@ export function CourseCard({ course, progress, featured = false }: CourseCardPro
       className={`group relative flex h-full flex-col overflow-hidden rounded-[28px] border-2 border-line bg-white transition-[box-shadow,border-color] duration-200 ${available ? 'hover:border-ink/15 hover:shadow-lift' : ''}`}>
       
       <div className={`relative ${s.bg}`}>
-        <img src={course.thumbnailUrl || ''} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]" />
+        <img src={course.image} alt="" className="aspect-[4/3] w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]" />
         {featured && <span className="absolute left-4 top-4 rounded-full bg-ink px-3 py-1 text-xs font-extrabold text-white">Up next</span>}
         {done && <span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full bg-science-500 px-3 py-1 text-xs font-extrabold text-white"><CheckIcon className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />Completed</span>}
       </div>
@@ -45,12 +42,12 @@ export function CourseCard({ course, progress, featured = false }: CourseCardPro
         {available ?
         <>
             <p className="mt-4 flex items-center gap-4 text-sm font-bold text-ink-muted">
-              <span className="inline-flex items-center gap-1.5"><LayersIcon className="h-4 w-4" aria-hidden="true" />{lessons.length} lessons</span>
+              <span className="inline-flex items-center gap-1.5"><LayersIcon className="h-4 w-4" aria-hidden="true" />{course.lessons.length} lessons</span>
               <span className="inline-flex items-center gap-1.5"><ClockIcon className="h-4 w-4" aria-hidden="true" />{minutes} min</span>
             </p>
             <div className="mt-4" aria-label={`${progress.completed} of ${progress.total} lessons complete`}>
               <ol className="flex items-center gap-1.5" aria-hidden="true">
-                {lessons.map((l, i) => {
+                {course.lessons.map((l, i) => {
                 const isDone = i < progress.completed;
                 const current = i === progress.completed;
                 return (

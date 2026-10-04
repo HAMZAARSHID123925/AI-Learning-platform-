@@ -1,17 +1,12 @@
-import type { CourseProgress, LessonProgress } from '@/types/learning';
+import type { Course, CourseProgress, LessonProgress } from '@/types/learning';
 
 export type LessonNodeState = 'completed' | 'current' | 'locked';
 
-interface ProgressCourse {
-  lessons?: { id: string; title?: string }[];
-}
-
-export function getCourseProgress(course: ProgressCourse, lessons: Record<string, LessonProgress>): CourseProgress {
-  const courseLessons = course.lessons || [];
-  const total = courseLessons.length;
-  const completed = courseLessons.filter((l) => lessons[l.id]?.status === 'completed').length;
-  const nextIndex = courseLessons.findIndex((l) => lessons[l.id]?.status !== 'completed');
-  const nextLesson = nextIndex >= 0 ? courseLessons[nextIndex] as any : null;
+export function getCourseProgress(course: Course, lessons: Record<string, LessonProgress>): CourseProgress {
+  const total = course.lessons.length;
+  const completed = course.lessons.filter((l) => lessons[l.id]?.status === 'completed').length;
+  const nextIndex = course.lessons.findIndex((l) => lessons[l.id]?.status !== 'completed');
+  const nextLesson = nextIndex >= 0 ? course.lessons[nextIndex] : null;
   const nextLessonProgress = nextLesson ? lessons[nextLesson.id]?.progress ?? 0 : 100;
   return {
     completed,
@@ -24,16 +19,13 @@ export function getCourseProgress(course: ProgressCourse, lessons: Record<string
   };
 }
 
-export function getLessonState(course: ProgressCourse, index: number, lessons: Record<string, LessonProgress>): LessonNodeState {
-  const courseLessons = course.lessons || [];
-  const lesson = courseLessons[index];
-  if (!lesson) return 'locked';
+export function getLessonState(course: Course, index: number, lessons: Record<string, LessonProgress>): LessonNodeState {
+  const lesson = course.lessons[index];
   if (lessons[lesson.id]?.status === 'completed') return 'completed';
-  const firstOpen = courseLessons.findIndex((l) => lessons[l.id]?.status !== 'completed');
+  const firstOpen = course.lessons.findIndex((l) => lessons[l.id]?.status !== 'completed');
   return index === firstOpen ? 'current' : 'locked';
 }
 
-export function isCourseComplete(course: ProgressCourse, lessons: Record<string, LessonProgress>): boolean {
-  const courseLessons = course.lessons || [];
-  return courseLessons.length > 0 && courseLessons.every((l) => lessons[l.id]?.status === 'completed');
+export function isCourseComplete(course: Course, lessons: Record<string, LessonProgress>): boolean {
+  return course.lessons.length > 0 && course.lessons.every((l) => lessons[l.id]?.status === 'completed');
 }

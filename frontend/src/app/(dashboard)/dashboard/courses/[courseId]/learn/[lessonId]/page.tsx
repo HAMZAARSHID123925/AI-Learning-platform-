@@ -10,7 +10,7 @@ import { useProgress } from '@/contexts/ProgressContext';
 import { useAsync } from '@/hooks/useAsync';
 import { learningApi } from '@/utils/learningApi';
 
-export default function LearnPage() {
+export default function Lesson() {
   const params = useParams();
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
   const lessonId = Array.isArray(params.lessonId) ? params.lessonId[0] : (params.lessonId || '');
@@ -24,7 +24,6 @@ export default function LearnPage() {
       </div>
     );
   }
-
   if (q.error || !q.data) {
     return (
       <div className="min-h-screen w-full bg-white px-5 pt-24">
@@ -32,11 +31,7 @@ export default function LearnPage() {
           kind="error"
           message={q.error?.message}
           onRetry={q.reload}
-          action={
-            <ButtonLink href={`/dashboard/courses/${courseId}`} variant="secondary">
-              Back to course
-            </ButtonLink>
-          }
+          action={<ButtonLink href={`/dashboard/courses/${courseId}`} variant="secondary">Back to course</ButtonLink>}
         />
       </div>
     );

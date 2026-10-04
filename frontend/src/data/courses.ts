@@ -1,7 +1,7 @@
-import type { LegacyCourseData } from '@/types/learning';
+import type { Course } from '@/types/learning';
 import { subjectImages, topicImages } from './illustrations';
 
-const rawCourses: any[] = [
+export const courses: Course[] = [
 /* ---------- Grade 5 · Mathematics ---------- */
 {
   id: 'g5-fractions', grade: 5, subject: 'math', title: 'Fractions', image: topicImages.fractions,
@@ -123,27 +123,19 @@ const rawCourses: any[] = [
 },
 
 /* ---------- Grades 1–4 (interactive paths coming soon) ---------- */
-{ id: 'g1-math', grade: 1, subject: 'math', title: 'Counting & Numbers', image: subjectImages.math, description: 'Count, compare and order numbers up to 100.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g1-science', grade: 1, subject: 'science', title: 'Living Things', image: subjectImages.science, description: 'Discover what plants and animals need to grow.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g1-english', grade: 1, subject: 'english', title: 'Letters & Sounds', image: subjectImages.english, description: 'Blend sounds together to read your first words.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g1-computer', grade: 1, subject: 'computer', title: 'Meet the Computer', image: subjectImages.computer, description: 'Learn the parts of a computer and how to use them safely.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g2-math', grade: 2, subject: 'math', title: 'Adding & Taking Away', image: subjectImages.math, description: 'Add and subtract with pictures, number lines and tens.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g2-science', grade: 2, subject: 'science', title: 'Weather & Seasons', image: subjectImages.science, description: 'Find out why it rains, snows and gets sunny.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g2-english', grade: 2, subject: 'english', title: 'Word Families', image: subjectImages.english, description: 'Spot patterns in words to read faster.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g2-computer', grade: 2, subject: 'computer', title: 'Mouse & Keyboard', image: subjectImages.computer, description: 'Click, drag and type like a pro.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g3-math', grade: 3, subject: 'math', title: 'Multiplication', image: subjectImages.math, description: 'Groups, arrays and the times tables made visual.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g3-science', grade: 3, subject: 'science', title: 'Rocks & Soil', image: subjectImages.science, description: 'Dig into the ground beneath your feet.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g3-english', grade: 3, subject: 'english', title: 'Story Explorers', image: subjectImages.english, description: 'Characters, settings and how stories are built.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g3-computer', grade: 3, subject: 'computer', title: 'Typing Adventures', image: subjectImages.computer, description: 'Learn the home row and type without looking.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g4-math', grade: 4, subject: 'math', title: 'Division & Patterns', image: subjectImages.math, description: 'Share things equally and find number patterns.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
-{ id: 'g4-science', grade: 4, subject: 'science', title: 'Energy & Motion', image: subjectImages.science, description: 'Pushes, pulls and what makes things move.', skills: [], lessons: [], progress: 0, completedLessons: 0, lessonCount: 0, moduleTitles: [] },
+{ id: 'g1-math', grade: 1, subject: 'math', title: 'Counting & Numbers', image: subjectImages.math, description: 'Count, compare and order numbers up to 100.', skills: [], lessons: [] },
+{ id: 'g1-science', grade: 1, subject: 'science', title: 'Living Things', image: subjectImages.science, description: 'Discover what plants and animals need to grow.', skills: [], lessons: [] },
+{ id: 'g1-english', grade: 1, subject: 'english', title: 'Letters & Sounds', image: subjectImages.english, description: 'Blend sounds together to read your first words.', skills: [], lessons: [] },
+{ id: 'g1-computer', grade: 1, subject: 'computer', title: 'Meet the Computer', image: subjectImages.computer, description: 'Learn the parts of a computer and how to use them safely.', skills: [], lessons: [] },
+{ id: 'g2-math', grade: 2, subject: 'math', title: 'Adding & Taking Away', image: subjectImages.math, description: 'Add and subtract with pictures, number lines and tens.', skills: [], lessons: [] },
+{ id: 'g2-science', grade: 2, subject: 'science', title: 'Weather & Seasons', image: subjectImages.science, description: 'Find out why it rains, snows and gets sunny.', skills: [], lessons: [] },
+{ id: 'g2-english', grade: 2, subject: 'english', title: 'Word Families', image: subjectImages.english, description: 'Spot patterns in words to read faster.', skills: [], lessons: [] },
+{ id: 'g2-computer', grade: 2, subject: 'computer', title: 'Mouse & Keyboard', image: subjectImages.computer, description: 'Click, drag and type like a pro.', skills: [], lessons: [] },
+{ id: 'g3-math', grade: 3, subject: 'math', title: 'Multiplication', image: subjectImages.math, description: 'Groups, arrays and the times tables made visual.', skills: [], lessons: [] },
+{ id: 'g3-science', grade: 3, subject: 'science', title: 'Rocks & Soil', image: subjectImages.science, description: 'Dig into the ground beneath your feet.', skills: [], lessons: [] },
+{ id: 'g3-english', grade: 3, subject: 'english', title: 'Story Explorers', image: subjectImages.english, description: 'Characters, settings and how stories are built.', skills: [], lessons: [] },
+{ id: 'g3-computer', grade: 3, subject: 'computer', title: 'Typing Adventures', image: subjectImages.computer, description: 'Learn the home row and type without looking.', skills: [], lessons: [] },
+{ id: 'g4-math', grade: 4, subject: 'math', title: 'Division & Patterns', image: subjectImages.math, description: 'Share things equally and find number patterns.', skills: [], lessons: [] },
+{ id: 'g4-science', grade: 4, subject: 'science', title: 'Energy & Motion', image: subjectImages.science, description: 'Pushes, pulls and what makes things move.', skills: [], lessons: [] },
 { id: 'g4-english', grade: 4, subject: 'english', title: 'Grammar Quest', image: subjectImages.english, description: 'Build strong sentences one word at a time.', skills: [], lessons: [] },
 { id: 'g4-computer', grade: 4, subject: 'computer', title: 'Coding with Blocks', image: subjectImages.computer, description: 'Snap blocks together to make things happen.', skills: [], lessons: [] }];
-
-export const courses: LegacyCourseData[] = rawCourses.map(c => ({
-  ...c,
-  progress: 0,
-  completedLessons: 0,
-  lessonCount: c.lessons.length,
-  moduleTitles: []
-}));

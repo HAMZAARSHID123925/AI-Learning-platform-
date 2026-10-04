@@ -15,17 +15,15 @@ interface LearningPathProps {
 const offsets = ['sm:ml-0', 'sm:ml-16', 'sm:ml-28', 'sm:ml-16'];
 
 export function LearningPath({ course, lessons, latestAttempt }: LearningPathProps) {
-  const subjectStr = course.slug?.includes('science') ? 'science' : course.slug?.includes('english') ? 'english' : course.slug?.includes('computer') ? 'computer' : 'math';
-  const s = subjectStyles[subjectStr as 'math' | 'science' | 'english' | 'computer'] || subjectStyles['math'];
+  const s = subjectStyles[course.subject];
   const allDone = isCourseComplete(course, lessons);
   const challengeState: PathNodeState = latestAttempt ? 'completed' : allDone ? 'current' : 'locked';
   const planState: PathNodeState = latestAttempt ? 'current' : 'locked';
-  const courseLessons = course.lessons || [];
-  const n = courseLessons.length;
+  const n = course.lessons.length;
 
   return (
     <ol className="flex flex-col gap-7" aria-label={`${course.title} learning path`}>
-      {courseLessons.map((l, i) => {
+      {course.lessons.map((l, i) => {
         const state = getLessonState(course, i, lessons);
         const p = lessons[l.id];
         const note =
@@ -38,7 +36,7 @@ export function LearningPath({ course, lessons, latestAttempt }: LearningPathPro
             state={state}
             href={`/dashboard/learn/${course.id}/${l.id}`}
             icon={PlayIcon}
-            meta={`Lesson ${i + 1} · ${l.estimatedMinutes || 10} min`}
+            meta={`Lesson ${i + 1} · ${l.minutes} min`}
             title={l.title}
             note={note}
             cta={p?.progress ? 'Continue' : 'Start'}
@@ -50,7 +48,7 @@ export function LearningPath({ course, lessons, latestAttempt }: LearningPathPro
       })}
       <PathNode
         state={challengeState}
-        href={`/dashboard/challenge/${course.id}`}
+        href={`/dashboard/courses/${course.id}/challenge`}
         icon={TrophyIcon}
         meta="Challenge Test · 10 questions"
         title={`${course.title} Challenge`}

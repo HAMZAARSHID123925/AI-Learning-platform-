@@ -2,7 +2,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { progressSeed } from '@/data/progressSeed';
 import { learningApi } from '@/utils/learningApi';
-import { useAuth } from '@/contexts/AuthContext';
 import type { AssessmentAttempt, LessonProgress } from '@/types/learning';
 
 interface ProgressState {
@@ -14,14 +13,16 @@ interface ProgressState {
 
 interface ProgressContextValue extends ProgressState {
   updateLessonProgress: (lessonId: string, progress: number) => void;
-  completeLesson: (lessonId: string, score?: {correct: number;total: number;}) => void;
+  completeLesson: (lessonId: string, score: {correct: number;total: number;}) => void;
   recordAttempt: (attempt: AssessmentAttempt) => void;
   markPracticeDone: (courseId: string, key: string) => void;
   latestAttempt: (courseId: string) => AssessmentAttempt | undefined;
+  resetProgress: () => void;
 }
 
 const STORAGE_KEY = 'elarion-progress-v2';
-const initialState: ProgressState = { lessons: {}, attempts: [], practiceDone: [], xpEarned: 0 };
+const emptyState: ProgressState = { lessons: {}, attempts: [], practiceDone: [], xpEarned: 0 };
+const initialState: ProgressState = { lessons: progressSeed.lessons, attempts: [], practiceDone: [], xpEarned: 0 };
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
 
@@ -29,43 +30,19 @@ export function ProgressProvider({ children }: {children: React.ReactNode;}) {
   const [state, setState] = useState<ProgressState>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as ProgressState;
-        return { ...initialState, ...parsed, lessons: {} }; // Clear lessons from localStorage
-      }
-      return initialState;
+      return raw ? { ...initialState, ...(JSON.parse(raw) as ProgressState) } : initialState;
     } catch {
       return initialState;
     }
   });
 
   useEffect(() => {
-    // Only persist non-lesson state to local storage
     try {
-      const stateToSave = { ...state, lessons: {} };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      /* storage unavailable */
-    }
+
+      /* storage unavailable */}
   }, [state]);
-
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user?.role === 'Student') {
-      learningApi.getCompletedLessons()
-        .then(ids => {
-          setState(s => {
-            const newLessons = { ...s.lessons };
-            ids.forEach(id => {
-              newLessons[id] = { status: 'completed', progress: 100 };
-            });
-            return { ...s, lessons: newLessons };
-          });
-        })
-        .catch(console.error);
-    }
-  }, [user]);
 
   const updateLessonProgress = useCallback((lessonId: string, progress: number) => {
     setState((s) => {
@@ -77,27 +54,10 @@ export function ProgressProvider({ children }: {children: React.ReactNode;}) {
     });
   }, []);
 
-  const completeLesson = useCallback((lessonId: string, score?: {correct: number;total: number;}) => {
+  const completeLesson = useCallback((lessonId: string, score: {correct: number;total: number;}) => {
     const next: LessonProgress = { status: 'completed', progress: 100, score };
-    
-    // Optimistic update
-    setState((s) => ({ 
-      ...s, 
-      xpEarned: s.xpEarned + 20 + (score?.correct ?? 0) * 10, 
-      lessons: { ...s.lessons, [lessonId]: next } 
-    }));
-
-    // Call real backend
-    learningApi.completeLesson(lessonId)
-      .catch((err) => {
-        console.error('Failed to mark lesson complete on backend:', err);
-        // Rollback optimistic update
-        setState((s) => {
-          const newLessons = { ...s.lessons };
-          delete newLessons[lessonId];
-          return { ...s, lessons: newLessons };
-        });
-      });
+    void learningApi.saveLessonProgress(lessonId, next);
+    setState((s) => ({ ...s, xpEarned: s.xpEarned + 20 + score.correct * 10, lessons: { ...s.lessons, [lessonId]: next } }));
   }, []);
 
   const recordAttempt = useCallback((attempt: AssessmentAttempt) => {
@@ -122,9 +82,16 @@ export function ProgressProvider({ children }: {children: React.ReactNode;}) {
     [state.attempts]
   );
 
+  const resetProgress = useCallback(() => {
+    setState(emptyState);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyState));
+    } catch {}
+  }, []);
+
   const value = useMemo(
-    () => ({ ...state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt }),
-    [state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt]
+    () => ({ ...state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt, resetProgress }),
+    [state, updateLessonProgress, completeLesson, recordAttempt, markPracticeDone, latestAttempt, resetProgress]
   );
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }

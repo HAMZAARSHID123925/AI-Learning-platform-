@@ -1,15 +1,15 @@
-import type { AssessmentAttempt, ChallengeSet, LegacyCourseData, LessonProgress, Recommendation } from '@/types/learning';
+import type { AssessmentAttempt, ChallengeSet, Course, LessonProgress, Recommendation } from '@/types/learning';
 import { analyzeAttempt, weakestSkills } from './assessment';
 import { getCourseProgress, isCourseComplete } from './progress';
 
 export function buildRecommendations(
-courses: LegacyCourseData[],
+courses: Course[],
 lessons: Record<string, LessonProgress>,
 attempts: AssessmentAttempt[],
 challenges: ChallengeSet[])
 : Recommendation[] {
   const recs: Recommendation[] = [];
-  const playable = courses.filter((c) => c.lessons && c.lessons.length > 0);
+  const playable = courses.filter((c) => c.lessons.length > 0);
 
   // 1. Weak skill from the most recent assessment
   const latest = [...attempts].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0];

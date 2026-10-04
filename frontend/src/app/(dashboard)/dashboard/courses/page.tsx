@@ -65,10 +65,7 @@ export default function Courses() {
       {q.data && (
         <div className="space-y-14">
           {subjectOrder.map((subject) => {
-            const group = rows.filter((r) => {
-              const subjectStr = r.course.slug?.includes('science') ? 'science' : r.course.slug?.includes('english') ? 'english' : r.course.slug?.includes('computer') ? 'computer' : 'math';
-              return subjectStr === subject;
-            });
+            const group = rows.filter((r) => r.course.subject === subject);
             if (!group.length) return null;
             const s = subjectStyles[subject];
             return (

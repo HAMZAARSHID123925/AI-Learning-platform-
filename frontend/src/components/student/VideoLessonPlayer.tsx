@@ -17,7 +17,7 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
 
   const handleComplete = () => {
     if (!isCompleted) {
-      completeLesson(lesson.id);
+      completeLesson(lesson.id, { correct: 1, total: 1 });
     }
   };
 

@@ -8,12 +8,12 @@ import { Modal } from '@/components/shared/Modal';
 import { useClasses } from '@/contexts/ClassesContext';
 import { courseName } from '@/utils/subjects';
 import { formatTime24, offsetFromDate } from '@/utils/dates';
-import type { LegacyCourseData } from '@/types/learning';
+import type { Course } from '@/types';
 
 interface ScheduleClassModalProps {
   open: boolean;
   onClose: () => void;
-  courses: LegacyCourseData[];
+  courses: Course[];
   teacherName: string;
   defaultCourseId?: string;
   defaultMode?: 'schedule' | 'now';

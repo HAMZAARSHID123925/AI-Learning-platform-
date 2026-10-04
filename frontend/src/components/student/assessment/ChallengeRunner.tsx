@@ -68,7 +68,7 @@ export function ChallengeRunner({ course, questions }: {course: Course;questions
             
             <QuestionStepView
               step={c.question}
-              subject={course.slug?.includes('science') ? 'science' : course.slug?.includes('english') ? 'english' : course.slug?.includes('computer') ? 'computer' : 'math'}
+              subject={course.subject}
               selected={c.answers[c.current]}
               revealed={false}
               onSelect={c.select}

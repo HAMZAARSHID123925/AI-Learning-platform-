@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { PlusIcon, UserPlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
@@ -87,9 +86,6 @@ export default function AdminCourses() {
               </div>
 
               <div className="col-start-3 row-start-1 flex items-center gap-2 md:col-start-auto md:row-start-auto">
-                <Link href={`/admin/courses/${c.id}/builder`} className="text-sm font-extrabold text-brand-500 hover:text-brand-600 mr-2">
-                  Edit
-                </Link>
                 <span className={`hidden text-xs font-extrabold sm:inline ${published ? 'text-science-700' : 'text-ink-muted'}`}>{published ? 'Published' : 'Draft'}</span>
                 <button
                   type="button"
