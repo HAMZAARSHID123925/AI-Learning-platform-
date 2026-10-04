@@ -125,7 +125,7 @@ def create_access_token(
     jti = str(uuid.uuid4())
 
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "email": email,
         "first_name": first_name,
         "roles": roles,

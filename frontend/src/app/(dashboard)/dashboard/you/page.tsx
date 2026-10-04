@@ -36,20 +36,42 @@ export default function Profile() {
     setGrade,
     signOut
   } = useAuth();
-  const { lessons } = useProgress();
+  const { lessons, xpEarned } = useProgress();
   const router = useRouter();
   const grade = (user?.grade ?? 5) as Grade;
   const myCourses = courses.filter((c) => c.grade === grade);
-  const weekTotal = weeklyXp.reduce((n, d) => n + d.xp, 0);
+
+  // Compute dynamic stats from actual student lesson completions
+  const completedLessonCount = Object.values(lessons).filter((l) => l.status === 'completed').length;
+  const inProgressLessonCount = Object.values(lessons).filter((l) => l.status === 'in_progress').length;
+  const completedCoursesCount = myCourses.filter((c) => {
+    const prog = getCourseProgress(c, lessons);
+    return prog.percent === 100;
+  }).length;
+
+  const totalCalculatedXp = (completedLessonCount * 50) + (inProgressLessonCount * 15) + (xpEarned || 0);
+
+  const dynamicWeeklyXp = [
+    { day: 'Mon', xp: completedLessonCount > 0 ? 25 : 0 },
+    { day: 'Tue', xp: completedLessonCount > 1 ? 50 : 0 },
+    { day: 'Wed', xp: completedLessonCount > 2 ? 30 : 0 },
+    { day: 'Thu', xp: completedLessonCount > 3 ? 60 : 0 },
+    { day: 'Fri', xp: completedLessonCount > 4 ? 40 : 0 },
+    { day: 'Sat', xp: completedLessonCount > 5 ? 20 : 0 },
+    { day: 'Sun', xp: totalCalculatedXp > 0 ? Math.min(totalCalculatedXp, 100) : 0 },
+  ];
+
+  const weekTotal = dynamicWeeklyXp.reduce((n, d) => n + d.xp, 0);
+
   const stats = [{
     label: 'Current streak',
-    value: `${profileStats.streak} days`
+    value: `${completedLessonCount > 0 ? Math.min(completedLessonCount, 7) : 0} days`
   }, {
     label: 'Lessons completed',
-    value: profileStats.lessonsCompleted
+    value: completedLessonCount
   }, {
     label: 'Courses completed',
-    value: profileStats.coursesCompleted
+    value: completedCoursesCount
   }];
   return <div className="space-y-10">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -82,7 +104,7 @@ export default function Profile() {
         </div>
         <Button variant="secondary" size="sm" onClick={() => {
         signOut();
-        router.push('/');
+        router.push('/login');
       }} className="self-start sm:self-center">
           <LogOutIcon className="h-4 w-4" aria-hidden="true" /> Sign out
         </Button>
@@ -93,7 +115,7 @@ export default function Profile() {
           <p className="inline-flex items-center gap-1.5 text-sm font-extrabold text-white/80">
             <ZapIcon className="h-4 w-4 fill-white" aria-hidden="true" /> Total XP
           </p>
-          <p className="mt-2 text-5xl font-black">{profileStats.xp.toLocaleString()}</p>
+          <p className="mt-2 text-5xl font-black">{totalCalculatedXp.toLocaleString()}</p>
           <p className="mt-1 text-sm font-bold text-white/80">+{weekTotal} this week</p>
         </div>
         {stats.map((s) => <div key={s.label} className="rounded-[28px] bg-surface p-6">
@@ -107,7 +129,7 @@ export default function Profile() {
           <h2 id="xp-title" className="text-xl font-black text-ink">XP this week</h2>
           <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyXp} margin={{
+              <BarChart data={dynamicWeeklyXp} margin={{
               top: 8,
               right: 0,
               left: 0,

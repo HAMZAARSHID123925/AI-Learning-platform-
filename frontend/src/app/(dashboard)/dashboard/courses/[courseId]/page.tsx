@@ -55,7 +55,13 @@ export default function CourseDetail() {
               <ProgressBar value={progress.percent} barClassName={s.solid} trackClassName="bg-white" label={`${course.title} progress`} />
               <div className="mt-6">
                 {progress.nextLesson ?
-              <ButtonLink href={`/dashboard/learn/${course.id}/${progress.nextLesson.id}`} size="lg">
+              <ButtonLink
+                href={`/dashboard/learn/${course.id}/${progress.nextLesson.id}`}
+                size="lg"
+                onClick={() => {
+                  void learningApi.enrollCourse(course.id).catch(() => {});
+                }}
+              >
                     {progress.started ? 'Continue' : 'Start'}: {progress.nextLesson.title} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
                   </ButtonLink> :
 

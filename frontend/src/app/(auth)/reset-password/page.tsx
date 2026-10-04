@@ -62,10 +62,10 @@ function ResetPasswordContent() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, new_password: password }),
       });
 
       const data = await response.json();

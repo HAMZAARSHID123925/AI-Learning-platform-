@@ -11,19 +11,20 @@ import { courseName, initials, subjectStyles } from '@/utils/subjects';
 import type { AdminCourse } from '@/types';
 
 export function AssignTeacherModal({ course, onClose }: {course: AdminCourse | null;onClose: () => void;}) {
-  const { assignTeacher, courses } = useAdmin();
+  const { assignTeacher, courses, teachers: contextTeachers } = useAdmin();
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     setSelected(course?.teacherId ?? null);
   }, [course]);
 
-  const eligible = course ? teachers.filter((t) => t.subject === course.subject) : [];
+  const activeTeachers = contextTeachers.length > 0 ? contextTeachers : teachers;
+  const eligible = course ? activeTeachers.filter((t) => t.subject === course.subject) : [];
 
   const save = () => {
     if (!course) return;
     assignTeacher(course.id, selected);
-    const name = teachers.find((t) => t.id === selected)?.name;
+    const name = activeTeachers.find((t) => t.id === selected)?.name;
     toast.success(name ? `${name} now teaches ${courseName(course.grade, course.subject)}` : 'Teacher removed');
     onClose();
   };

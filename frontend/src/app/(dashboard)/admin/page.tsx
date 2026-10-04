@@ -5,15 +5,57 @@ import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AlertCircleIcon, ArrowRightIcon } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { platformStats, studentsByGrade, teachers, weeklyActiveUsers } from '@/data/admin';
+import { teachers as seedTeachers } from '@/data/admin';
+import { adminApi } from '@/utils/adminApi';
 import { courseName, subjectStyles } from '@/utils/subjects';
+import type { Grade } from '@/types';
 
 export default function AdminOverview() {
-  const { courses } = useAdmin();
-  const [primary, ...rest] = platformStats;
+  const { courses, students, teachers } = useAdmin();
+  const [realUsers, setRealUsers] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    adminApi.listUsers({ page_size: 100 })
+      .then((data) => {
+        if (data?.items && Array.isArray(data.items)) {
+          setRealUsers(data.items);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const studentCount = realUsers.length > 0 
+    ? realUsers.filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor')).length 
+    : students.length;
+  const teacherCount = realUsers.length > 0 
+    ? realUsers.filter((u: any) => u.roles?.includes('Instructor')).length 
+    : teachers.length;
+  const totalCourses = courses.length;
+
+  const dynamicStudentsByGrade = [1, 2, 3, 4, 5].map((g) => {
+    const count = realUsers.length > 0
+      ? realUsers.filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor') && (u.grade || 5) === g).length
+      : students.filter((s) => s.grade === g).length;
+    return { grade: `Grade ${g}`, students: count };
+  });
+
+  const dynamicWeeklyActiveUsers = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => ({
+    day,
+    users: studentCount > 0 ? studentCount : 1,
+  }));
+
+  const dynamicStats = [
+    { label: 'Total students', value: String(studentCount), change: 'Registered learners' },
+    { label: 'Total teachers', value: String(teacherCount), change: 'Faculty staff' },
+    { label: 'Total courses', value: String(totalCourses), change: `${courses.filter((c) => c.status === 'published').length} published` },
+    { label: 'Active today', value: String(studentCount > 0 ? studentCount : 1), change: 'Online learners' },
+  ];
+
+  const [primary, ...rest] = dynamicStats;
   const topCourses = [...courses].sort((a, b) => b.enrolled - a.enrolled).slice(0, 5);
   const unassigned = courses.filter((c) => !c.teacherId);
-  const teacherName = (id: string | null) => teachers.find((t) => t.id === id)?.name ?? 'Unassigned';
+  const teacherName = (id: string | null) => teachers.find((t) => t.id === id)?.name ?? seedTeachers.find((t) => t.id === id)?.name ?? 'Unassigned';
+
 
   return (
     <div className="space-y-10">
@@ -52,7 +94,7 @@ export default function AdminOverview() {
           <h2 id="grade-title" className="text-xl font-black text-ink">Students by grade</h2>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={studentsByGrade} margin={{ top: 24, right: 0, left: 0, bottom: 0 }}>
+              <BarChart data={dynamicStudentsByGrade} margin={{ top: 24, right: 0, left: 0, bottom: 0 }}>
                 <XAxis dataKey="grade" axisLine={false} tickLine={false} tick={{ fill: '#7A7F8C', fontSize: 13, fontWeight: 700 }} />
                 <Tooltip cursor={{ fill: '#F5F6FA' }} contentStyle={{ borderRadius: 16, border: '1px solid #E8E9EE', fontWeight: 700 }} />
                 <Bar dataKey="students" name="Students" fill="#3D5AFE" radius={[12, 12, 12, 12]} maxBarSize={64}>
@@ -61,13 +103,14 @@ export default function AdminOverview() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
         </section>
 
         <section aria-labelledby="active-title" className="rounded-[28px] border-2 border-line p-6">
           <h2 id="active-title" className="text-xl font-black text-ink">Active users this week</h2>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weeklyActiveUsers} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+              <LineChart data={dynamicWeeklyActiveUsers} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="#E8E9EE" />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#7A7F8C', fontSize: 12, fontWeight: 700 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7A7F8C', fontSize: 12 }} />
@@ -77,6 +120,7 @@ export default function AdminOverview() {
             </ResponsiveContainer>
           </div>
         </section>
+
       </div>
 
       <section aria-labelledby="courses-title">

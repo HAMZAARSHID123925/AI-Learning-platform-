@@ -55,8 +55,8 @@ function LoginInner() {
     if (Object.keys(next).length) return;
     setLoading(true);
 
-    window.setTimeout(() => {
-      const success = signIn(email, password, role);
+    (async () => {
+      const success = await signIn(email, password, role);
       if (!success) {
         setLoading(false);
         setErrors({
@@ -66,7 +66,7 @@ function LoginInner() {
       }
 
       router.push(role === 'student' ? '/dashboard' : role === 'teacher' ? '/instructor' : '/admin');
-    }, 500);
+    })();
   };
   return <div className="grid min-h-screen w-full bg-white lg:grid-cols-[1fr_1.05fr]">
       <main className="flex flex-col px-6 py-8 sm:px-12 lg:px-16">

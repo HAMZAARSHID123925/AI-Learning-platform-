@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Grade, Role, User } from '@/types';
+import { API_BASE, fetchWithAuth } from '@/lib/api';
+import { saveAuthSession, clearAuthSession } from '@/lib/auth-storage';
 
 interface RegisteredAccount {
   name: string;
@@ -13,10 +15,10 @@ interface RegisteredAccount {
 
 interface AuthContextValue {
   user: User | null;
-  signIn: (email: string, password?: string, role?: Role) => boolean;
-  signUp: (account: { name: string; email: string; password: string; role: Role }) => boolean;
+  signIn: (email: string, password?: string, role?: Role) => Promise<boolean> | boolean;
+  signUp: (account: { name: string; email: string; password: string; role: Role }) => Promise<{ success: boolean; error?: string }>;
   setGrade: (grade: Grade) => void;
-  signOut: () => void;
+  signOut: () => Promise<void> | void;
 }
 
 const STORAGE_KEY = 'elarion-user';
@@ -30,11 +32,11 @@ const defaultAccounts: RegisteredAccount[] = [
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: {children: React.ReactNode;}) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) as User : null;
+      return raw ? (JSON.parse(raw) as User) : null;
     } catch {
       return null;
     }
@@ -61,61 +63,178 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
     } catch {}
   }, []);
 
-  const signUp = useCallback((account: { name: string; email: string; password: string; role: Role }): boolean => {
-    const cleanEmail = account.email.trim().toLowerCase();
-    const existing = getAccounts();
-    const filtered = existing.filter((a) => a.email.toLowerCase() !== cleanEmail);
-    const newAccount: RegisteredAccount = {
-      name: account.name.trim(),
-      email: cleanEmail,
-      password: account.password,
-      role: account.role,
-    };
-    const updated = [...filtered, newAccount];
-    try {
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updated));
-    } catch {}
-
-    persist({
-      name: newAccount.name,
-      email: newAccount.email,
-      role: newAccount.role,
-    });
-    return true;
-  }, [getAccounts, persist]);
-
-  const signIn = useCallback((email: string, password?: string, role?: Role): boolean => {
-    const cleanEmail = email.trim().toLowerCase();
-    const accounts = getAccounts();
-    const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
-
-    if (!match) {
-      return false;
+  // Check /api/v1/auth/me or /api/v1/users/me on mount if session exists
+  useEffect(() => {
+    async function verifyBackendUser() {
+      try {
+        const res = await fetchWithAuth('/users/me');
+        if (res.ok) {
+          const data = await res.json();
+          const primaryRole = (data.roles && data.roles[0]) ? data.roles[0].toLowerCase() as Role : 'student';
+          const updatedUser: User = {
+            name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || user?.name || 'Student',
+            email: data.email,
+            role: primaryRole,
+            grade: (data.grade || user?.grade || 5) as Grade,
+          };
+          persist(updatedUser);
+        }
+      } catch {}
     }
+    verifyBackendUser();
+  }, []);
 
-    if (password && match.password !== password) {
-      return false;
-    }
+  const signUp = useCallback(
+    async (account: { name: string; email: string; password: string; role: Role }): Promise<{ success: boolean; error?: string }> => {
+      const cleanEmail = account.email.trim().toLowerCase();
+      const parts = account.name.trim().split(' ');
+      const firstName = parts[0] || 'User';
+      const lastName = parts.slice(1).join(' ') || 'Student';
 
-    if (role && match.role !== role) {
-      return false;
-    }
+      // 1. Try real backend register endpoint
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: account.password,
+            first_name: firstName,
+            last_name: lastName,
+          }),
+        });
 
-    persist({
-      name: match.name,
-      email: match.email,
-      role: match.role,
-      grade: match.grade,
-    });
-    return true;
-  }, [getAccounts, persist]);
+        if (res.ok) {
+          // Immediately login on backend to retrieve JWT token
+          const loginRes = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              email: cleanEmail,
+              password: account.password,
+            }),
+          });
+
+          if (loginRes.ok) {
+            const loginData = await loginRes.json();
+            if (loginData.access_token) {
+              saveAuthSession(loginData.access_token);
+            }
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          // If already registered or validation error, let's capture message
+          if (res.status === 400 && errData.detail) {
+            console.warn('Backend register info:', errData.detail);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend unavailable during register, falling back to local session', err);
+      }
+
+      // 2. Local fallback sync
+      const existing = getAccounts();
+      const filtered = existing.filter((a) => a.email.toLowerCase() !== cleanEmail);
+      const newAccount: RegisteredAccount = {
+        name: account.name.trim(),
+        email: cleanEmail,
+        password: account.password,
+        role: account.role,
+      };
+      const updated = [...filtered, newAccount];
+      try {
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(updated));
+      } catch {}
+
+      persist({
+        name: newAccount.name,
+        email: newAccount.email,
+        role: newAccount.role,
+      });
+
+      return { success: true };
+    },
+    [getAccounts, persist]
+  );
+
+  const signIn = useCallback(
+    async (email: string, password?: string, role?: Role): Promise<boolean> => {
+      const cleanEmail = email.trim().toLowerCase();
+
+      // 1. Try real backend login
+      if (password) {
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              email: cleanEmail,
+              password: password,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await loginResJson(res);
+            if (data.access_token) {
+              saveAuthSession(data.access_token);
+            }
+            const backendRole = data.user?.roles?.[0]?.toLowerCase() as Role || role || 'student';
+            const userObj: User = {
+              name: `${data.user?.first_name || ''} ${data.user?.last_name || ''}`.trim() || 'Learner',
+              email: data.user?.email || cleanEmail,
+              role: backendRole,
+              grade: (data.user?.grade || 5) as Grade,
+            };
+            persist(userObj);
+            return true;
+          }
+        } catch (backendErr) {
+          console.warn('Backend login connection failed, checking local accounts:', backendErr);
+        }
+      }
+
+      // 2. Fallback to local accounts
+      const accounts = getAccounts();
+      const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+      if (!match) {
+        return false;
+      }
+
+      if (password && match.password !== password) {
+        return false;
+      }
+
+      if (role && match.role !== role) {
+        return false;
+      }
+
+      persist({
+        name: match.name,
+        email: match.email,
+        role: match.role,
+        grade: match.grade,
+      });
+      return true;
+    },
+    [getAccounts, persist]
+  );
 
   const setGrade = useCallback(
-    (grade: Grade) => {
+    async (grade: Grade) => {
       if (user) {
         const next = { ...user, grade };
         persist(next);
-        // Also update stored account
+        // Also sync with backend /api/v1/users/me
+        try {
+          await fetchWithAuth('/users/me', {
+            method: 'PATCH',
+            body: JSON.stringify({ grade }),
+          });
+        } catch {}
+
         try {
           const accounts = getAccounts().map((a) =>
             a.email.toLowerCase() === user.email.toLowerCase() ? { ...a, grade } : a
@@ -127,10 +246,28 @@ export function AuthProvider({ children }: {children: React.ReactNode;}) {
     [persist, user, getAccounts]
   );
 
-  const signOut = useCallback(() => persist(null), [persist]);
+  const signOut = useCallback(async () => {
+    try {
+      await fetchWithAuth('/auth/logout', { method: 'POST' });
+    } catch {}
+    clearAuthSession();
+    persist(null);
+  }, [persist]);
 
-  const value = useMemo(() => ({ user, signIn, signUp, setGrade, signOut }), [user, signIn, signUp, setGrade, signOut]);
+  const value = useMemo(
+    () => ({ user, signIn, signUp, setGrade, signOut }),
+    [user, signIn, signUp, setGrade, signOut]
+  );
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+async function loginResJson(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
 }
 
 export function useAuth(): AuthContextValue {

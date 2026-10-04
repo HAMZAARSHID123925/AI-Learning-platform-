@@ -8,13 +8,24 @@ import { ProgressBar } from '@/components/shared/ProgressBar';
 import { ClassList } from '@/components/teacher/ClassList';
 import { ScheduleClassModal } from '@/components/teacher/ScheduleClassModal';
 import { useTeacher } from '@/hooks/useTeacher';
+import { adminApi } from '@/utils/adminApi';
 import { subjectImages } from '@/data/illustrations';
 import { courseName, initials, subjectStyles } from '@/utils/subjects';
 
 export default function TeacherDashboard() {
   const { teacher, myCourses, myClasses } = useTeacher();
   const [modal, setModal] = useState<null | 'schedule' | 'now'>(null);
+  const [escalations, setEscalations] = useState<any[]>([]);
   const subject = subjectStyles[teacher.subject];
+
+  React.useEffect(() => {
+    adminApi.listEscalations()
+      .then((data) => {
+        if (Array.isArray(data)) setEscalations(data);
+      })
+      .catch(() => {});
+  }, []);
+
   const needSupport = myCourses.flatMap((m) => m.needSupport.map((s) => ({ student: s, course: m.course })));
 
   return (

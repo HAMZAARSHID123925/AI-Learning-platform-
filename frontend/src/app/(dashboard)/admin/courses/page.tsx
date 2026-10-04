@@ -15,11 +15,12 @@ import type { AdminCourse, Grade } from '@/types';
 const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 
 export default function AdminCourses() {
-  const { courses, courseTitle, toggleStatus } = useAdmin();
+  const { courses, courseTitle, toggleStatus, teachers: contextTeachers } = useAdmin();
   const [grade, setGrade] = useState<Grade | 'all'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [assigning, setAssigning] = useState<AdminCourse | null>(null);
 
+  const activeTeachers = contextTeachers.length > 0 ? contextTeachers : teachers;
   const visible = courses.filter((c) => grade === 'all' || c.grade === grade).sort((a, b) => b.grade - a.grade);
 
   return (
@@ -51,7 +52,7 @@ export default function AdminCourses() {
       <ul className="divide-y divide-line">
         {visible.map((c) => {
           const s = subjectStyles[c.subject];
-          const teacher = teachers.find((t) => t.id === c.teacherId);
+          const teacher = activeTeachers.find((t) => t.id === c.teacherId);
           const published = c.status === 'published';
           return (
             <li key={c.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-3 py-5 md:grid-cols-[auto_1.4fr_1fr_1fr_auto]">
@@ -59,9 +60,10 @@ export default function AdminCourses() {
                 <s.icon className={`h-6 w-6 ${s.text}`} />
               </span>
               <div className="min-w-0">
-                <p className="truncate font-black text-ink">{courseName(c.grade, c.subject)}</p>
-                <p className="truncate text-sm text-ink-muted">{courseTitle(c)} · {c.enrolled} students</p>
+                <p className="truncate font-black text-ink">{c.title || courseName(c.grade, c.subject)}</p>
+                <p className="truncate text-sm text-ink-muted">{courseName(c.grade, c.subject)}</p>
               </div>
+
 
               <div className="col-span-3 md:col-span-1">
                 {teacher ?

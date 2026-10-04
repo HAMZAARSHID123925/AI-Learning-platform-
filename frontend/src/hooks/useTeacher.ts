@@ -2,16 +2,32 @@
 
 import { useMemo } from 'react';
 import { useClasses } from '@/contexts/ClassesContext';
-import { adminCourses, teachers } from '@/data/admin';
+import { useAuth } from '@/contexts/AuthContext';
+import { teachers as seedTeachers } from '@/data/admin';
 import { courses } from '@/data/courses';
 import { students } from '@/data/students';
 import { timeToMinutes } from '@/utils/dates';
-
-const CURRENT_TEACHER_ID = 't-ahmed';
+import type { Teacher } from '@/types';
 
 export function useTeacher() {
   const { classes } = useClasses();
-  const teacher = teachers.find((t) => t.id === CURRENT_TEACHER_ID)!;
+  const { user } = useAuth();
+
+  const teacher: Teacher = useMemo(() => {
+    if (user) {
+      const match = seedTeachers.find((t) => t.name.toLowerCase() === user.name.toLowerCase());
+      if (match) return match;
+      return {
+        id: `t-${user.email.split('@')[0]}`,
+        name: user.name,
+        subject: 'math',
+        assignedCourseIds: ['g5-fractions', 'g5-decimals'],
+        students: 0,
+      };
+    }
+    return seedTeachers[0];
+  }, [user]);
+
 
   const myCourses = useMemo(
     () =>
@@ -24,11 +40,12 @@ export function useTeacher() {
       return {
         course,
         roster,
-        enrolled: adminCourses.find((a) => a.id === course.id)?.enrolled ?? roster.length,
+        enrolled: roster.length,
         avgProgress: avg('progress'),
         avgScore: avg('avgScore'),
         needSupport: roster.filter((s) => s.avgScore < 70)
       };
+
     }),
     [teacher]
   );

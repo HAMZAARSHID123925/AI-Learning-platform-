@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
-import { teachers } from '@/data/admin';
+import { teachers as seedTeachers } from '@/data/admin';
 import { initials, subjectStyles } from '@/utils/subjects';
-import type { AdminCourse } from '@/types';
+import type { AdminCourse, Subject } from '@/types';
 
 export default function AdminTeachers() {
-  const { courses } = useAdmin();
+  const { courses, students, teachers: contextTeachers } = useAdmin();
   const [assigning, setAssigning] = useState<AdminCourse | null>(null);
+
+  const activeTeachers = contextTeachers.length > 0 ? contextTeachers : seedTeachers;
 
   return (
     <div className="space-y-8">
@@ -19,11 +21,14 @@ export default function AdminTeachers() {
       </header>
 
       <ul className="space-y-3">
-        {teachers.map((t) => {
-          const s = subjectStyles[t.subject];
+        {activeTeachers.map((t) => {
+          const subjKey = (t.subject as Subject) || 'math';
+          const s = subjectStyles[subjKey] || subjectStyles.math;
           const assigned = courses.filter((c) => c.teacherId === t.id).sort((a, b) => a.grade - b.grade);
-          const studentCount = assigned.reduce((n, c) => n + c.enrolled, 0);
+          const assignedCourseIds = new Set(assigned.map((c) => c.id));
+          const studentCount = students.filter((st) => st.courseIds.some((cid) => assignedCourseIds.has(cid))).length;
           const openCourses = courses.filter((c) => c.subject === t.subject && !c.teacherId);
+
           return (
             <li key={t.id} className="grid gap-4 rounded-[28px] bg-surface p-5 md:grid-cols-[1.2fr_2fr_auto] md:items-center">
               <div className="flex items-center gap-4">

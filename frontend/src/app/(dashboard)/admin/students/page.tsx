@@ -12,10 +12,13 @@ import { courses as catalog } from '@/data/courses';
 import { initials, performanceLabel, subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
+import { adminApi } from '@/utils/adminApi';
+
 const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 
 export default function AdminStudents() {
   const { students, addStudent } = useAdmin();
+  const [backendUsers, setBackendUsers] = useState<any[]>([]);
   const [query, setQuery] = useState('');
   const [grade, setGrade] = useState<Grade | 'all'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -24,7 +27,33 @@ export default function AdminStudents() {
   const [newGrade, setNewGrade] = useState<Grade>(1);
   const [nameError, setNameError] = useState(false);
 
-  const visible = students.filter((s) => (grade === 'all' || s.grade === grade) && s.name.toLowerCase().includes(query.toLowerCase()));
+  React.useEffect(() => {
+    adminApi.listUsers({ page_size: 50 })
+      .then((data) => {
+        if (data?.items && Array.isArray(data.items)) {
+          const mapped = data.items.map((u: any) => {
+            const userGrade = (u.grade || 5) as Grade;
+            const userCourses = catalog.filter((c) => c.grade === userGrade).map((c) => c.id);
+            return {
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+              grade: userGrade,
+              courseIds: userCourses,
+              progress: 0,
+              avgScore: 0,
+              lastActive: 'Active today',
+              weakAreas: [],
+            };
+          });
+          setBackendUsers(mapped);
+
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const allStudentsList = backendUsers.length > 0 ? backendUsers : students;
+  const visible = allStudentsList.filter((s) => (grade === 'all' || s.grade === grade) && s.name.toLowerCase().includes(query.toLowerCase()));
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();

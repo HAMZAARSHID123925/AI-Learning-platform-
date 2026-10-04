@@ -113,4 +113,94 @@ export const adminApi = {
     if (!res.ok) throw new Error('Failed to confirm upload');
     return res.json();
   },
+
+  // User & Role Management (Module 1)
+  async listUsers(params?: { status_filter?: string; page?: number; page_size?: number }) {
+    const q = new URLSearchParams();
+    if (params?.status_filter) q.set('status_filter', params.status_filter);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.page_size) q.set('page_size', String(params.page_size));
+    const url = `/users${q.toString() ? `?${q.toString()}` : ''}`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error('Failed to fetch users');
+    return res.json();
+  },
+
+  async getUser(userId: string) {
+    const res = await fetchWithAuth(`/users/${userId}`);
+    if (!res.ok) throw new Error('Failed to fetch user');
+    return res.json();
+  },
+
+  async updateUser(userId: string, data: { first_name?: string; last_name?: string; is_active?: boolean; grade?: number }) {
+    const res = await fetchWithAuth(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update user');
+    return res.json();
+  },
+
+  async assignRole(userId: string, roleName: string) {
+    const res = await fetchWithAuth(`/users/${userId}/roles`, {
+      method: 'POST',
+      body: JSON.stringify({ role_name: roleName }),
+    });
+    if (!res.ok) throw new Error('Failed to assign role');
+    return res.json();
+  },
+
+  async revokeRole(userId: string, roleName: string) {
+    const res = await fetchWithAuth(`/users/${userId}/roles/${roleName}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to revoke role');
+    return res.json();
+  },
+
+  async deleteCourse(courseId: string) {
+    const res = await fetchWithAuth(`/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete course');
+    return res.json();
+  },
+
+  // Instructor Escalations (Module 6)
+  async listEscalations() {
+    const res = await fetchWithAuth('/escalations');
+    if (!res.ok) throw new Error('Failed to fetch escalations');
+    return res.json();
+  },
+
+  // Live Session Scheduling (Module 3)
+  async createLiveSession(data: {
+    course_id: string;
+    title: string;
+    scheduled_at: string;
+    duration_minutes?: number;
+    description?: string;
+  }) {
+    const res = await fetchWithAuth('/live-sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create live session');
+    return res.json();
+  },
+
+  async cancelLiveSession(sessionId: string) {
+    const res = await fetchWithAuth(`/live-sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to cancel live session');
+    return res.json();
+  },
+
+  async getLiveSessionAttendance(sessionId: string) {
+    const res = await fetchWithAuth(`/live-sessions/${sessionId}/attendance`);
+    if (!res.ok) throw new Error('Failed to fetch attendance');
+    return res.json();
+  },
 };
+

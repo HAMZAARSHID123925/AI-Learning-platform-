@@ -21,9 +21,9 @@ interface ProgressContextValue extends ProgressState {
   resetProgress: () => void;
 }
 
-const STORAGE_KEY = 'elarion-progress-v2';
+const STORAGE_KEY = 'elarion-progress-v3';
 const emptyState: ProgressState = { lessons: {}, attempts: [], practiceDone: [], xpEarned: 0 };
-const initialState: ProgressState = { lessons: progressSeed.lessons, attempts: [], practiceDone: [], xpEarned: 0 };
+const initialState: ProgressState = emptyState;
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
 

@@ -53,6 +53,19 @@ export function ScheduleClassModal({ open, onClose, courses, teacherName, defaul
     const dayOffset = mode === 'now' ? 0 : offsetFromDate(parseISO(date));
     if (mode === 'schedule' && dayOffset < 0) return setError('Pick today or a future date');
 
+    const scheduledDate = mode === 'now' ? new Date().toISOString() : new Date(`${date}T${time}:00`).toISOString();
+
+    // 1. Call backend API
+    void import('@/utils/adminApi').then(({ adminApi }) => {
+      adminApi.createLiveSession({
+        course_id: course.id,
+        title: title.trim(),
+        scheduled_at: scheduledDate,
+        duration_minutes: 45,
+      }).catch(() => {});
+    });
+
+    // 2. Update local UI state
     addClass({
       grade: course.grade,
       subject: course.subject,

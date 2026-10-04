@@ -73,13 +73,13 @@ function SignupInner() {
     if (Object.keys(next).length) return;
 
     setLoading(true);
-    window.setTimeout(() => {
+    (async () => {
       try {
         localStorage.removeItem('elarion-progress-v2');
       } catch {}
-      signUp({ name, email, password, role });
+      await signUp({ name, email, password, role });
       router.push(role === 'student' ? '/onboarding/grade' : role === 'teacher' ? '/instructor' : '/admin');
-    }, 500);
+    })();
   };
 
   return (

@@ -11,6 +11,7 @@ import { useClasses } from '@/contexts/ClassesContext';
 import { subjectImages } from '@/data/illustrations';
 import { courseName, subjectStyles } from '@/utils/subjects';
 import { dateFromOffset, relativeDayLabel, timeToMinutes } from '@/utils/dates';
+import { learningApi } from '@/utils/learningApi';
 
 const week = Array.from({ length: 7 }, (_, i) => i);
 
@@ -72,8 +73,16 @@ export default function Live() {
               <Button
               size="lg"
               variant={joined === liveNow.id ? 'secondary' : 'primary'}
-              onClick={() => {
+              onClick={async () => {
                 setJoined(liveNow.id);
+                try {
+                  const joinData = await learningApi.joinLiveSession(liveNow.id);
+                  if (joinData?.room_url) {
+                    window.open(joinData.room_url, '_blank');
+                  }
+                } catch {
+                  // If running local mock class
+                }
                 toast.success(`Joining ${liveNow.teacher}’s class…`);
               }}>
               
