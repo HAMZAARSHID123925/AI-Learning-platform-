@@ -70,10 +70,10 @@ function mapBackendCourseToFrontendCourse(b: any): Course {
   
   const t = (b.title || '').toLowerCase();
   const s = (b.slug || '').toLowerCase();
-  let subject: Subject = local?.subject || 'computer';
+  let subject: Subject = local?.subject || 'science';
   if (t.includes('fraction') || t.includes('decimal') || t.includes('geometry') || t.includes('algebra') || t.includes('math') || s.includes('math')) {
     subject = 'math';
-  } else if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('science') || s.includes('science')) {
+  } else if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('solar') || t.includes('space') || t.includes('planet') || t.includes('science') || s.includes('science') || s.includes('space')) {
     subject = 'science';
   } else if (t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
     subject = 'english';
@@ -146,7 +146,22 @@ export const learningApi = {
       if (res.ok) {
         const data = await res.json();
         if (data?.items && data.items.length > 0) {
-          return data.items.map(mapBackendCourseToFrontendCourse);
+          const mapped = await Promise.all(
+            data.items.map(async (b: any) => {
+              const base = mapBackendCourseToFrontendCourse(b);
+              if (base.lessons.length === 0 && b.id) {
+                try {
+                  const detailRes = await fetchWithAuth(`/courses/${b.id}`);
+                  if (detailRes.ok) {
+                    const detailData = await detailRes.json();
+                    return mapBackendCourseDetailToFrontendCourse(detailData);
+                  }
+                } catch {}
+              }
+              return base;
+            })
+          );
+          return mapped;
         }
       }
     } catch {}

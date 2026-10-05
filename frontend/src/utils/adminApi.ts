@@ -2,7 +2,18 @@ import { fetchWithAuth } from '@/lib/api';
 import type { Course, Lesson } from '@/types/learning';
 
 export const adminApi = {
-  // Course CRUD
+  async listCourses(params?: { grade?: number; status_filter?: string; page?: number; page_size?: number }) {
+    const q = new URLSearchParams();
+    if (params?.grade) q.set('grade', String(params.grade));
+    if (params?.status_filter) q.set('status_filter', params.status_filter);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.page_size) q.set('page_size', String(params.page_size));
+    const url = `/courses${q.toString() ? `?${q.toString()}` : ''}`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error('Failed to fetch courses');
+    return res.json();
+  },
+
   async createCourse(data: { title: string; description?: string; grade: number; slug?: string }) {
     const res = await fetchWithAuth('/courses', {
       method: 'POST',

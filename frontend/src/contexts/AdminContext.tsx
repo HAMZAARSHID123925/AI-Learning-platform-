@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { adminCourses } from '@/data/admin';
 import { courses as catalog } from '@/data/courses';
 import { students as seedStudents } from '@/data/students';
-import type { AdminCourse, Grade, StudentRecord, Teacher } from '@/types';
+import type { AdminCourse, Grade, StudentRecord, Teacher, Subject } from '@/types';
 
 interface AdminContextValue {
   courses: AdminCourse[];
@@ -36,9 +36,42 @@ export function AdminProvider({ children }: {children: React.ReactNode;}) {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
 
-  // Load real registered backend users and separate teachers and students
+  // Load real registered backend users and courses
   useEffect(() => {
     import('@/utils/adminApi').then(({ adminApi }) => {
+      // 1. Fetch courses from database
+      adminApi.listCourses({ page_size: 100 })
+        .then((data) => {
+          if (data?.items && Array.isArray(data.items)) {
+            const dbCourses: AdminCourse[] = data.items.map((b: any) => {
+              const t = (b.title || '').toLowerCase();
+              let sub: Subject = 'math';
+              if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('science') || t.includes('solar') || t.includes('space')) {
+                sub = 'science';
+              } else if (t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english')) {
+                sub = 'english';
+              } else if (t.includes('code') || t.includes('digital') || t.includes('computer') || t.includes('python')) {
+                sub = 'computer';
+              }
+              return {
+                id: b.id,
+                title: b.title,
+                grade: (b.grade || 5) as Grade,
+                subject: sub,
+                enrolled: 0,
+                teacherId: b.instructor_id || null,
+                status: b.status === 'published' ? 'published' : 'draft',
+                avgProgress: 0,
+              };
+            });
+            if (dbCourses.length > 0) {
+              setCourses(dbCourses);
+            }
+          }
+        })
+        .catch(() => {});
+
+      // 2. Fetch users
       adminApi.listUsers({ page_size: 100 })
         .then((data) => {
           if (data?.items && Array.isArray(data.items)) {
