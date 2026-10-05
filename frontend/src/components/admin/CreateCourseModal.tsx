@@ -60,6 +60,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   const [activeTab, setActiveTab] = useState<'details' | 'curriculum' | 'media'>('details');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -166,6 +167,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
     if (!title.trim()) return setError('Please enter a course title');
     if (!description.trim()) return setError('Please provide a course description');
     setIsSubmitting(true);
+    setSubmitStep('Creating course…');
     setError(null);
 
     try {
@@ -184,6 +186,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
       if (newCourseId) {
         // 2. Upload course thumbnail if provided
         if (thumbnailFile) {
+          setSubmitStep('Uploading thumbnail…');
           try {
             await adminApi.directUpload(newCourseId, thumbnailFile, 'course_thumbnail');
           } catch (uploadErr) {
@@ -214,6 +217,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
         // 3. Create all Modules and Lessons in DB
         for (let mIdx = 0; mIdx < modules.length; mIdx++) {
           const mod = modules[mIdx];
+          setSubmitStep(`Creating module ${mIdx + 1} of ${modules.length}…`);
           const modRes = await adminApi.createModule(newCourseId, {
             title: mod.title.trim() || `Module ${mIdx + 1}`,
             sequence_order: mIdx + 1,
@@ -222,6 +226,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
 
           for (let lIdx = 0; lIdx < mod.lessons.length; lIdx++) {
             const les = mod.lessons[lIdx];
+            setSubmitStep(`Creating lesson ${lIdx + 1} of ${mod.lessons.length}…`);
             const lesRes = await adminApi.createLesson(modRes.id, {
               title: les.title.trim() || `Lesson ${lIdx + 1}`,
               sequence_order: lIdx + 1,
@@ -233,6 +238,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
             });
 
             if (les.videoFile) {
+              setSubmitStep(`Uploading video for lesson ${lIdx + 1}…`);
               try {
                 await adminApi.directUpload(newCourseId, les.videoFile, 'lesson_video', lesRes.id);
               } catch (vErr) {
@@ -494,6 +500,11 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
                             }}
                           />
                         </label>
+                        {!l.videoFile && (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 text-xs font-bold text-amber-700">
+                            ⚠ No video — students will see text only
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -587,7 +598,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating Course...' : 'Create Course'}
+              {isSubmitting ? submitStep || 'Creating Course...' : 'Create Course'}
             </Button>
           </div>
         </div>

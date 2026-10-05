@@ -18,11 +18,13 @@ const nav = [
 export default function StudentTopNav() {
   const pathname = usePathname();
   const { lessons, xpEarned } = useProgress();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => { setMounted(true); }, []);
 
   const completedCount = Object.values(lessons).filter((l) => l.status === 'completed').length;
   const inProgressCount = Object.values(lessons).filter((l) => l.status === 'in_progress').length;
-  const dynamicStreak = completedCount > 0 ? Math.min(completedCount, 7) : 0;
-  const dynamicXp = (completedCount * 50) + (inProgressCount * 15) + (xpEarned || 0);
+  const dynamicStreak = mounted && completedCount > 0 ? Math.min(completedCount, 7) : 0;
+  const dynamicXp = mounted ? (completedCount * 50) + (inProgressCount * 15) + (xpEarned || 0) : 0;
 
   return (
     <>
