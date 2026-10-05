@@ -65,21 +65,31 @@ function findCourse(courseId: string): Course {
 // ADAPTERS
 
 function mapBackendCourseToFrontendCourse(b: any): Course {
+  const local = courses.find((c) => c.slug === b.slug || c.id === b.slug || c.title.toLowerCase() === (b.title || '').toLowerCase());
+  
   const t = (b.title || '').toLowerCase();
-  let subject: Subject = 'computer';
-  if (t.includes('math')) subject = 'math';
-  else if (t.includes('science')) subject = 'science';
-  else if (t.includes('english')) subject = 'english';
+  const s = (b.slug || '').toLowerCase();
+  let subject: Subject = local?.subject || 'computer';
+  if (t.includes('fraction') || t.includes('decimal') || t.includes('geometry') || t.includes('algebra') || t.includes('math') || s.includes('math')) {
+    subject = 'math';
+  } else if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('science') || s.includes('science')) {
+    subject = 'science';
+  } else if (t.includes('reading') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
+    subject = 'english';
+  } else if (t.includes('code') || t.includes('digital') || t.includes('computer') || s.includes('computer')) {
+    subject = 'computer';
+  }
 
   return {
     id: b.id,
+    slug: b.slug,
     grade: b.grade || 5,
     subject,
     title: b.title,
-    description: b.description || '',
-    image: b.thumbnail_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2000&auto=format&fit=crop',
-    skills: ['core'], // simplified for now
-    lessons: []
+    description: b.description || local?.description || '',
+    image: b.thumbnail_url || local?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2000&auto=format&fit=crop',
+    skills: local?.skills || ['core'],
+    lessons: local?.lessons || []
   };
 }
 

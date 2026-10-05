@@ -89,6 +89,7 @@ export interface LessonSummary {
 
 export interface Course {
   id: string;
+  slug?: string;
   grade: Grade;
   subject: Subject;
   title: string;
