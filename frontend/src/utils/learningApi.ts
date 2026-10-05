@@ -22,6 +22,7 @@ import { mathChallenges } from '@/data/challenges/mathChallenges';
 import { scienceChallenges } from '@/data/challenges/scienceChallenges';
 import { englishChallenges } from '@/data/challenges/englishChallenges';
 import { computerChallenges } from '@/data/challenges/computerChallenges';
+import { subjectImages } from '@/data/illustrations';
 import { analyzeAttempt, buildPlan, buildPracticeSteps, practiceTitle } from './assessment';
 import { buildRecommendations } from './recommendations';
 import type { Grade } from '@/types';
@@ -74,7 +75,7 @@ function mapBackendCourseToFrontendCourse(b: any): Course {
     subject = 'math';
   } else if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('science') || s.includes('science')) {
     subject = 'science';
-  } else if (t.includes('reading') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
+  } else if (t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
     subject = 'english';
   } else if (t.includes('code') || t.includes('digital') || t.includes('computer') || s.includes('computer')) {
     subject = 'computer';
@@ -87,7 +88,7 @@ function mapBackendCourseToFrontendCourse(b: any): Course {
     subject,
     title: b.title,
     description: b.description || local?.description || '',
-    image: b.thumbnail_url || local?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2000&auto=format&fit=crop',
+    image: b.thumbnail_url || local?.image || subjectImages[subject] || subjectImages.math,
     skills: local?.skills || ['core'],
     lessons: local?.lessons || []
   };

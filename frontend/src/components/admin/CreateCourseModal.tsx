@@ -20,8 +20,10 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   const [title, setTitle] = useState('');
   const [grade, setGrade] = useState<Grade>(5);
   const [subject, setSubject] = useState<Subject>('math');
+  const [description, setDescription] = useState('');
+  const [initialLessons, setInitialLessons] = useState('Lesson 1, Lesson 2, Lesson 3');
   const [teacherId, setTeacherId] = useState('');
-  const [publish, setPublish] = useState(false);
+  const [publish, setPublish] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -29,10 +31,12 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   useEffect(() => {
     if (open) {
       setTitle('');
+      setDescription('');
+      setInitialLessons('Introduction & Core Concepts, Deep Dive & Practice, Review & Mastery');
       setGrade(5);
-      setSubject('math');
+      setSubject('english');
       setTeacherId('');
-      setPublish(false);
+      setPublish(true);
       setError(null);
     }
   }, [open]);
@@ -42,14 +46,48 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return setError('Give the course a title');
+    if (!description.trim()) return setError('Please provide a course description');
     setIsSubmitting(true);
     setError(null);
     try {
+      // 1. Create Course in Backend DB
       const res = await adminApi.createCourse({ 
         title: title.trim(), 
         grade, 
-        description: `Subject: ${subject}` 
+        description: description.trim() 
       });
+      
+      const newCourseId = res?.id;
+
+      // 2. Automatically seed initial module and lessons so it matches standard courses
+      if (newCourseId) {
+        try {
+          const modRes = await adminApi.createModule(newCourseId, {
+            title: 'Core Curriculum Module',
+            sequence_order: 1,
+            description: description.trim()
+          });
+
+          const lessonTitles = initialLessons
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+          for (let i = 0; i < lessonTitles.length; i++) {
+            await adminApi.createLesson(modRes.id, {
+              title: lessonTitles[i],
+              sequence_order: i + 1,
+            });
+          }
+
+          if (publish) {
+            await adminApi.publishCourse(newCourseId);
+          }
+        } catch (innerErr) {
+          console.warn('Module/lesson creation warning:', innerErr);
+        }
+      }
+
       createCourse({
         title: title.trim(),
         grade,
@@ -57,13 +95,13 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
         teacherId: teacherId || null,
         status: publish ? 'published' : 'draft',
       });
-      toast.success(`${title.trim()} created for Grade ${grade}`);
+
+      toast.success(`${title.trim()} created with ${initialLessons.split(',').filter(Boolean).length} lessons for Grade ${grade}!`);
       onClose();
-      if (res?.id) {
-        router.push(`/admin/courses/${res.id}/builder`);
+      if (newCourseId) {
+        router.push(`/admin/courses/${newCourseId}/builder`);
       }
-    } catch (err) {
-      // Graceful fallback for local development: update AdminContext state
+    } catch (err: any) {
       createCourse({
         title: title.trim(),
         grade,
@@ -78,23 +116,35 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
     }
   };
 
-
   return (
-    <Modal open={open} onClose={onClose} title="Create a course" description="New courses start as drafts unless you publish them.">
+    <Modal open={open} onClose={onClose} title="Create a course" description="Set up a complete course with description, curriculum lessons, and subject category.">
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
-          <label htmlFor="course-title" className="mb-1.5 block text-sm font-bold text-ink">Course title</label>
-          <input id="course-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Decimals & Money" className={fieldClass} aria-invalid={!!error} />
+          <label htmlFor="course-title" className="mb-1.5 block text-sm font-bold text-ink">Course title *</label>
+          <input id="course-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Writing Essentials" className={fieldClass} aria-invalid={!!error} />
         </div>
+
+        <div>
+          <label htmlFor="course-desc" className="mb-1.5 block text-sm font-bold text-ink">Course description *</label>
+          <textarea
+            id="course-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Master creative composition, essay structuring, and expressive vocabulary."
+            rows={2}
+            className="w-full rounded-2xl border-2 border-line bg-white p-3 text-base text-ink outline-none transition-colors duration-150 focus:border-ink resize-none"
+          />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="course-grade" className="mb-1.5 block text-sm font-bold text-ink">Grade</label>
+            <label htmlFor="course-grade" className="mb-1.5 block text-sm font-bold text-ink">Grade *</label>
             <select id="course-grade" value={grade} onChange={(e) => setGrade(Number(e.target.value) as Grade)} className={fieldClass}>
               {grades.map((g) => <option key={g} value={g}>Grade {g}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="course-subject" className="mb-1.5 block text-sm font-bold text-ink">Subject</label>
+            <label htmlFor="course-subject" className="mb-1.5 block text-sm font-bold text-ink">Subject *</label>
             <select
               id="course-subject"
               value={subject}
@@ -103,11 +153,27 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
                 setTeacherId('');
               }}
               className={fieldClass}>
-              
               {subjects.map((s) => <option key={s} value={s}>{subjectStyles[s].label}</option>)}
             </select>
           </div>
         </div>
+
+        <div>
+          <label htmlFor="course-lessons" className="mb-1.5 block text-sm font-bold text-ink">
+            Initial Lessons (comma-separated) *
+          </label>
+          <input
+            id="course-lessons"
+            value={initialLessons}
+            onChange={(e) => setInitialLessons(e.target.value)}
+            placeholder="e.g. Sentence Structure, Paragraph Crafting, Persuasive Essays"
+            className={fieldClass}
+          />
+          <span className="mt-1 block text-xs text-ink-muted">
+            Creates lessons automatically so students can start right away.
+          </span>
+        </div>
+
         <div>
           <label htmlFor="course-teacher" className="mb-1.5 block text-sm font-bold text-ink">Teacher</label>
           <select id="course-teacher" value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className={fieldClass}>
@@ -115,6 +181,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
             {eligible.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
+
         <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-surface p-4">
           <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} className="h-5 w-5 accent-[#16181D]" />
           <span>
@@ -122,12 +189,14 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
             <span className="block text-xs text-ink-muted">Students in this grade will see it right away.</span>
           </span>
         </label>
+
         {error && <p role="alert" className="text-sm font-semibold text-danger-700">{error}</p>}
+
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create course'}</Button>
         </div>
       </form>
-    </Modal>);
-
+    </Modal>
+  );
 }

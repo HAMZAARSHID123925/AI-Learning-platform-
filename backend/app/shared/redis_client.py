@@ -76,7 +76,7 @@ async def get_redis() -> AsyncGenerator[Any, None]:
     else:
         if settings.is_production:
             raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
-        raise RuntimeError("Redis authentication dependency unavailable")
+        yield _mock_redis
 
 
 async def close_redis_pool() -> None:
