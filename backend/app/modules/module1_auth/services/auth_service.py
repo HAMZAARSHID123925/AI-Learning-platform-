@@ -197,16 +197,11 @@ async def register_user(
     password: str,
     first_name: str,
     last_name: str,
+    grade: int | None = None,
+    role: str | None = None,
 ) -> User:
     """
-    Register a new user with Student role.
-
-    Business rules:
-    - Email must be unique (enforced by DB UNIQUE constraint)
-    - Password is hashed before storage (bcrypt cost=12)
-    - New users start as pending_verification
-    - A verification email is sent (console log in Phase 1)
-    - Audit log: user.registered
+    Register a new user with chosen role (Student, Instructor, or Admin).
     """
     email = email.lower().strip()
 
@@ -223,17 +218,18 @@ async def register_user(
         password_hash=password_hash,
         first_name=first_name,
         last_name=last_name,
+        grade=grade,
         status=UserStatus.pending_verification,
         email_verified=False,
     )
     db.add(user)
     await db.flush()  # Flush to get user.id without committing
 
-    # Assign Student role (default for new registrations)
-    student_role = await db.execute(select(Role).where(Role.name == "Student"))
-    student_role = student_role.scalar_one_or_none()
-    if student_role:
-        db.add(UserRole(user_id=user.id, role_id=student_role.id))
+    target_role_name = "Instructor" if role in ("teacher", "instructor", "Instructor") else "Admin" if role in ("admin", "Admin") else "Student"
+    assigned_role = await db.execute(select(Role).where(Role.name == target_role_name))
+    assigned_role = assigned_role.scalar_one_or_none()
+    if assigned_role:
+        db.add(UserRole(user_id=user.id, role_id=assigned_role.id))
 
     # Send email verification (console log in Phase 1)
     verify_token = generate_refresh_token()[:32]  # Short token for email URL

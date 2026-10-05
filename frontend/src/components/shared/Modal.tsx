@@ -9,10 +9,11 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   description?: string;
+  maxWidth?: string;
   children: React.ReactNode;
 }
 
-export function Modal({ open, onClose, title, description, children }: ModalProps) {
+export function Modal({ open, onClose, title, description, maxWidth = 'max-w-lg', children }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -23,7 +24,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
   return (
     <AnimatePresence>
       {open &&
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6">
+      <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6 overflow-y-auto">
           <motion.div
           className="absolute inset-0 bg-ink/40"
           initial={{ opacity: 0 }}
@@ -40,7 +41,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.96 }}
           transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          className="relative w-full max-w-lg rounded-t-3xl bg-white p-6 shadow-lift sm:rounded-3xl sm:p-7">
+          className={`relative w-full ${maxWidth} rounded-t-3xl bg-white p-6 shadow-lift sm:rounded-3xl sm:p-7 my-auto max-h-[92vh] overflow-y-auto`}>
           
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>

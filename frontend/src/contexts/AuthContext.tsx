@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             password: account.password,
             first_name: firstName,
             last_name: lastName,
+            role: account.role,
           }),
         });
 
@@ -124,13 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           const errData = await res.json().catch(() => ({}));
-          // If already registered or validation error, let's capture message
-          if (res.status === 400 && errData.detail) {
-            console.warn('Backend register info:', errData.detail);
-          }
+          const message = errData.message || (Array.isArray(errData.detail) ? errData.detail[0]?.msg : errData.detail) || 'Failed to create account in database';
+          return { success: false, error: message };
         }
-      } catch (err) {
-        console.warn('Backend unavailable during register, falling back to local session', err);
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Cannot reach authentication server.' };
       }
 
       // 2. Local fallback sync

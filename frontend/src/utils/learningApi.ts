@@ -71,13 +71,13 @@ function mapBackendCourseToFrontendCourse(b: any): Course {
   const t = (b.title || '').toLowerCase();
   const s = (b.slug || '').toLowerCase();
   let subject: Subject = local?.subject || 'science';
-  if (t.includes('fraction') || t.includes('decimal') || t.includes('geometry') || t.includes('algebra') || t.includes('math') || s.includes('math')) {
+  if (s.startsWith('math-') || t.includes('fraction') || t.includes('decimal') || t.includes('geometry') || t.includes('algebra') || t.includes('math') || s.includes('math')) {
     subject = 'math';
-  } else if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('solar') || t.includes('space') || t.includes('planet') || t.includes('science') || s.includes('science') || s.includes('space')) {
+  } else if (s.startsWith('science-') || t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('solar') || t.includes('space') || t.includes('planet') || t.includes('science') || s.includes('science') || s.includes('space')) {
     subject = 'science';
-  } else if (t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
+  } else if (s.startsWith('english-') || t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english') || s.includes('english')) {
     subject = 'english';
-  } else if (t.includes('code') || t.includes('digital') || t.includes('computer') || s.includes('computer')) {
+  } else if (s.startsWith('computer-') || t.includes('code') || t.includes('digital') || t.includes('computer') || s.includes('computer')) {
     subject = 'computer';
   }
 
@@ -242,7 +242,10 @@ export const learningApi = {
     const lesson = mapBackendLessonToFrontendLesson(
       {
         ...staticSummary,
-        body_markdown: staticDetail?.steps?.[0]?.kind === 'concept' ? staticDetail.steps[0].body : undefined
+        video_url: staticSummary.videoUrl || (staticSummary as any).video_url,
+        thumbnail_url: staticSummary.thumbnailUrl || (staticSummary as any).thumbnail_url,
+        duration_seconds: staticSummary.durationSeconds || (staticSummary as any).duration_seconds,
+        body_markdown: staticSummary.bodyMarkdown || (staticDetail?.steps?.[0]?.kind === 'concept' ? staticDetail.steps[0].body : undefined)
       },
       courseId
     );

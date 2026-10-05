@@ -39,11 +39,12 @@ function LoginInner() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('student');
+  const [role, setRole] = useState<Role | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
+    role?: string;
   }>({});
   const [loading, setLoading] = useState(false);
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,12 +52,14 @@ function LoginInner() {
     const next: typeof errors = {};
     if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Enter a valid email address';
     if (password.length < 6) next.password = 'Password needs at least 6 characters';
+    if (!role) next.role = 'Please choose Student, Teacher, or Admin';
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length || !role) return;
     setLoading(true);
 
+    const chosenRole = role;
     (async () => {
-      const success = await signIn(email, password, role);
+      const success = await signIn(email, password, chosenRole);
       if (!success) {
         setLoading(false);
         setErrors({
@@ -85,7 +88,7 @@ function LoginInner() {
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-bold text-ink">Password</label>
               <div className="relative">
-                <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" aria-invalid={!!errors.password} aria-describedby={errors.password ? 'password-error' : undefined} className="h-12 w-full rounded-2xl border-2 border-line bg-white px-4 pr-12 text-base text-ink outline-none transition-colors duration-150 placeholder:text-ink-muted focus:border-ink aria-[invalid=true]:border-danger-500" />
+                <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" aria-invalid={!!errors.password} aria-describedby={errors.password ? 'password-error' : undefined} className="h-12 w-full rounded-2xl border-2 border-line bg-white px-4 pr-12 text-base text-ink outline-none transition-colors duration-150 placeholder:text-ink-muted focus:border-ink aria-[invalid=true]:border-danger-500" />
                 <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-ink-muted hover:text-ink">
                   {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                 </button>
@@ -105,6 +108,7 @@ function LoginInner() {
                     </button>;
               })}
               </div>
+              {errors.role && <p className="mt-1.5 text-sm font-semibold text-danger-700">{errors.role}</p>}
             </fieldset>
 
             <Button type="submit" size="lg" className="w-full" disabled={loading}>

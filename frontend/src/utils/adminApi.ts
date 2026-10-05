@@ -1,6 +1,15 @@
 import { fetchWithAuth } from '@/lib/api';
 import type { Course, Lesson } from '@/types/learning';
 
+async function getErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    return data.detail || data.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const adminApi = {
   async listCourses(params?: { grade?: number; status_filter?: string; page?: number; page_size?: number }) {
     const q = new URLSearchParams();
@@ -10,7 +19,7 @@ export const adminApi = {
     if (params?.page_size) q.set('page_size', String(params.page_size));
     const url = `/courses${q.toString() ? `?${q.toString()}` : ''}`;
     const res = await fetchWithAuth(url);
-    if (!res.ok) throw new Error('Failed to fetch courses');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch courses'));
     return res.json();
   },
 
@@ -19,13 +28,13 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create course');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create course'));
     return res.json();
   },
 
   async getCourseDetail(courseId: string): Promise<Course> {
     const res = await fetchWithAuth(`/courses/${courseId}`);
-    if (!res.ok) throw new Error('Failed to fetch course details');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch course details'));
     return res.json();
   },
 
@@ -34,7 +43,7 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to update course');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update course'));
     return res.json();
   },
 
@@ -43,7 +52,7 @@ export const adminApi = {
     const res = await fetchWithAuth(`/courses/${courseId}/publish`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error('Failed to publish course');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to publish course'));
     return res.json();
   },
 
@@ -52,7 +61,7 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create module');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create module'));
     return res.json();
   },
 
@@ -78,7 +87,7 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create lesson');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create lesson'));
     return res.json();
   },
 
@@ -87,7 +96,7 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to update lesson');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to update lesson'));
     return res.json();
   },
 
@@ -95,7 +104,7 @@ export const adminApi = {
     const res = await fetchWithAuth(`/lessons/${lessonId}/publish`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error('Failed to publish lesson');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to publish lesson'));
     return res.json();
   },
 
@@ -103,7 +112,7 @@ export const adminApi = {
     const res = await fetchWithAuth(`/lessons/${lessonId}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error('Failed to delete lesson');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to delete lesson'));
   },
 
   // Uploads
@@ -112,7 +121,7 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ course_id: courseId, ...data }),
     });
-    if (!res.ok) throw new Error('Failed to request upload URL');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to request upload URL'));
     return res.json();
   },
 
@@ -121,7 +130,21 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify({ upload_id: uploadId, course_id: courseId, ...data }),
     });
-    if (!res.ok) throw new Error('Failed to confirm upload');
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to confirm upload'));
+    return res.json();
+  },
+
+  async directUpload(courseId: string, file: File, mediaType: string, lessonId?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('media_type', mediaType);
+    if (lessonId) formData.append('lesson_id', lessonId);
+
+    const res = await fetchWithAuth(`/courses/${courseId}/direct-upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Direct upload failed'));
     return res.json();
   },
 

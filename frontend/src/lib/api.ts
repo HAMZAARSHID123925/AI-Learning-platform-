@@ -123,14 +123,19 @@ export async function fetchWithAuth(
   let token = getStoredAccessToken();
 
   const makeRequest = async (t: string | null): Promise<Response> => {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const headers: Record<string, string> = {
+      ...(t ? { Authorization: `Bearer ${t}` } : {}),
+      ...(options.headers as Record<string, string> || {}),
+    };
+    if (!isFormData && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     return await fetch(`${API_BASE}${path}`, {
       ...options,
       credentials: options.credentials || 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-        ...(options.headers || {}),
-      },
+      headers,
     });
   };
 

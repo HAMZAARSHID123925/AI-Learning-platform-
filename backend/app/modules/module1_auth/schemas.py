@@ -40,6 +40,7 @@ class RegisterRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     grade: int | None = Field(default=None, ge=1, le=5)
+    role: str | None = Field(default="student")
 
     @field_validator("password")
     @classmethod

@@ -70,6 +70,7 @@ async def register(
         first_name=body.first_name,
         last_name=body.last_name,
         grade=body.grade,
+        role=body.role,
     )
     return {"message": "Registration successful. Please verify your email.", "user_id": str(user.id)}
 

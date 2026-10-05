@@ -207,6 +207,72 @@ def create_app() -> FastAPI:
     app.include_router(adaptive_router, prefix="/api/v1")
 
     # -------------------------------------------------------------------------
+    # Static uploads mount with HTTP 206 Range Request support for HTML5 video
+    # -------------------------------------------------------------------------
+    import os
+    from fastapi.staticfiles import StaticFiles
+    from starlette.responses import StreamingResponse
+
+    uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", "uploads")
+    if not os.path.exists(uploads_dir):
+        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    @app.get("/static/uploads/{file_name}")
+    async def get_static_upload(file_name: str, request: Request):
+        file_path = os.path.join(uploads_dir, file_name)
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=404, detail="File not found")
+
+        file_size = os.path.getsize(file_path)
+        range_header = request.headers.get("range")
+        content_type = "video/mp4" if file_name.endswith(".mp4") else "image/jpeg" if file_name.endswith((".jpg", ".jpeg")) else "application/octet-stream"
+
+        if range_header:
+            # Parse Range: bytes=start-end
+            range_val = range_header.strip().replace("bytes=", "")
+            parts = range_val.split("-")
+            start = int(parts[0]) if parts[0] else 0
+            end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+            if end >= file_size:
+                end = file_size - 1
+            content_length = end - start + 1
+
+            def iter_file():
+                with open(file_path, "rb") as f:
+                    f.seek(start)
+                    bytes_remaining = content_length
+                    while bytes_remaining > 0:
+                        chunk_size = min(64 * 1024, bytes_remaining)
+                        data = f.read(chunk_size)
+                        if not data:
+                            break
+                        bytes_remaining -= len(data)
+                        yield data
+
+            headers = {
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(content_length),
+                "Content-Type": content_type,
+            }
+            return StreamingResponse(iter_file(), status_code=206, headers=headers)
+
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(file_size),
+            "Content-Type": content_type,
+        }
+        def full_iter():
+            with open(file_path, "rb") as f:
+                while chunk := f.read(64 * 1024):
+                    yield chunk
+
+        return StreamingResponse(full_iter(), status_code=200, headers=headers)
+
+    app.mount("/static/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+    # -------------------------------------------------------------------------
     # Health Check Endpoint
     # WHY a health endpoint?
     #   Docker healthchecks, load balancers, and k8s liveness probes

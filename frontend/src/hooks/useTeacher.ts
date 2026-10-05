@@ -83,8 +83,14 @@ export function useTeacher() {
   }, [catalogCourses, effectiveCourseIds, realStudents, adminStudents]);
 
   const myClasses = useMemo(() => {
+    const tName = (teacher.name || '').toLowerCase().trim();
     return classes
-      .filter((c) => (c.teacher === teacher.name || c.subject === teacher.subject) && c.dayOffset >= 0)
+      .filter((c) => {
+        const classTeacher = (c.teacher || '').toLowerCase().trim();
+        const matchesTeacher = classTeacher === tName || classTeacher.includes(tName) || tName.includes(classTeacher);
+        const matchesSubject = c.subject === teacher.subject;
+        return (matchesTeacher || matchesSubject) && c.dayOffset >= 0;
+      })
       .sort((a, b) => Number(!!b.isLive) - Number(!!a.isLive) || a.dayOffset - b.dayOffset || timeToMinutes(a.time) - timeToMinutes(b.time));
   }, [classes, teacher]);
 

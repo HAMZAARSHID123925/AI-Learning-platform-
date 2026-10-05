@@ -50,9 +50,9 @@ export default function Home() {
   }, [user, grade]);
 
   const activeCourses = liveCourses.length > 0 ? liveCourses : courses.filter((c) => c.grade === grade);
-  const current = activeCourses.find((c) => c.subject === 'math') ?? activeCourses[0];
+  const current = activeCourses[0];
   const currentProgress = current ? getCourseProgress(current, lessons) : null;
-  const others = activeCourses.filter((c) => c.id !== current?.id);
+  const others = activeCourses.slice(1);
 
 
   const getCourseHref = (courseId: string) => {

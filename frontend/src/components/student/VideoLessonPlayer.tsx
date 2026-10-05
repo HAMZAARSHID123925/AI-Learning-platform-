@@ -50,10 +50,14 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
         <div className="bg-black rounded-2xl overflow-hidden shadow-lg aspect-video relative flex items-center justify-center">
           {lesson.videoUrl ? (
             <video
-              className="w-full h-full object-cover"
+              key={lesson.videoUrl}
+              src={lesson.videoUrl}
+              className="w-full h-full object-contain"
               controls
               playsInline
-              preload="metadata"
+              autoPlay
+              muted
+              preload="auto"
               poster={lesson.thumbnailUrl || undefined}
               aria-label={lesson.title}
               onEnded={handleComplete}
@@ -107,6 +111,31 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
               </div>
             ) : (
               <p className="text-slate-500 italic">No notes available for this lesson.</p>
+            )}
+          </div>
+
+          {/* Navigation Controls */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+            <ButtonLink href={exitTo} variant="secondary">
+              Back to course
+            </ButtonLink>
+
+            {course.lessons[index + 1] ? (
+              <ButtonLink 
+                href={`/dashboard/learn/${course.id}/${course.lessons[index + 1].id}`} 
+                onClick={handleComplete}
+                className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold"
+              >
+                Next lesson: {course.lessons[index + 1].title} →
+              </ButtonLink>
+            ) : (
+              <ButtonLink 
+                href={`/dashboard/courses/${course.id}/challenge`} 
+                onClick={handleComplete}
+                className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold"
+              >
+                Take Challenge Test 🏆
+              </ButtonLink>
             )}
           </div>
         </div>

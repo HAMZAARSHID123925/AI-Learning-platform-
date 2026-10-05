@@ -6,6 +6,7 @@ import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
 import { CompletionScreen } from '@/components/student/lesson/CompletionScreen';
 import { LessonPlayer } from '@/components/student/lesson/LessonPlayer';
+import { VideoLessonPlayer } from '@/components/student/VideoLessonPlayer';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useAsync } from '@/hooks/useAsync';
 import { learningApi } from '@/utils/learningApi';
@@ -44,6 +45,17 @@ export default function LearnPage() {
 
   const { course, lesson, index } = q.data;
   const next = course.lessons[index + 1];
+
+  if (lesson.videoUrl) {
+    return (
+      <VideoLessonPlayer
+        course={course}
+        lesson={lesson}
+        index={index}
+        exitTo={`/dashboard/courses/${course.id}`}
+      />
+    );
+  }
 
   return (
     <LessonPlayer

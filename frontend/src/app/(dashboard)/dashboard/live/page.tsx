@@ -12,6 +12,7 @@ import { subjectImages } from '@/data/illustrations';
 import { courseName, subjectStyles } from '@/utils/subjects';
 import { dateFromOffset, relativeDayLabel, timeToMinutes } from '@/utils/dates';
 import { learningApi } from '@/utils/learningApi';
+import type { LiveClass } from '@/types';
 
 const week = Array.from({ length: 7 }, (_, i) => i);
 
@@ -23,17 +24,35 @@ export default function Live() {
   const [reminders, setReminders] = useState<Set<string>>(new Set());
   const [joined, setJoined] = useState<string | null>(null);
 
-  const mine = classes.filter((c) => c.grade === grade);
-  const liveNow = mine.find((c) => c.isLive);
+  const nowMinutes = useMemo(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }, []);
+
+  const mine = useMemo(() => {
+    return classes.filter((c: LiveClass) => !c.grade || c.grade === grade);
+  }, [classes, grade]);
+
+  const isClassCurrentlyLive = (c: LiveClass) => {
+    if (c.isLive) return true;
+    if (c.dayOffset === 0) {
+      const classMins = timeToMinutes(c.time);
+      const duration = c.duration || 45;
+      return nowMinutes >= classMins && nowMinutes < (classMins + duration);
+    }
+    return false;
+  };
+
+  const liveNow = mine.find(isClassCurrentlyLive) || classes.find(isClassCurrentlyLive);
   const upcoming = useMemo(
     () =>
-    mine.
-    filter((c) => !c.isLive && c.dayOffset >= 0).
-    sort((a, b) => a.dayOffset - b.dayOffset || timeToMinutes(a.time) - timeToMinutes(b.time)),
-    [mine]
+    mine
+      .filter((c: LiveClass) => !isClassCurrentlyLive(c) && c.dayOffset >= 0)
+      .sort((a: LiveClass, b: LiveClass) => a.dayOffset - b.dayOffset || timeToMinutes(a.time) - timeToMinutes(b.time)),
+    [mine, nowMinutes]
   );
-  const visible = selectedDay === null ? upcoming : upcoming.filter((c) => c.dayOffset === selectedDay);
-  const days = Array.from(new Set(visible.map((c) => c.dayOffset)));
+  const visible = selectedDay === null ? upcoming : upcoming.filter((c: LiveClass) => c.dayOffset === selectedDay);
+  const days: number[] = Array.from(new Set(visible.map((c: LiveClass) => c.dayOffset)));
 
   const toggleReminder = (id: string, title: string) => {
     setReminders((prev) => {
@@ -160,15 +179,27 @@ export default function Live() {
                             <span className={`font-bold ${s.text}`}>{courseName(c.grade, c.subject)}</span>
                           </p>
                         </div>
-                        <button
-                      type="button"
-                      onClick={() => toggleReminder(c.id, c.title)}
-                      aria-pressed={on}
-                      aria-label={on ? 'Remove reminder' : 'Remind me'}
-                      className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl transition-colors duration-150 ${on ? 'bg-brand-500 text-white' : 'bg-surface text-ink-soft hover:text-ink'}`}>
-                      
-                          {on ? <BellRingIcon className="h-5 w-5" /> : <BellIcon className="h-5 w-5" />}
-                        </button>
+                        {d === 0 ? (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => {
+                              toast.success(`Entering ${c.teacher}’s live session…`);
+                            }}
+                          >
+                            <VideoIcon className="h-4 w-4 mr-1" />
+                            Join class
+                          </Button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleReminder(c.id, c.title)}
+                            aria-pressed={on}
+                            aria-label={on ? 'Remove reminder' : 'Remind me'}
+                            className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl transition-colors duration-150 ${on ? 'bg-brand-500 text-white' : 'bg-surface text-ink-soft hover:text-ink'}`}>
+                            {on ? <BellRingIcon className="h-5 w-5" /> : <BellIcon className="h-5 w-5" />}
+                          </button>
+                        )}
                       </li>);
 
               })}

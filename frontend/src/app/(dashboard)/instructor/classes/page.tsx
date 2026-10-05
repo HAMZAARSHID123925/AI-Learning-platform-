@@ -6,12 +6,26 @@ import { Button } from '@/components/shared/Button';
 import { ClassList } from '@/components/teacher/ClassList';
 import { ScheduleClassModal } from '@/components/teacher/ScheduleClassModal';
 import { useTeacher } from '@/hooks/useTeacher';
+import { useAdmin } from '@/contexts/AdminContext';
+import { courses as catalogCourses } from '@/data/courses';
 
 export default function TeacherClasses() {
   const { teacher, myCourses, myClasses } = useTeacher();
   const [modal, setModal] = useState<null | 'schedule' | 'now'>(null);
   const live = myClasses.filter((c) => c.isLive);
   const upcoming = myClasses.filter((c) => !c.isLive);
+
+  const { courses: adminCourses } = useAdmin();
+  const allSelectableCourses = React.useMemo(() => {
+    const list = [...myCourses.map((m) => m.course)];
+    adminCourses.forEach((ac) => {
+      if (!list.some((c) => c.id === ac.id)) list.push(ac as any);
+    });
+    catalogCourses.forEach((cc) => {
+      if (!list.some((c) => c.id === cc.id)) list.push(cc as any);
+    });
+    return list;
+  }, [myCourses, adminCourses]);
 
   return (
     <div className="space-y-10">
@@ -47,7 +61,7 @@ export default function TeacherClasses() {
       <ScheduleClassModal
         open={modal !== null}
         onClose={() => setModal(null)}
-        courses={myCourses.map((m) => m.course)}
+        courses={allSelectableCourses}
         teacherName={teacher.name}
         defaultMode={modal ?? 'schedule'} />
       

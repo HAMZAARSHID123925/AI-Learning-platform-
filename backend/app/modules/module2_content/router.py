@@ -412,13 +412,19 @@ async def get_lesson(
             )
         )
         
-    # Generate signed urls for lesson media
+    # Generate signed urls for lesson media if not already a direct static server url
     video_url = lesson.video_url
     thumbnail_url = lesson.thumbnail_url
-    if getattr(lesson, 'video_object_key', None):
-        video_url = await generate_presigned_url(lesson.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
-    if getattr(lesson, 'thumbnail_object_key', None):
-        thumbnail_url = await generate_presigned_url(lesson.thumbnail_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+    if getattr(lesson, 'video_object_key', None) and not (video_url and '/static/uploads/' in video_url):
+        try:
+            video_url = await generate_presigned_url(lesson.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+        except Exception:
+            pass
+    if getattr(lesson, 'thumbnail_object_key', None) and not (thumbnail_url and '/static/uploads/' in thumbnail_url):
+        try:
+            thumbnail_url = await generate_presigned_url(lesson.thumbnail_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
+        except Exception:
+            pass
 
     return LessonDetailResponse(
         id=lesson.id, module_id=lesson.module_id, title=lesson.title,
@@ -548,7 +554,7 @@ async def request_presigned_upload(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to upload to this course")
     
     # File type validation
-    if body.media_type == "lesson_video":
+    if body.media_type in ["lesson_video", "course_video"]:
         if body.content_type not in ["video/mp4", "video/webm"]:
             raise ValidationError("Invalid video format")
     elif body.media_type in ["lesson_thumbnail", "course_thumbnail"]:
@@ -559,7 +565,7 @@ async def request_presigned_upload(
     settings = get_settings()
 
     # File size validation (from config)
-    if body.media_type == "lesson_video" and body.size_bytes > settings.MAX_VIDEO_SIZE_BYTES:
+    if body.media_type in ["lesson_video", "course_video"] and body.size_bytes > settings.MAX_VIDEO_SIZE_BYTES:
         raise ValidationError(f"Video file too large (max {settings.MAX_VIDEO_SIZE_BYTES // (1024*1024)}MB)")
     elif body.media_type in ["lesson_thumbnail", "course_thumbnail"] and body.size_bytes > settings.MAX_IMAGE_SIZE_BYTES:
         raise ValidationError(f"Image file too large (max {settings.MAX_IMAGE_SIZE_BYTES // (1024*1024)}MB)")
@@ -569,6 +575,8 @@ async def request_presigned_upload(
     file_uuid = uuid.uuid4()
     if body.media_type == "course_thumbnail":
         object_key = f"course-content/{body.course_id}/thumbnail/{file_uuid}.{ext}"
+    elif body.media_type == "course_video":
+        object_key = f"course-content/{body.course_id}/video/{file_uuid}.{ext}"
     else:
         if not body.lesson_id:
             raise ValidationError("lesson_id is required for lesson media")
@@ -631,6 +639,9 @@ async def confirm_upload(
             db, body.course_id, current_user.id, _is_admin(current_user), 
             thumbnail_url=final_url, thumbnail_object_key=object_key
         )
+    elif body.media_type == "course_video":
+        # Can store in course or content asset
+        pass
     else:
         if not body.lesson_id:
             raise ValidationError("lesson_id is required")
@@ -650,3 +661,59 @@ async def confirm_upload(
             )
 
     return {"status": "success", "url": final_url}
+
+
+import os
+import shutil
+from fastapi import UploadFile, File, Form
+
+@router.post(
+    "/courses/{course_id}/direct-upload",
+    summary="Upload media file directly to server disk",
+    tags=["Assets"],
+    dependencies=[Depends(require_permission("course:create"))],
+)
+async def direct_upload_media(
+    course_id: uuid.UUID,
+    file: UploadFile = File(...),
+    media_type: str = Form(...),
+    lesson_id: uuid.UUID | None = Form(None),
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    course = await course_service.get_course(db, course_id)
+    if not _is_admin(current_user) and course.instructor_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "bin"
+    file_id = f"{uuid.uuid4()}.{ext}"
+    uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+    file_path = os.path.join(uploads_dir, file_id)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    server_url = f"http://localhost:8000/static/uploads/{file_id}"
+
+    if media_type == "course_thumbnail":
+        await course_service.update_course(
+            db, course_id, current_user.id, _is_admin(current_user),
+            thumbnail_url=server_url, thumbnail_object_key=file_id
+        )
+    elif media_type == "lesson_video":
+        if not lesson_id:
+            raise ValidationError("lesson_id is required for lesson_video")
+        await lesson_service.update_lesson(
+            db, lesson_id, current_user.id, _is_admin(current_user),
+            video_url=server_url, video_object_key=file_id
+        )
+    elif media_type == "lesson_thumbnail":
+        if not lesson_id:
+            raise ValidationError("lesson_id is required for lesson_thumbnail")
+        await lesson_service.update_lesson(
+            db, lesson_id, current_user.id, _is_admin(current_user),
+            thumbnail_url=server_url, thumbnail_object_key=file_id
+        )
+
+    return {"status": "success", "url": server_url}

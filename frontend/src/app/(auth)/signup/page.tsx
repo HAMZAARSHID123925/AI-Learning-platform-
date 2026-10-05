@@ -52,12 +52,13 @@ function SignupInner() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('student');
+  const [role, setRole] = useState<Role | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
+    role?: string;
   }>({});
   const [loading, setLoading] = useState(false);
 
@@ -67,18 +68,31 @@ function SignupInner() {
 
     if (!name.trim()) next.name = 'Please enter your full name';
     if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Enter a valid email address';
-    if (password.length < 6) next.password = 'Password needs at least 6 characters';
+    if (!role) next.role = 'Please select whether you are a Student, Teacher, or Admin';
+    if (password.length < 10) {
+      next.password = 'Password must be at least 10 characters long';
+    } else if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=[\]{}|;:,.<>/?`~]/.test(password)) {
+      next.password = 'Must contain uppercase, lowercase, number, and a special character (e.g. !@#$)';
+    }
 
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length || !role) return;
 
     setLoading(true);
+    const chosenRole = role;
     (async () => {
       try {
         localStorage.removeItem('elarion-progress-v2');
       } catch {}
-      await signUp({ name, email, password, role });
-      router.push(role === 'student' ? '/onboarding/grade' : role === 'teacher' ? '/instructor' : '/admin');
+      const res = await signUp({ name, email, password, role: chosenRole });
+      if (!res.success) {
+        setLoading(false);
+        setErrors({
+          email: res.error || 'Failed to register account with database',
+        });
+        return;
+      }
+      router.push(chosenRole === 'student' ? '/onboarding/grade' : chosenRole === 'teacher' ? '/instructor' : '/admin');
     })();
   };
 
@@ -132,7 +146,7 @@ function SignupInner() {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 10 characters (e.g. Pass1234!)"
                   aria-invalid={!!errors.password}
                   aria-describedby={errors.password ? 'password-error' : undefined}
                   className="h-12 w-full rounded-2xl border-2 border-line bg-white px-4 pr-12 text-base text-ink outline-none transition-colors duration-150 placeholder:text-ink-muted focus:border-ink aria-[invalid=true]:border-danger-500"
@@ -172,6 +186,7 @@ function SignupInner() {
                   );
                 })}
               </div>
+              {errors.role && <p className="mt-1.5 text-sm font-semibold text-danger-700">{errors.role}</p>}
             </fieldset>
 
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
