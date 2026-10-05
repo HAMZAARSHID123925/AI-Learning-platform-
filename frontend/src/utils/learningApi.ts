@@ -233,17 +233,19 @@ export const learningApi = {
       } catch {}
     }
 
-    // Fallback to local lessonContent
+    // Fallback to course.lessons or local lessonContent
     const staticSummary = course.lessons.find((l) => l.id === lessonId);
     if (!staticSummary) {
       throw new NotFoundError('This lesson isn’t available yet.');
     }
     const staticDetail = lessonContent.find((c) => c.lessonId === lessonId);
-    const lesson: Lesson = {
-      ...staticSummary,
-      courseId,
-      steps: staticDetail?.steps || []
-    };
+    const lesson = mapBackendLessonToFrontendLesson(
+      {
+        ...staticSummary,
+        body_markdown: staticDetail?.steps?.[0]?.kind === 'concept' ? staticDetail.steps[0].body : undefined
+      },
+      courseId
+    );
     const index = course.lessons.findIndex((l) => l.id === lessonId);
     return { course, lesson, index: index >= 0 ? index : 0 };
   },
