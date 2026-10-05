@@ -1,5 +1,5 @@
 """
-ELARION AI Learning Platform — Backend
+ELARION AI Learning Platform â€” Backend
 Module: app/shared/ai_client.py
 
 Purpose:
@@ -32,11 +32,20 @@ logger = get_logger(__name__)
 # 1. Embedding Provider
 # =============================================================================
 
+import os
+# Prevent OpenBLAS from spawning multiple threads and deadlocking
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
+_fastembed_model = None
+
 async def get_embedding(text: str) -> list[float]:
     """
     Generate a normalized vector embedding for the given text string.
     Matches settings.EMBEDDING_DIM (default 384 for dev / 1536 for OpenAI).
     """
+    global _fastembed_model
     settings = get_settings()
     dim = settings.EMBEDDING_DIM
 
@@ -51,23 +60,22 @@ async def get_embedding(text: str) -> list[float]:
             )
             return resp.data[0].embedding
         except Exception as e:
-            logger.error("openai_embedding_failed", error=str(e))
+            logger.error(f"OpenAI embedding failed: {e}")
             raise
 
     # Fallback / FastEmbed local generator
     try:
         from fastembed import TextEmbedding
-        embedding_model = TextEmbedding(model_name=settings.EMBEDDING_MODEL)
-        embeddings = list(embedding_model.embed([text]))
+        if _fastembed_model is None:
+            _fastembed_model = TextEmbedding(model_name=settings.EMBEDDING_MODEL)
+        embeddings = list(_fastembed_model.embed([text]))
         vector = embeddings[0].tolist()
-        if len(vector) == dim:
-            return vector
-    except Exception:
-        pass
-
-    # Deterministic high-dimensional hash projection for offline/test environments
-    # Guarantees identical input text yields identical vector of exact length `dim`
-    return _generate_deterministic_vector(text, dim)
+        if len(vector) != dim:
+            raise ValueError("Embedding dimension mismatch")
+        return vector
+    except Exception as e:
+        logger.error(f"FastEmbed failed: {e}")
+        raise RuntimeError("Configured embedding provider failed") from e
 
 
 def _generate_deterministic_vector(text: str, dim: int) -> list[float]:
@@ -80,7 +88,7 @@ def _generate_deterministic_vector(text: str, dim: int) -> list[float]:
         h = hashlib.sha256(f"{text}:{i}".encode("utf-8")).hexdigest()
         val = (int(h[:8], 16) / 0xFFFFFFFF) * 2.0 - 1.0
         vec.append(val)
-    
+
     # Normalize to unit vector for cosine similarity
     norm = math.sqrt(sum(x * x for x in vec)) or 1.0
     return [x / norm for x in vec]
@@ -168,10 +176,7 @@ async def generate_llm_completion(
             # - In production: raise clear configuration error
             # - In development/test: provide safe structured fallback
             else:
-                if settings.is_production:
-                    raise Exception(f"Missing required LLM credentials for provider '{settings.LLM_PROVIDER}' in production environment.")
-                logger.warning("no_llm_api_key_configured", provider=settings.LLM_PROVIDER)
-                return _generate_mock_llm_response(user_prompt)
+                raise RuntimeError("Configured LLM credentials are missing")
 
         except Exception as e:
             delay = 1.5 * (2 ** attempt)
@@ -281,7 +286,7 @@ async def transcribe_audio_bytes(audio_bytes: bytes, filename: str = "lecture.mp
             response_format="text"
         )
         return str(resp)
-    
+
     # Offline fallback transcript
     return (
         f"[00:00] Welcome to this video lesson on {filename}.\n"

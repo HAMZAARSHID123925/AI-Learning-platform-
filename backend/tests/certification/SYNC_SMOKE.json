@@ -1,0 +1,26 @@
+[
+  {
+    "check": "Desktop persisted ten-MCQ retrieval without answer keys",
+    "pass": true
+  },
+  {
+    "check": "Desktop deterministic grading of real persisted questions",
+    "pass": true
+  },
+  {
+    "check": "Desktop persisted submission and skill-score retrieval",
+    "pass": true
+  },
+  {
+    "check": "Desktop real weakness remains active",
+    "pass": true
+  },
+  {
+    "check": "Desktop real remediation list/detail",
+    "pass": true
+  },
+  {
+    "check": "Desktop persisted focused-retest handoff reference",
+    "pass": true
+  }
+]

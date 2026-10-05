@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -103,10 +103,10 @@ async def create_course(
 async def list_courses(
     current_user=Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
-    page: int = 1,
-    page_size: int = 20,
-    status_filter: str | None = None,
-    grade: int | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    status_filter: str | None = Query(default=None, pattern="^(draft|published|archived)$"),
+    grade: int | None = Query(default=None, ge=1, le=5),
 ):
     """
     Public visitors and Students see only published courses.
@@ -120,7 +120,7 @@ async def list_courses(
         status_filter = "published"
     elif current_user.has_role("Instructor") and not _is_admin(current_user):
         instructor_id = current_user.id
-    elif current_user.has_role("Student"):
+    elif current_user.has_role("Student") and not _is_admin(current_user):
         status_filter = "published"
 
     courses, total = await course_service.list_courses(
@@ -159,8 +159,15 @@ async def get_course(
 ):
     course = await course_service.get_course(db, course_id)
 
+    if course.status.value != "published":
+        from app.shared.exceptions import PermissionDeniedError
+        if current_user is None:
+            raise PermissionDeniedError()
+        if not _is_admin(current_user) and course.instructor_id != current_user.id:
+            raise PermissionDeniedError()
+
     modules_data: list[ModuleWithLessonsResponse] = []
-    is_staff = current_user is not None and (_is_admin(current_user) or current_user.has_role("Instructor"))
+    is_staff = current_user is not None and (_is_admin(current_user) or (current_user.has_role("Instructor") and course.instructor_id == current_user.id))
 
     for m in (course.modules or []):
         lessons_data = [
@@ -182,6 +189,7 @@ async def get_course(
                 updated_at=l.updated_at,
             )
             for l in (m.lessons or [])
+            if is_staff or l.status.value == "published"
         ]
         modules_data.append(
             ModuleWithLessonsResponse(
@@ -356,12 +364,16 @@ async def get_lesson(
     Get a lesson. Students are blocked from locked lessons (403 LESSON_LOCKED).
     This check is enforced by check_lesson_access called within the service.
     """
+    lesson = await lesson_service.get_lesson(db, lesson_id)
+
     # Lesson gating: enforced for Student role
-    if current_user.has_role("Student"):
+    if current_user.has_role("Student") and not _is_admin(current_user):
+        from app.modules.module2_content.models import LessonStatus
+        if lesson.status != LessonStatus.published:
+            from fastapi import HTTPException, status
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access unpublished lesson")
         from app.modules.module4_experience.services.progress_service import check_lesson_access
         await check_lesson_access(db=db, lesson_id=lesson_id, user=current_user)
-
-    lesson = await lesson_service.get_lesson(db, lesson_id)
 
     # Ownership check: Unassigned teacher denied
     if current_user.has_role("Instructor") and not _is_admin(current_user):
@@ -439,6 +451,7 @@ async def update_lesson(
         is_admin=_is_admin(current_user), title=body.title,
         body_markdown=body.body_markdown, sequence_order=body.sequence_order,
         estimated_minutes=body.estimated_minutes, skill_ids=body.skill_ids,
+        duration_seconds=body.duration_seconds
     )
     skill_ids = body.skill_ids if body.skill_ids is not None else ([ls.skill_id for ls in lesson.lesson_skills] if "lesson_skills" in lesson.__dict__ else [])
     return LessonResponse(
@@ -499,10 +512,14 @@ async def upload_asset(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a PDF, video, image, or audio file to a lesson."""
+    lesson = await lesson_service.get_lesson(db, lesson_id)
+    course = await course_service.get_course(db, lesson.module.course_id)
+    if not _is_admin(current_user) and course.instructor_id != current_user.id:
+        from app.shared.exceptions import PermissionDeniedError
+        raise PermissionDeniedError()
     asset = await asset_service.upload_lesson_asset(
         db=db, lesson_id=lesson_id, file=file, asset_type_str=asset_type
     )
-    url = await asset_service.generate_presigned_url(asset.storage_key) if asset else None
     return AssetResponse(
         id=asset.id, lesson_id=asset.lesson_id, asset_type=asset.asset_type.value,
         original_filename=asset.original_filename, file_size_bytes=asset.file_size_bytes,
@@ -528,7 +545,7 @@ async def request_presigned_upload(
 ):
     course = await course_service.get_course(db, body.course_id)
     if not _is_admin(current_user) and course.instructor_id != current_user.id:
-        raise ValidationError("You do not have permission to upload to this course")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to upload to this course")
     
     # File type validation
     if body.media_type == "lesson_video":
@@ -588,7 +605,7 @@ async def confirm_upload(
 ):
     course = await course_service.get_course(db, body.course_id)
     if not _is_admin(current_user) and course.instructor_id != current_user.id:
-        raise ValidationError("You do not have permission to confirm upload for this course")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to confirm upload for this course")
 
     object_key = body.upload_id
 

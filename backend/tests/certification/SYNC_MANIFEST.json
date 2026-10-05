@@ -1,0 +1,196 @@
+{
+  "source": "C:\\Users\\ali\\.codex\\worktrees\\elarion-latest-backend-cert\\AI-Learning-platform-git",
+  "destination": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git",
+  "backup": "C:\\Users\\ali\\AppData\\Local\\Temp\\elarion-sync-backup-p_td705i",
+  "files": [
+    {
+      "file": "backend/alembic/versions/016_owned_remediation_retest.py",
+      "before": null,
+      "after": "6dbda0d9deea037683d8dac4a961880d594cb98dea6d2d382feb8a2ff8572f71",
+      "changed": true
+    },
+    {
+      "file": "backend/app/main.py",
+      "before": "b9eb4b20cc37164b7dffb3949b7a0d7f20e8d644a2926d1f213b272c69d6a1af",
+      "after": "f1dbc07217ebe0801d57a7843948bd3b7749d25972cfc22c2cbcaed6968719ae",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module1_auth/router.py",
+      "before": "cdca153a7bc4a477ab5c779935a9813878549f17be5c67e573a73e432d72abac",
+      "after": "cdca153a7bc4a477ab5c779935a9813878549f17be5c67e573a73e432d72abac",
+      "changed": false
+    },
+    {
+      "file": "backend/app/modules/module2_content/router.py",
+      "before": "0f0398cb10471e8a53e837c1e5d29ba57d0a894ef18385748c3bf3779cee9096",
+      "after": "0f0398cb10471e8a53e837c1e5d29ba57d0a894ef18385748c3bf3779cee9096",
+      "changed": false
+    },
+    {
+      "file": "backend/app/modules/module2_content/services/lesson_service.py",
+      "before": "a77153af6c85fe8b38283587985d81613fdabc0fc49e324d4b14074d509141a7",
+      "after": "a77153af6c85fe8b38283587985d81613fdabc0fc49e324d4b14074d509141a7",
+      "changed": false
+    },
+    {
+      "file": "backend/app/modules/module4_experience/router.py",
+      "before": "bfafb3d6b36a5eff78c3d09a65f313993efa4b753c47fc3558e47fc8e7dbf666",
+      "after": "bfafb3d6b36a5eff78c3d09a65f313993efa4b753c47fc3558e47fc8e7dbf666",
+      "changed": false
+    },
+    {
+      "file": "backend/app/modules/module4_experience/services/enrollment_service.py",
+      "before": "265b2810c710796ba67f6add3e45ac04885622f5ca42a0dd185413cf1228138c",
+      "after": "265b2810c710796ba67f6add3e45ac04885622f5ca42a0dd185413cf1228138c",
+      "changed": false
+    },
+    {
+      "file": "backend/app/modules/module4_experience/services/progress_service.py",
+      "before": "4c2d0e7a101766626a1228540c0a2c33bab84816b089c1055cea748adf97c5b5",
+      "after": "52f7947deb90ede6e6ce5879621ff2879b1ef8c1c5918b80fb9ad6316c16cb7c",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/models.py",
+      "before": "867cc08280452349aacdc5c310ca3a922ecb8873b55e5d9376f8849029bef827",
+      "after": "ccd5645959ad2383d8750153b27f07bf519d27a7ef89a70918b8c601d9756646",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/router.py",
+      "before": "77ed4f087df81e7aea965f261fb7789357fde115e776919c7e34905ed8d06eb2",
+      "after": "41aaefedeaa54eabc6817f8a28031330a7fcd7b1b152ff43129686452643de1b",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/schemas.py",
+      "before": "63bba8110f0e195a23fc72f3b0e8e18f22663cc6f9c5924e1aa7c2cd7f051182",
+      "after": "579aa848cd303a8af19ea7aa359408bad30247e024353e7807a53c73868f6f69",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/services/access_service.py",
+      "before": null,
+      "after": "399c106fee02cb3b7e4b23e17ae32e074f551e0cb82fefe7d224727bee73d92d",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/services/generation_service.py",
+      "before": "ee20ef0a61d2ae2669c0e823cb477e6fa7c9da91232a4c434513e17a9ede1db8",
+      "after": "aaafe21aad504fb4e353aaf9f34f03c508d1f060f60417fd7b2b274915364700",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/services/grading_service.py",
+      "before": "463c117fdaaf0aa8b221f6e25e453171c7ea75c116fe6e4e90cca3a06e26432c",
+      "after": "9d96d81de3cc46a1fd6b6529c371e9815e66a2cae4bcb74715eb2f6b078bc18f",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module5_assessment/services/rag_service.py",
+      "before": "86503639f343449c2e103aab82d1903021deb4deadba88731dd2ec0643befe3a",
+      "after": "0a8d24fa7a11d357de4fd9af77bf74cad71d4909846e667737b5fe0bea0a7b71",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/models.py",
+      "before": "6650005a0bbb46c91eb2a22695c7376f45eddd6ac14293de134d699fb2cd50bb",
+      "after": "73a7b2323c2503f5dbe6d03545459c4df5ae2b3aa3e365f4065e4e14333849e0",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/router.py",
+      "before": "2fa7884126d3fc38045c39127a6002deaf111d6af59827ca89a88c60fbc60841",
+      "after": "208eec5be50f4a7476c49f90dc9a6320c90d5f586b407e169a1a47e4d0b36236",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/services/path_gating_service.py",
+      "before": "0f5d3e023bdbd96008979fef1568ec63da657d64c55471f608513c4704bd728d",
+      "after": "a98a0a2b7e7064abff97653e4f5bce8a07feefb85aca31062daf0ffca08c5151",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/services/remedial_course_service.py",
+      "before": "1bb27973111f8773292283b0ec508864188f54bbd5ee9721803eb0a9920e94aa",
+      "after": "08d45d78cba8c06a64b84d3cb2430f806c2136fdcc138aa094c14bda4a27b60d",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/services/retest_service.py",
+      "before": "efdb1a2a7fd7a274c02e7fdd4d17bb54bec07c4c08e641e242c403680b4216fa",
+      "after": "f09aace6488fd52117e80f3cc28295d05a0ca3446e729670331f76480396f153",
+      "changed": true
+    },
+    {
+      "file": "backend/app/modules/module6_adaptive/services/weakness_detector.py",
+      "before": "23afac8b367c43a854825fa90e5411bd7afe489ee93fb7321472a6e25a57a123",
+      "after": "37147cd573b2a6f472fc084b07a59d6e530927c28eb48c4afc6b5f26287c8320",
+      "changed": true
+    },
+    {
+      "file": "backend/app/shared/ai_client.py",
+      "before": "6f7b28824df7b5c7fc4658ca0d6e4ee936c3e101fb569f9b447be3b0cee84a21",
+      "after": "a9fba8dba83d8f3ca95d1ec57aa5778f6878dc3ce0f534564ecb6832ecc011b3",
+      "changed": true
+    },
+    {
+      "file": "backend/app/shared/events.py",
+      "before": "d7af9367f5345667296df570132ffefeeee5dbabdcbb79002bac6206fb2e5511",
+      "after": "ae50164719e55ec99f0fad3f1a2f3d97c596bb4d1c6116c0e3da92d9de0a381b",
+      "changed": true
+    },
+    {
+      "file": "backend/app/shared/redis_client.py",
+      "before": "58440eff2d8cb8673433355ee18fc84fb8254a3d7f34eb7fea2e19426f08efc2",
+      "after": "426c27986621674cae61363094cc8e5cbee30cf2d56c0474626f32fcc5f8bf2d",
+      "changed": true
+    },
+    {
+      "file": "backend/app/workers/adaptive_consumer.py",
+      "before": "9bfe6e06a58c76e768e0d1c5f8486b347975a8440ee5da1bed736e6ddef4be5c",
+      "after": "b62464b9065832689497a9a6eb3a1e169e49f3364eaa67b96123a6f862a3ed03",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/certification/CERTIFICATION_REPORT.md",
+      "before": null,
+      "after": "75fbea1820fe1dc5752195450f26327a515c1729d23680692f675bd4cae17494",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/certification/SNAPSHOT.md",
+      "before": null,
+      "after": "b864b3f803bb0e00633dddfd5076f879e8cc8c8ae1f7d93c81bb5c7ecbb8f074",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/certification/test_adaptive_regressions.py",
+      "before": null,
+      "after": "1f04435a306d42d694dd7b067ebe8d0338b04dce79c2e40dcfe6398eca749b56",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/certification/test_regressions.py",
+      "before": null,
+      "after": "a285285e1e5ffa3e92b37f5b1ea5df031dd772d57f128a0839bd94cbf0240f5e",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/integration/module5/test_assessment_flow.py",
+      "before": "976234d5ce2f9d962a9a92f876bd96c50f65d5a0d0b203e8fc76064b8bead4f9",
+      "after": "9f30fb84361cf4debe44c116989a4f47f627b84abf2f7b47b72335b2266cf331",
+      "changed": true
+    },
+    {
+      "file": "backend/tests/integration/module5/test_module07.py",
+      "before": "545d7369bf7f1889e43368e3acc9b8b75fdad8dc372316da8c23a0cf91eee5c9",
+      "after": "545d7369bf7f1889e43368e3acc9b8b75fdad8dc372316da8c23a0cf91eee5c9",
+      "changed": false
+    }
+  ],
+  "parity": true,
+  "newer_desktop_changes": false,
+  "overlap_resolution": "Reviewed existing has_role, MCQ/default10/body_markdown validation and FastEmbed cache/thread fixes; certified source preserves and strengthens them. Integration difference is whitespace only."
+}

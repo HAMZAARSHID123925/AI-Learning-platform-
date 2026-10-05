@@ -69,6 +69,9 @@ async def create_course(
 ) -> Course:
     """Create a new course owned by the given instructor."""
     auto_slug = slug or _slugify(title)
+    # Serialize allocation of the base slug through request commit.
+    # Concurrent instructor/Admin creates must receive distinct suffixes.
+    await db.execute(select(func.pg_advisory_xact_lock(func.hashtextextended("course-slug:" + auto_slug, 0))))
     final_slug = await _ensure_slug_unique(db, auto_slug)
 
     course = Course(

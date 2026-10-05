@@ -192,7 +192,7 @@ class PresignedUploadRequest(BaseModel):
     media_type: str = Field(pattern="^(lesson_video|lesson_thumbnail|course_thumbnail)$")
     filename: str
     content_type: str
-    size_bytes: int
+    size_bytes: int = Field(gt=0)
 
 class PresignedUploadResponse(BaseModel):
     upload_id: str

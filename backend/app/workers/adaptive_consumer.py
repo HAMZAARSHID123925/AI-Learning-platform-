@@ -18,6 +18,7 @@ import asyncio
 import json
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -25,8 +26,8 @@ from app.database import AsyncSessionLocal
 from app.modules.module1_auth.models import User
 from app.modules.module2_content.models import Course
 from app.modules.module4_experience.models import Enrollment
-from app.modules.module5_assessment.models import Submission
-from app.modules.module6_adaptive.models import WeaknessFlag, RemediationPlan
+from app.modules.module5_assessment.models import Submission, SubmissionStatus
+from app.modules.module6_adaptive.models import WeaknessFlag, RemediationPlan, WeaknessStatus
 from app.modules.module6_adaptive.services.path_gating_service import (
     lock_lessons_for_weakness,
     unlock_lessons_if_clear,
@@ -56,11 +57,16 @@ async def process_test_graded_event(event_payload: dict, db: AsyncSession) -> di
         logger.error("submission_not_found_for_event", submission_id=str(submission_id))
         return {"status": "error", "reason": "Submission not found"}
 
+    if submission.student_id != student_id or submission.status != SubmissionStatus.graded or str(submission.test_id) != event_payload.get("test_id"):
+        return {"status": "error", "reason": "Event does not match a graded submission"}
     # 1. Run weakness detector
     new_flags, resolved_flags = await evaluate_submission_skills_for_weaknesses(submission, db)
 
     # 2. For newly detected or recurring weaknesses: generate tailored written remedial course and lock content
-    for flag in new_flags:
+    # Replays also repair gating if a previous attempt failed after plan persistence.
+    active_flags = list((await db.execute(select(WeaknessFlag).where(WeaknessFlag.student_id == student_id, WeaknessFlag.submission_id == submission.id, WeaknessFlag.status == WeaknessStatus.active))).scalars())
+    work_flags = {flag.id: flag for flag in [*new_flags, *active_flags]}
+    for flag in work_flags.values():
         # Generate custom written course
         await generate_student_remedial_course(db, student_id, flag, submission)
         # Lock downstream lessons requiring this weak skill
@@ -95,17 +101,21 @@ async def run_consumer_loop(poll_delay: float = 1.0):
     # Ensure stream and consumer group exist
     try:
         await redis.xgroup_create(stream_key, CONSUMER_GROUP, id="0", mkstream=True)
-    except Exception:
-        pass  # Group already exists
+    except Exception as exc:
+        if "BUSYGROUP" not in str(exc):
+            raise
 
     logger.info("adaptive_consumer_started", stream=stream_key, group=CONSUMER_GROUP)
 
     while True:
         try:
+            from app.shared.events import dispatch_pending_graded_events
+            async with AsyncSessionLocal() as outbox_session:
+                await dispatch_pending_graded_events(outbox_session)
             # Recover pending messages idle for > 5 minutes (300000 ms)
             try:
                 claim_res = await redis.xautoclaim(stream_key, CONSUMER_GROUP, CONSUMER_NAME, 300000, "0-0", count=5)
-                claimed_msgs = claim_res[1] if isinstance(claim_res, tuple) and len(claim_res) >= 2 else []
+                claimed_msgs = claim_res[1] if isinstance(claim_res, (tuple, list)) and len(claim_res) >= 2 else []
                 if claimed_msgs:
                     for msg_id, data in claimed_msgs:
                         try:

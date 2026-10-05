@@ -1,5 +1,5 @@
 """
-ELARION AI Learning Platform — Backend
+ELARION AI Learning Platform â€” Backend
 Module: app/modules/module5_assessment/services/grading_service.py
 
 Purpose:
@@ -27,9 +27,11 @@ from app.modules.module5_assessment.models import (
     SkillScore,
     Submission,
     SubmissionStatus,
+    Test,
+    TestGradedOutbox,
 )
 from app.shared.ai_client import generate_llm_completion
-from app.shared.events import emit_test_graded_event
+from app.shared.events import emit_test_graded_event, publish_graded_outbox
 from app.shared.exceptions import NotFoundError
 from app.shared.logging_config import get_logger
 
@@ -79,8 +81,7 @@ def grade_mcq_deterministic(question: Question, student_answer: Any) -> tuple[fl
     if chosen_option and str(chosen_option.get("id")) == str(correct_option.get("id")):
         return float(question.max_score), "Correct! Excellent grasp of the concept."
 
-    correct_text = correct_option.get("text", "")
-    return 0.0, f"Incorrect. The correct answer was: {correct_text}"
+    return 0.0, "Incorrect. Review the lesson concepts before trying again."
 
 
 async def grade_short_answer_llm(question: Question, student_answer: Any) -> tuple[float, str, str]:
@@ -128,7 +129,7 @@ Grade this response and return JSON with keys: 'score', 'feedback', 'llm_reasoni
         return score, feedback, reasoning
     except Exception as e:
         logger.error("llm_grading_call_failed", question_id=str(question.id), error=str(e))
-        return 0.5, "Response recorded and accepted.", f"Fallback grading applied: {e}"
+        raise RuntimeError("Written-answer grading is unavailable") from e
 
 
 async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submission:
@@ -152,13 +153,15 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
     if not submission:
         raise NotFoundError("Submission", submission_id)
 
+    if submission.status == SubmissionStatus.graded:
+        return submission
     submission.status = SubmissionStatus.grading
     await db.commit()
 
     try:
         test = submission.test
         student_answers = submission.answers or {}
-        skill_score_accum: dict[uuid.UUID, list[float]] = {}
+        skill_score_accum: dict[uuid.UUID, list[tuple[float, float, GraderType, str]]] = {}
         persisted_skill_scores = []
         total_score = 0.0
         max_possible_score = 0.0
@@ -177,27 +180,20 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
             total_score += score
             max_possible_score += float(question.max_score)
 
-            # Record per-question skill score
-            skill_score = SkillScore(
-                submission_id=submission.id,
-                skill_id=question.skill_id,
-                score=score,
-                max_score=question.max_score,
-                grader_type=grader,
-                llm_feedback=feedback
-            )
-            db.add(skill_score)
+            # One normalized row per submission/skill (matches uq_skill_score).
+            bucket = skill_score_accum.setdefault(question.skill_id, [])
+            bucket.append((score, float(question.max_score), grader, feedback))
 
-            persisted_skill_scores.append({
-                "skill_id": question.skill_id,
-                "score": score,
-                "max_score": question.max_score
-            })
-
-            # Accumulate for skill percentage
-            if question.skill_id not in skill_score_accum:
-                skill_score_accum[question.skill_id] = []
-            skill_score_accum[question.skill_id].append(score / float(question.max_score or 1.0))
+        for skill_id, scores in skill_score_accum.items():
+            maximum = sum(row[1] for row in scores)
+            normalized = sum(row[0] for row in scores) / maximum if maximum else 0.0
+            db.add(SkillScore(
+                submission_id=submission.id, skill_id=skill_id,
+                score=round(normalized, 4), max_score=1.0,
+                grader_type=GraderType.llm if any(row[2] == GraderType.llm for row in scores) else GraderType.deterministic,
+                llm_feedback="\n".join(row[3] for row in scores),
+            ))
+            persisted_skill_scores.append({"skill_id": skill_id, "score": round(normalized, 4), "max_score": 1.0})
 
         # Calculate final overall score
         overall_pct = (total_score / max_possible_score) if max_possible_score > 0 else 0.0
@@ -205,6 +201,8 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
         submission.status = SubmissionStatus.graded
         submission.graded_at = datetime.now(timezone.utc)
 
+        event_arguments = dict(submission_id=str(submission.id), test_id=str(test.id), student_id=str(submission.student_id), attempt_number=submission.attempt_number, overall_score=float(submission.overall_score), is_focused_retest=test.is_focused_retest, skill_scores=[{"skill_id":str(x["skill_id"]),"score":float(x["score"]),"max_score":float(x["max_score"])} for x in persisted_skill_scores])
+        db.add(TestGradedOutbox(submission_id=submission.id,payload=event_arguments))
         await db.commit()
         await db.refresh(submission)
 
@@ -214,26 +212,12 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
             overall_score=submission.overall_score
         )
 
-        # Aggregate skill scores for Redis event
-        aggregated_skills = [
-            {
-                "skill_id": s_id,
-                "score": sum(scores) / len(scores),
-                "max_score": 1.0
-            }
-            for s_id, scores in skill_score_accum.items()
-        ]
-
-        # Emit TestGraded event onto Redis Streams
-        await emit_test_graded_event(
-            submission_id=submission.id,
-            test_id=test.id,
-            student_id=submission.student_id,
-            attempt_number=submission.attempt_number,
-            overall_score=submission.overall_score,
-            is_focused_retest=test.is_focused_retest,
-            skill_scores=aggregated_skills
-        )
+        # Broker outages leave a durable pending event; a worker retries it.
+        try:await publish_graded_outbox(db,submission.id)
+        except Exception as exc:
+            await db.rollback()
+            logger.warning('graded_event_delivery_deferred',submission_id=str(submission_id),error_type=type(exc).__name__)
+            submission=await db.get(Submission,submission_id)
 
         return submission
 

@@ -50,7 +50,8 @@ async def enroll_student(
 
     if existing:
         logger.info("student_already_enrolled", student_id=str(student_id), course_id=str(course_id))
-        return existing
+        from app.shared.exceptions import DuplicateResourceError
+        raise DuplicateResourceError("Enrollment", "student_id and course_id")
 
     # 3. Create new enrollment
     enrollment = Enrollment(

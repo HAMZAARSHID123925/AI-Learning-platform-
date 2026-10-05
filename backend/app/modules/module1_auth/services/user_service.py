@@ -82,10 +82,13 @@ async def update_user(
     status: str | None = None,
     email_verified: bool | None = None,
     parental_consent: bool | None = None,
+    grade: int | None = None,
 ) -> User:
     """Update user fields. Only updates fields that are explicitly provided."""
     user = await get_user_by_id(db, user_id)
 
+    if grade is not None:
+        user.grade = grade
     if first_name is not None:
         user.first_name = first_name
     if last_name is not None:
@@ -110,6 +113,7 @@ async def assign_role(
     """
     Assign a role to a user. Idempotent: silently succeeds if already assigned.
     """
+    await db.execute(select(User.id).where(User.id == user_id).with_for_update())
     user = await get_user_by_id(db, user_id)
 
     role_result = await db.execute(select(Role).where(Role.name == role_name))
@@ -147,6 +151,8 @@ async def revoke_role(
     actor_id: uuid.UUID,
 ) -> None:
     """Revoke a role from a user."""
+    await db.execute(select(User.id).where(User.id == user_id).with_for_update())
+    await get_user_by_id(db, user_id)
     role_result = await db.execute(select(Role).where(Role.name == role_name))
     role = role_result.scalar_one_or_none()
     if role is None:

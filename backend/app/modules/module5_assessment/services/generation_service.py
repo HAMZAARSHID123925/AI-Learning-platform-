@@ -1,10 +1,10 @@
 """
-ELARION AI Learning Platform — Backend
+ELARION AI Learning Platform â€” Backend
 Module: app/modules/module5_assessment/services/generation_service.py
 
 Purpose:
     Generates AI-powered assessments grounded in lesson curriculum via RAG.
-    Produces balanced tests with deterministic MCQs and rubric-evaluated short answers.
+    Produces validated MCQ-only assessments with deterministic grading.
 """
 
 from __future__ import annotations
@@ -34,11 +34,38 @@ on the provided authoritative lesson excerpts.
 
 RULES:
 1. Every question must directly test concepts present in the provided context excerpts.
-2. Produce a mix of Multiple Choice Questions (MCQ) and Short Answer Questions.
-3. For MCQ: Provide 4 options. Exactly ONE option must have "is_correct": true. Provide realistic distractors.
-4. For Short Answer: Provide a clear, granular rubric explaining criteria for 1.0 (full credit), 0.5 (partial credit), and 0.0 (no credit).
-5. Output MUST be strictly valid JSON matching the requested schema. Do not include markdown codeblocks or commentary outside the JSON.
+2. Produce ONLY Multiple Choice Questions (MCQ). Do NOT generate short answer questions.
+3. For MCQ: Provide 4 options. Exactly ONE option must have "is_correct": true. Provide realistic distractors. Every option must have an "id" and "text".
+4. Output MUST be strictly valid JSON matching the requested schema. Do not include markdown codeblocks or commentary outside the JSON.
 """
+
+
+def validate_generated_mcqs(data: dict, count: int, skill_names: set[str] | None = None) -> None:
+    """Reject malformed or duplicate output before writing any questions."""
+    questions = data.get("questions")
+    if not isinstance(questions, list) or len(questions) != count:
+        raise ValueError("Incorrect question count")
+    prompts = set()
+    for question in questions:
+        if skill_names is not None and question.get("skill_name", "").casefold() not in skill_names:
+            raise ValueError("Questions must reference a tagged curriculum skill")
+        prompt = question.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip() or prompt.strip().casefold() in prompts:
+            raise ValueError("Question prompts must be nonempty and unique")
+        prompts.add(prompt.strip().casefold())
+        if question.get("question_type") != "mcq" or float(question.get("max_score", 1)) != 1.0:
+            raise ValueError("Only unit-score MCQs are allowed")
+        options = question.get("options")
+        if not isinstance(options, list) or len(options) != 4:
+            raise ValueError("Exactly four options are required")
+        if any(not isinstance(o.get("is_correct"), bool) for o in options):
+            raise ValueError("Correctness flags must be booleans")
+        if sum(o["is_correct"] for o in options) != 1:
+            raise ValueError("Exactly one correct option is required")
+        for key in ("id", "text"):
+            values = [o.get(key) for o in options]
+            if any(not isinstance(v, str) or not v.strip() for v in values) or len({v.strip().casefold() for v in values}) != 4:
+                raise ValueError("Option identifiers and texts must be nonempty and unique")
 
 
 async def generate_lesson_assessment(
@@ -46,7 +73,8 @@ async def generate_lesson_assessment(
     db: AsyncSession,
     is_focused_retest: bool = False,
     skill_filter: list[uuid.UUID] | None = None,
-    num_questions: int = 5
+    num_questions: int = 10,
+    commit: bool = True
 ) -> Test:
     """
     RAG-grounded test generation workflow:
@@ -75,12 +103,8 @@ async def generate_lesson_assessment(
         s_res = await db.execute(s_query)
         skills_map = {s.id: s for s in s_res.scalars().all()}
 
-    # Fallback to any default platform skill if lesson has none attached
-    if not skills_map:
-        fallback_res = await db.execute(select(SkillTaxonomy).limit(1))
-        def_skill = fallback_res.scalar_one_or_none()
-        if def_skill:
-            skills_map = {def_skill.id: def_skill}
+    if not skills_map or (skill_filter and set(skill_filter) != set(skills_map)):
+        raise BusinessRuleError("Assessment requires valid lesson skill tags")
 
     target_skill_list = list(skills_map.values())
     default_skill_id = target_skill_list[0].id if target_skill_list else uuid.uuid4()
@@ -97,8 +121,10 @@ async def generate_lesson_assessment(
 
     rag_text = "\n\n".join(
         f"[Source Chunk #{c.chunk_index}]:\n{c.chunk_text}" for c in chunks
-    ) or f"Lesson Content: {lesson.body_text or lesson.title}"
+    ) or f"Lesson Content: {lesson.body_markdown or lesson.title}"
 
+    if not chunks and not (lesson.body_markdown or "").strip():
+        raise BusinessRuleError("Assessment requires authoritative lesson content")
     source_chunk_ids = [str(c.chunk_id) for c in chunks]
 
     # 3. Construct prompt
@@ -110,7 +136,7 @@ TARGET SKILLS TO ASSESS:
 AUTHORITATIVE CURRICULUM CONTEXT:
 {rag_text}
 
-Generate a structured test with {num_questions} questions (e.g. 3 MCQs and 2 Short Answer questions).
+Generate a structured test with exactly {num_questions} Multiple Choice Questions (MCQ) ONLY. Do not generate short answer questions.
 
 JSON SCHEMA TO RETURN:
 {{
@@ -128,32 +154,49 @@ JSON SCHEMA TO RETURN:
       "rubric": null,
       "max_score": 1.0,
       "skill_name": "{target_skill_list[0].name if target_skill_list else 'Core Knowledge'}"
-    }},
-    {{
-      "question_type": "short_answer",
-      "prompt": "Open-ended prompt asking student to explain or apply a concept?",
-      "options": null,
-      "rubric": "Full credit (1.0) requires... Partial credit (0.5) if... No credit (0.0) if...",
-      "max_score": 1.0,
-      "skill_name": "{target_skill_list[0].name if target_skill_list else 'Core Knowledge'}"
     }}
   ]
 }}
 """
 
-    # 4. Invoke LLM
-    raw_response = await generate_llm_completion(
-        system_prompt=ASSESSMENT_SYSTEM_PROMPT,
-        user_prompt=user_prompt,
-        temperature=0.2,
-        json_mode=True
-    )
+    # 4. Invoke LLM with retry validation
+    max_retries = 3
+    data = None
+    import asyncio
+    for attempt in range(max_retries):
+        try:
+            raw_response = await generate_llm_completion(
+                system_prompt=ASSESSMENT_SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                temperature=0.2,
+                json_mode=True
+            )
+            data = json.loads(raw_response)
+            validate_generated_mcqs(data, num_questions, {s.name.casefold() for s in target_skill_list})
+            questions = data.get("questions", [])
+            if len(questions) != num_questions:
+                raise ValueError(f"Expected {num_questions} questions, got {len(questions)}")
 
-    try:
-        data = json.loads(raw_response)
-    except Exception as e:
-        logger.error("llm_json_parse_failed", error=str(e), raw=raw_response[:200])
-        raise BusinessRuleError("AI generation failed to produce valid structured JSON")
+            for q in questions:
+                if q.get("question_type") != "mcq":
+                    raise ValueError(f"Expected MCQ only, got {q.get('question_type')}")
+                opts = q.get("options")
+                if not opts or len(opts) != 4:
+                    raise ValueError("MCQ must have exactly 4 options")
+                if sum(1 for o in opts if o.get("is_correct")) != 1:
+                    raise ValueError("Exactly ONE option must be correct")
+                for o in opts:
+                    if "id" not in o or "text" not in o:
+                        raise ValueError("Options must have id and text")
+
+            # Validation passed
+            break
+        except Exception as e:
+            logger.warning("llm_validation_failed", attempt=attempt, error=str(e))
+            if attempt == max_retries - 1:
+                logger.error("llm_json_parse_failed", error=str(e))
+                raise BusinessRuleError(f"AI generation failed to produce valid structured JSON: {e}")
+            await asyncio.sleep(1)
 
     # 5. Persist Test and Questions
     test_title = data.get("title", f"{lesson.title} Assessment")
@@ -191,8 +234,10 @@ JSON SCHEMA TO RETURN:
         )
         db.add(question_obj)
 
-    await db.commit()
-    await db.refresh(test_obj)
+    await db.flush()
+    if commit:
+        await db.commit()
+    await db.refresh(test_obj, attribute_names=["questions"])
     logger.info("test_generated_successfully", test_id=str(test_obj.id), title=test_obj.title)
     return test_obj
 
@@ -205,19 +250,24 @@ async def generate_course_assessment(
     Generates a course-level assessment with exactly 10 MCQs.
     """
     from app.modules.module2_content.models import Course
-    
+
     query = (
         select(Course)
         .where(Course.id == course_id)
-        .options(selectinload(Course.skills))
     )
     res = await db.execute(query)
     course = res.scalar_one_or_none()
     if not course:
         raise NotFoundError("Course", course_id)
 
-    skill_names = course.skills if course.skills else ["Core Knowledge"]
-    
+    from app.modules.module2_content.models import CourseModule, LessonSkill, LessonStatus
+    lessons = list((await db.execute(select(Lesson).join(CourseModule).where(CourseModule.course_id == course.id, Lesson.status == LessonStatus.published).options(selectinload(Lesson.lesson_skills)))).scalars().all())
+    tagged_ids = {tag.skill_id for lesson in lessons for tag in lesson.lesson_skills}
+    course_skills = list((await db.execute(select(SkillTaxonomy).where(SkillTaxonomy.id.in_(tagged_ids)))).scalars().all())
+    if not course_skills:
+        raise BusinessRuleError("Course assessment requires published lessons with skill tags")
+    skill_names = [skill.name for skill in course_skills]
+
     # Retrieve authoritative chunks via RAG across the course
     from app.modules.module5_assessment.services.rag_service import retrieve_course_chunks
     chunks = await retrieve_course_chunks(
@@ -229,7 +279,7 @@ async def generate_course_assessment(
 
     rag_text = "\n\n".join(
         f"[Source Chunk #{c.chunk_index}]:\n{c.chunk_text}" for c in chunks
-    ) or f"Course Title: {course.title}"
+    ) or "\n\n".join(f"{lesson.title}: {lesson.body_markdown or ''}" for lesson in lessons)
 
     source_chunk_ids = [str(c.chunk_id) for c in chunks]
 
@@ -265,23 +315,45 @@ JSON SCHEMA TO RETURN:
 }}
 """
 
-    raw_response = await generate_llm_completion(
-        system_prompt=ASSESSMENT_SYSTEM_PROMPT,
-        user_prompt=user_prompt,
-        temperature=0.2,
-        json_mode=True
-    )
+    max_retries = 3
+    data = None
+    import asyncio
+    for attempt in range(max_retries):
+        try:
+            raw_response = await generate_llm_completion(
+                system_prompt=ASSESSMENT_SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                temperature=0.2,
+                json_mode=True
+            )
+            data = json.loads(raw_response)
+            validate_generated_mcqs(data, 10, {s.name.casefold() for s in course_skills})
+            questions = data.get("questions", [])
+            if len(questions) != 10:
+                raise ValueError(f"Expected 10 questions, got {len(questions)}")
 
-    try:
-        data = json.loads(raw_response)
-    except Exception as e:
-        logger.error("llm_json_parse_failed", error=str(e), raw=raw_response[:200])
-        raise BusinessRuleError("AI generation failed to produce valid structured JSON")
+            for q in questions:
+                if q.get("question_type") != "mcq":
+                    raise ValueError(f"Expected MCQ only, got {q.get('question_type')}")
+                opts = q.get("options")
+                if not opts or len(opts) != 4:
+                    raise ValueError("MCQ must have exactly 4 options")
+                if sum(1 for o in opts if o.get("is_correct")) != 1:
+                    raise ValueError("Exactly ONE option must be correct")
+                for o in opts:
+                    if "id" not in o or "text" not in o:
+                        raise ValueError("Options must have id and text")
+
+            break
+        except Exception as e:
+            logger.warning("llm_course_validation_failed", attempt=attempt, error=str(e))
+            if attempt == max_retries - 1:
+                logger.error("llm_json_parse_failed", error=str(e))
+                raise BusinessRuleError(f"AI generation failed to produce valid structured JSON: {e}")
+            await asyncio.sleep(1)
 
     # We need a default Skill ID for the DB relationship
-    fallback_res = await db.execute(select(SkillTaxonomy).limit(1))
-    def_skill = fallback_res.scalar_one_or_none()
-    default_skill_id = def_skill.id if def_skill else uuid.uuid4()
+    default_skill_id = course_skills[0].id
 
     test_title = data.get("title", f"{course.title} Final Assessment")
     test_obj = Test(
@@ -295,7 +367,7 @@ JSON SCHEMA TO RETURN:
     for q_data in data.get("questions", []):
         question_obj = Question(
             test_id=test_obj.id,
-            skill_id=default_skill_id,
+            skill_id=next((skill.id for skill in course_skills if skill.name.casefold() == q_data.get("skill_name", "").casefold()), default_skill_id),
             question_type=QuestionType.mcq,
             prompt=q_data.get("prompt", "Question Prompt"),
             options=q_data.get("options"),
@@ -306,6 +378,6 @@ JSON SCHEMA TO RETURN:
         db.add(question_obj)
 
     await db.commit()
-    await db.refresh(test_obj)
+    await db.refresh(test_obj, attribute_names=["questions"])
     logger.info("course_test_generated", test_id=str(test_obj.id))
     return test_obj

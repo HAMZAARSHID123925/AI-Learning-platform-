@@ -170,12 +170,10 @@ def create_app() -> FastAPI:
         )
 
     async def handle_global_error(request: Request, exc: Exception):
-        import traceback
-        traceback.print_exc()
-        logger.error("unhandled_global_error", error=str(exc))
+        logger.error("unhandled_global_error", error_type=type(exc).__name__)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"code": "INTERNAL_SERVER_ERROR", "message": str(exc)},
+            content={"code": "INTERNAL_SERVER_ERROR", "message": "An internal error occurred."},
         )
 
     # Register each domain exception type

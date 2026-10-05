@@ -222,7 +222,8 @@ def build_render_payload(job: VideoGenerationJob, output_path: str) -> dict:
     Merges scene_json + audio_manifest_json + asset_manifest_json.
     """
     scene_json: dict = job.scene_json or {}
-    audio_manifest: dict = job.audio_manifest_json or {}
+    import copy
+    audio_manifest: dict = copy.deepcopy(job.audio_manifest_json or {})
 
     # Build asset manifest if not already on the job
     if job.asset_manifest_json:
@@ -364,6 +365,9 @@ async def render_video(
     if not job.scene_json or not job.audio_manifest_json:
         raise ValueError(f"Job {job_id} missing scene_json or audio_manifest_json")
 
+    if job.audio_manifest_json.get("is_mock"):
+        raise ValueError("Personalized video requires real audio")
+
     # Advance to rendering
     job.status = VideoJobStatus.rendering
     await db.commit()
@@ -380,6 +384,11 @@ async def render_video(
 
         # ── Build and write render payload ────────────────────────────────
         payload = build_render_payload(job, output_path)
+        from app.shared.s3_client import generate_presigned_url
+        for clip in payload["audio_manifest"]["scenes"]:
+            if not clip.get("audio_key"):
+                raise ValueError("Audio clip requires a private object key")
+            clip["audio_url"] = await generate_presigned_url(clip["audio_key"], expires_in=1200)
         with open(input_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
 
@@ -401,7 +410,6 @@ async def render_video(
         if not render_result.success:
             job.status = VideoJobStatus.failed
             job.error_message = f"Render failed: {render_result.error}"
-            job.retry_count += 1
             await db.commit()
             raise RuntimeError(f"Remotion render failed for job {job_id}: {render_result.error}")
 
@@ -457,6 +465,10 @@ async def render_video(
         # ── Persist video_url and mark ready ─────────────────────────────
         job.video_url = video_url
         job.video_object_key = video_key
+        from datetime import datetime, timezone
+        job.completed_at = datetime.now(timezone.utc)
+        job.error_code = None
+        job.error_message = None
         job.status = VideoJobStatus.ready
         await db.commit()
 

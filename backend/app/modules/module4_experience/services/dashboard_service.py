@@ -15,13 +15,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.modules.module1_auth.models import User
-from app.modules.module2_content.models import Course, CourseModule, CourseStatus, Lesson, LessonStatus
+from app.modules.module2_content.models import Course, CourseModule, CourseStatus, Lesson, LessonStatus, LessonSkill
 from app.modules.module4_experience.models import (
     Enrollment,
     LearningPathState,
@@ -36,10 +36,10 @@ from app.modules.module4_experience.schemas import (
     SkillMasteryItem,
     StudentDashboardResponse,
 )
-from app.modules.module5_assessment.models import SkillScore, Submission
+from app.modules.module5_assessment.models import SkillScore, Submission, Test, SubmissionStatus
 from app.modules.module6_adaptive.models import PlanStatus, RemediationPlan, WeaknessFlag, WeaknessStatus
 from app.modules.shared_models.skill_taxonomy import SkillTaxonomy
-from app.shared.exceptions import ResourceNotFoundError
+from app.shared.exceptions import ResourceNotFoundError, AuthorizationError
 from app.shared.logging_config import get_logger
 from app.shared.redis_client import get_redis_client
 
@@ -50,7 +50,7 @@ DASHBOARD_CACHE_TTL = 300  # 5 minutes
 
 def get_dashboard_cache_key(student_id: uuid.UUID) -> str:
     settings = get_settings()
-    return f"{settings.REDIS_KEY_PREFIX}:cache:dashboard:{student_id}"
+    return f"{settings.REDIS_KEY_PREFIX}:cache:dashboard:v2:{student_id}"
 
 
 async def invalidate_dashboard_cache(student_id: uuid.UUID) -> None:
@@ -70,13 +70,15 @@ async def invalidate_dashboard_cache(student_id: uuid.UUID) -> None:
 async def get_aggregated_student_dashboard(
     db: AsyncSession,
     student_id: uuid.UUID,
-    use_cache: bool = True
+    use_cache: bool = True,
+    instructor_id: uuid.UUID | None = None
 ) -> StudentDashboardResponse:
     """
     Assembles complete student dashboard.
     Checks Redis cache first; falls back to relational database aggregation.
     """
     cache_key = get_dashboard_cache_key(student_id)
+    use_cache = use_cache and instructor_id is None
 
     # 1. Attempt Redis Cache Retrieval
     if use_cache:
@@ -106,8 +108,16 @@ async def get_aggregated_student_dashboard(
         )
         .order_by(Enrollment.enrolled_at.desc())
     )
+    if instructor_id is not None:
+        courses_query = courses_query.where(Course.instructor_id == instructor_id)
     courses_res = await db.execute(courses_query)
     courses = courses_res.scalars().all()
+
+    if instructor_id is not None and not courses:
+        raise AuthorizationError("Student is not enrolled in an assigned course.")
+    scoped_lessons = select(Lesson.id).join(CourseModule).where(CourseModule.course_id.in_([c.id for c in courses]))
+    scoped_tests = select(Test.id).where(or_(Test.course_id.in_([c.id for c in courses]), Test.lesson_id.in_(scoped_lessons)))
+    scoped_submissions = select(Submission.id).where(Submission.student_id == student_id, Submission.test_id.in_(scoped_tests))
 
     enrolled_courses: list[CourseProgressSummary] = []
     total_system_lessons = 0
@@ -159,6 +169,10 @@ async def get_aggregated_student_dashboard(
         locked_ids = set(lock_res.scalars().all())
         locked_c_count = len(locked_ids)
 
+        latest = (await db.execute(select(Submission).join(Test, Submission.test_id == Test.id).where(
+            Submission.student_id == student_id,
+            or_(Test.course_id == c.id, Test.lesson_id.in_([l.id for l in course_lessons]))
+        ).order_by(Submission.submitted_at.desc()).limit(1))).scalar_one_or_none()
         pct = round((completed_c_count / total_c_lessons) * 100.0, 1)
         enrolled_courses.append(
             CourseProgressSummary(
@@ -168,7 +182,9 @@ async def get_aggregated_student_dashboard(
                 total_lessons=total_c_lessons,
                 completed_lessons=completed_c_count,
                 locked_lessons=locked_c_count,
-                percentage=pct
+                percentage=pct,
+                assessment_status=("completed" if latest.status == SubmissionStatus.graded else "in_progress") if latest else "not_started",
+                latest_submission_id=latest.id if latest else None
             )
         )
 
@@ -198,27 +214,38 @@ async def get_aggregated_student_dashboard(
         WeaknessFlag.student_id == student_id,
         WeaknessFlag.status == WeaknessStatus.active
     )
+    if instructor_id is not None:
+        active_weakness_query = active_weakness_query.where(WeaknessFlag.submission_id.in_(scoped_submissions))
     active_flags_res = await db.execute(active_weakness_query)
     active_weak_skill_ids = set(active_flags_res.scalars().all())
 
-    # Fetch recent skill scores
-    skill_scores_query = (
-        select(SkillScore.skill_id, func.avg(SkillScore.score / func.coalesce(SkillScore.max_score, 1.0)))
+    # Latest graded result per skill defines the current mastery state; averaging
+    # previous failures would keep a resolved skill incorrectly in remediation.
+    ranked_scores = (
+        select(SkillScore.skill_id,
+               (SkillScore.score / func.nullif(SkillScore.max_score, 0)).label("ratio"),
+               func.row_number().over(partition_by=SkillScore.skill_id,
+                   order_by=(Submission.submitted_at.desc(), SkillScore.id.desc())).label("rank"))
         .join(Submission, SkillScore.submission_id == Submission.id)
-        .where(Submission.student_id == student_id)
-        .group_by(SkillScore.skill_id)
+        .where(Submission.student_id == student_id, Submission.status == SubmissionStatus.graded)
     )
-    scores_res = await db.execute(skill_scores_query)
-    skill_averages = {row[0]: float(row[1]) for row in scores_res.all()}
+    if instructor_id is not None:
+        ranked_scores = ranked_scores.where(Submission.id.in_(scoped_submissions))
+    ranked = ranked_scores.subquery()
+    scores_res = await db.execute(select(ranked.c.skill_id, ranked.c.ratio).where(ranked.c.rank == 1))
+    skill_scores = {row[0]: float(row[1]) for row in scores_res.all() if row[1] is not None}
 
-    skills_query = select(SkillTaxonomy).limit(10)
+    curriculum_skills = select(LessonSkill.skill_id).where(LessonSkill.lesson_id.in_(scoped_lessons))
+    skills_query = select(SkillTaxonomy).where(or_(SkillTaxonomy.id.in_(curriculum_skills), SkillTaxonomy.id.in_(list(skill_scores)))).order_by(SkillTaxonomy.name)
     skills_res = await db.execute(skills_query)
     all_skills = skills_res.scalars().all()
 
     skill_mastery_radar: list[SkillMasteryItem] = []
     for sk in all_skills:
-        avg_score = skill_averages.get(sk.id, 0.70)
-        if sk.id in active_weak_skill_ids or avg_score < 0.60:
+        avg_score = skill_scores.get(sk.id, 0.0)
+        if sk.id not in skill_scores and sk.id not in active_weak_skill_ids:
+            status = "not_assessed"
+        elif sk.id in active_weak_skill_ids or avg_score < 0.60:
             status = "needs_remediation"
         elif avg_score >= 0.80:
             status = "mastered"
@@ -237,9 +264,11 @@ async def get_aggregated_student_dashboard(
     # 5. Active Remediation Plans
     rem_query = (
         select(RemediationPlan)
-        .where(RemediationPlan.student_id == student_id, RemediationPlan.status == PlanStatus.active)
+        .where(RemediationPlan.student_id == student_id, RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated]))
         .options(selectinload(RemediationPlan.weakness_flag))
     )
+    if instructor_id is not None:
+        rem_query = rem_query.join(WeaknessFlag).where(WeaknessFlag.submission_id.in_(scoped_submissions))
     rem_res = await db.execute(rem_query)
     active_plans = rem_res.scalars().all()
 
@@ -269,8 +298,11 @@ async def get_aggregated_student_dashboard(
         Notification.student_id == student_id,
         Notification.read == False
     )
-    notif_res = await db.execute(notif_query)
-    unread_count = notif_res.scalar_one() or 0
+    # Notifications have no course scope; keep private totals out of instructor views.
+    unread_count = 0
+    if instructor_id is None:
+        notif_res = await db.execute(notif_query)
+        unread_count = notif_res.scalar_one() or 0
 
     now = datetime.now(timezone.utc)
     dashboard = StudentDashboardResponse(
@@ -284,6 +316,10 @@ async def get_aggregated_student_dashboard(
         unread_notifications_count=unread_count,
         cached_at=now
     )
+
+    # Scoped staff views must never overwrite the student cache.
+    if not use_cache:
+        return dashboard
 
     # 7. Write to Redis Cache
     try:

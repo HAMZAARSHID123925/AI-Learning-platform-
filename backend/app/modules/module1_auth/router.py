@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, Request, Response, Query, status
 from redis.asyncio import Redis
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -68,6 +69,7 @@ async def register(
         password=body.password,
         first_name=body.first_name,
         last_name=body.last_name,
+        grade=body.grade,
     )
     return {"message": "Registration successful. Please verify your email.", "user_id": str(user.id)}
 
@@ -123,6 +125,7 @@ async def login(
         user=UserInTokenResponse(
             id=user.id,
             email=user.email,
+        grade=user.grade,
             first_name=user.first_name,
             last_name=user.last_name,
             roles=roles,
@@ -326,6 +329,7 @@ async def get_me(current_user=Depends(get_current_user)):
     return UserResponse(
         id=current_user.id,
         email=current_user.email,
+        grade=current_user.grade,
         first_name=current_user.first_name,
         last_name=current_user.last_name,
         status=current_user.status.value,
@@ -367,12 +371,14 @@ async def update_me(
         user_id=current_user.id,
         first_name=body.first_name,
         last_name=body.last_name,
+        grade=body.grade,
     )
     roles = [ur.role.name for ur in updated.user_roles]
     permissions = list(updated.get_permissions())
     return UserResponse(
         id=updated.id,
         email=updated.email,
+        grade=updated.grade,
         first_name=updated.first_name,
         last_name=updated.last_name,
         status=updated.status.value,
@@ -395,9 +401,9 @@ async def update_me(
 )
 async def list_users(
     db: AsyncSession = Depends(get_db),
-    status_filter: str | None = None,
-    page: int = 1,
-    page_size: int = 20,
+    status_filter: str | None = Query(default=None, pattern="^(active|suspended|pending_verification)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
 ):
     """List all users with optional status filter. Admin only."""
     params = PaginationParams(page=page, page_size=page_size)
@@ -409,6 +415,7 @@ async def list_users(
         user_responses.append(UserResponse(
             id=u.id,
             email=u.email,
+        grade=u.grade,
             first_name=u.first_name,
             last_name=u.last_name,
             status=u.status.value,
@@ -451,6 +458,7 @@ async def get_user(
     return UserResponse(
         id=user.id,
         email=user.email,
+        grade=user.grade,
         first_name=user.first_name,
         last_name=user.last_name,
         status=user.status.value,
@@ -482,6 +490,7 @@ async def admin_update_user(
         user_id=user_id,
         first_name=body.first_name,
         last_name=body.last_name,
+        grade=body.grade,
         status=body.status,
         email_verified=body.email_verified,
         parental_consent=body.parental_consent,
@@ -490,6 +499,7 @@ async def admin_update_user(
     return UserResponse(
         id=updated.id,
         email=updated.email,
+        grade=updated.grade,
         first_name=updated.first_name,
         last_name=updated.last_name,
         status=updated.status.value,

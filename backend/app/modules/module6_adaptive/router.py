@@ -33,7 +33,7 @@ from app.modules.module6_adaptive.schemas import (
 )
 from app.modules.module6_adaptive.services.retest_service import complete_remedial_study_and_trigger_retest
 from app.modules.module6_adaptive.services.video_job_service import create_video_generation_job
-from app.shared.dependencies import get_current_user, require_permission
+from app.shared.dependencies import get_current_user, require_permission, require_any_role
 from app.shared.exceptions import NotFoundError
 from app.shared.logging_config import get_logger
 
@@ -53,7 +53,7 @@ router = APIRouter(tags=["Module 6 — Adaptive Learning & Remediation"])
 )
 async def get_my_weakness_flags(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_any_role("Student"))
 ) -> list[WeaknessFlagResponse]:
     query = (
         select(WeaknessFlag)
@@ -89,7 +89,7 @@ async def get_my_weakness_flags(
 )
 async def get_my_remediation_plans(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_any_role("Student"))
 ) -> list[RemediationPlanResponse]:
     query = (
         select(RemediationPlan)
@@ -132,7 +132,15 @@ async def get_remediation_plan_detail(
         raise NotFoundError("RemediationPlan", plan_id)
 
     # Authorization
-    is_privileged = any(r.name in ("Admin", "Instructor") for r in current_user.roles)
+    is_privileged = current_user.has_role("Admin")
+    if current_user.has_role("Instructor") and plan.student_id != current_user.id:
+        from app.modules.module5_assessment.models import Submission, Test
+        from app.modules.module5_assessment.services.access_service import require_target_access
+        flag = await db.get(WeaknessFlag, plan.weakness_flag_id)
+        submission = await db.get(Submission, flag.submission_id)
+        test = await db.get(Test, submission.test_id)
+        await require_target_access(db, current_user, lesson_id=test.lesson_id, course_id=test.course_id, generation=True)
+        is_privileged = True
     if plan.student_id != current_user.id and not is_privileged:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -158,12 +166,12 @@ async def get_remediation_plan_detail(
 @router.post(
     "/remediation-plans/{plan_id}/complete-study",
     response_model=CompleteStudyResponse,
-    summary="Confirm remedial course studied → Unlocks and triggers focused retest"
+    summary="Confirm study and create an owned focused retest; lesson gates await mastery"
 )
 async def complete_remedial_study_endpoint(
     plan_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_any_role("Student"))
 ) -> CompleteStudyResponse:
     """
     Called by the student after studying the AI-generated written remedial course.
@@ -191,7 +199,7 @@ async def complete_remedial_study_endpoint(
     )
 
     if plan.instructor_escalated:
-        msg = "Maximum retest attempts reached. An instructor has been notified to assist you."
+        msg = "Maximum retest attempts reached. Instructor assistance is required."
     else:
         msg = "Remedial study completed. A targeted retest has been generated for you."
 
@@ -214,7 +222,7 @@ async def complete_remedial_study_endpoint(
 )
 async def get_my_learning_path_state(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_any_role("Student"))
 ) -> list[LearningPathStateResponse]:
     query = (
         select(LearningPathState)
@@ -249,9 +257,14 @@ async def list_instructor_escalations(
 ) -> list[EscalationResponse]:
     query = (
         select(RemediationPlan)
-        .where(RemediationPlan.instructor_escalated == True)
+        .where(RemediationPlan.instructor_escalated == True, RemediationPlan.status == PlanStatus.escalated)
         .order_by(desc(RemediationPlan.created_at))
     )
+    if not current_user.has_role("Admin"):
+        from sqlalchemy import or_
+        from app.modules.module2_content.models import Lesson, CourseModule
+        from app.modules.module5_assessment.models import Submission, Test
+        query = query.join(WeaknessFlag, RemediationPlan.weakness_flag_id == WeaknessFlag.id).join(Submission, WeaknessFlag.submission_id == Submission.id).join(Test, Submission.test_id == Test.id).outerjoin(Lesson, Test.lesson_id == Lesson.id).outerjoin(CourseModule, Lesson.module_id == CourseModule.id).join(Course, or_(Course.id == Test.course_id, Course.id == CourseModule.course_id)).where(Course.instructor_id == current_user.id)
     res = await db.execute(query)
     escalated_plans = res.scalars().all()
     return [
@@ -279,7 +292,7 @@ async def list_instructor_escalations(
 async def create_video_job(
     payload: VideoGenerationJobCreateRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_any_role("Student"))
 ) -> VideoGenerationJobResponse:
     """
     Initiates the personalized video generation pipeline.
@@ -294,8 +307,8 @@ async def create_video_job(
     from app.shared.s3_client import generate_presigned_url
     settings = get_settings()
 
-    video_url = job.video_url
-    thumbnail_url = job.thumbnail_url
+    video_url = None
+    thumbnail_url = None
     if getattr(job, 'video_object_key', None):
         video_url = await generate_presigned_url(job.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
     if getattr(job, 'thumbnail_object_key', None):
@@ -334,8 +347,8 @@ async def get_video_job_status(
         raise NotFoundError("VideoGenerationJob", job_id)
 
     # Authorization
-    is_admin = any(r.name == "Admin" for r in current_user.roles)
-    is_instructor = any(r.name == "Instructor" for r in current_user.roles)
+    is_admin = current_user.has_role("Admin")
+    is_instructor = current_user.has_role("Instructor")
     
     if job.student_id != current_user.id and not is_admin:
         if is_instructor:
@@ -356,8 +369,8 @@ async def get_video_job_status(
     from app.shared.s3_client import generate_presigned_url
     settings = get_settings()
 
-    video_url = job.video_url
-    thumbnail_url = job.thumbnail_url
+    video_url = None
+    thumbnail_url = None
     if getattr(job, 'video_object_key', None):
         video_url = await generate_presigned_url(job.video_object_key, expires_in=settings.MEDIA_SIGNED_URL_TTL_SECONDS)
     if getattr(job, 'thumbnail_object_key', None):

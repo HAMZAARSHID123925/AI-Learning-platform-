@@ -65,6 +65,7 @@ async def create_session(
         scheduled_at=body.scheduled_at,
         duration_minutes=body.duration_minutes,
         max_participants=body.max_participants,
+        is_admin=current_user.has_role("Admin"),
     )
 
 
@@ -86,6 +87,7 @@ async def list_sessions(
     """
     return await session_service.list_live_sessions(
         db=db,
+        user=current_user,
         course_id=course_id,
         from_dt=from_dt,
         to_dt=to_dt,
@@ -106,7 +108,9 @@ async def get_session(
     """
     Returns session metadata, scheduled time, and room details.
     """
-    return await session_service.get_live_session(db, session_id)
+    session = await session_service.get_live_session(db, session_id)
+    await session_service.require_session_access(db, session, current_user)
+    return session
 
 
 @router.patch(

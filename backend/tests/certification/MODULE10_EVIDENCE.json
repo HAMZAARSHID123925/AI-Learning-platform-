@@ -1,0 +1,211 @@
+[
+  {
+    "check": "actual OpenAPI has two video routes",
+    "pass": true,
+    "active_endpoints": 2
+  },
+  {
+    "check": "video creation role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video creation role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video creation role admin",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "unauthenticated status denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "cross-student weakness cannot create job",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "nonexistent weakness rejected",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "one real job created",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "new job queued",
+    "pass": true
+  },
+  {
+    "check": "video status ownership student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "video status ownership other",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video status ownership instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "video status ownership foreign_instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video status ownership admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "duplicate create returns same job",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "real plan/course/student linkage",
+    "pass": true
+  },
+  {
+    "check": "real queue message present",
+    "pass": true
+  },
+  {
+    "check": "scoped worker consumes intended queue message",
+    "pass": true
+  },
+  {
+    "check": "actual OpenAPI has two video routes",
+    "pass": true,
+    "active_endpoints": 2
+  },
+  {
+    "check": "video creation role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video creation role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video creation role admin",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "unauthenticated status denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "cross-student weakness cannot create job",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "nonexistent weakness rejected",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "video status ownership student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "video status ownership other",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video status ownership instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "video status ownership foreign_instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "video status ownership admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "duplicate create returns same job",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "real plan/course/student linkage",
+    "pass": true
+  },
+  {
+    "check": "final DB state ready",
+    "pass": true
+  },
+  {
+    "check": "real storyboard and TTS persisted",
+    "pass": true,
+    "scenes": 5
+  },
+  {
+    "check": "duplicate delivery skips paid pipeline",
+    "pass": true
+  },
+  {
+    "check": "owner receives signed ready playback",
+    "pass": true
+  },
+  {
+    "check": "ready job is reused without new paid generation",
+    "pass": true
+  },
+  {
+    "check": "resumed video remains ready",
+    "pass": true
+  },
+  {
+    "check": "exactly one controlled real video job",
+    "pass": true,
+    "count": 1
+  },
+  {
+    "check": "Module10 Alembic at head",
+    "pass": true
+  },
+  {
+    "check": "unsigned private object retrieval denied",
+    "pass": true,
+    "status": 400
+  },
+  {
+    "check": "signed private MP4 retrieval succeeds",
+    "pass": true,
+    "status": 200,
+    "bytes": 6208627
+  },
+  {
+    "check": "real MP4 has video/audio and expected duration",
+    "pass": true,
+    "duration_seconds": 120.0
+  },
+  {
+    "check": "Module10 closed",
+    "pass": true
+  }
+]

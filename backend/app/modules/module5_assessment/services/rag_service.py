@@ -1,5 +1,5 @@
 """
-ELARION AI Learning Platform — Backend
+ELARION AI Learning Platform â€” Backend
 Module: app/modules/module5_assessment/services/rag_service.py
 
 Purpose:
@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select, text
+from sqlalchemy import select, text, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.module2_content.models import ContentEmbedding
@@ -59,7 +59,7 @@ async def retrieve_relevant_chunks(
                 lesson_version,
                 chunk_index,
                 chunk_text,
-                1 - (vector <=> :query_vector::vector) AS similarity
+                1 - (vector <=> CAST(:query_vector AS vector)) AS similarity
             FROM content_embeddings
             WHERE lesson_id = :lesson_id
               AND lesson_version = (
@@ -67,7 +67,7 @@ async def retrieve_relevant_chunks(
                   FROM content_embeddings
                   WHERE lesson_id = :lesson_id
               )
-            ORDER BY vector <=> :query_vector::vector ASC
+            ORDER BY vector <=> CAST(:query_vector AS vector) ASC
             LIMIT :top_k
         """)
 
@@ -103,7 +103,7 @@ async def retrieve_relevant_chunks(
     # Python-level fallback if running in test environment without native pgvector extension
     fallback_query = (
         select(ContentEmbedding)
-        .where(ContentEmbedding.lesson_id == lesson_id)
+        .where(ContentEmbedding.lesson_id == lesson_id, ContentEmbedding.lesson_version == select(func.max(ContentEmbedding.lesson_version)).where(ContentEmbedding.lesson_id == lesson_id).scalar_subquery())
         .order_by(ContentEmbedding.chunk_index.asc())
         .limit(top_k)
     )
@@ -116,7 +116,7 @@ async def retrieve_relevant_chunks(
             lesson_version=e.lesson_version,
             chunk_index=e.chunk_index,
             chunk_text=e.chunk_text,
-            similarity=0.90
+            similarity=0.0
         )
         for e in embeds
     ]
@@ -141,13 +141,13 @@ async def retrieve_course_chunks(
                 ce.lesson_version,
                 ce.chunk_index,
                 ce.chunk_text,
-                1 - (ce.vector <=> :query_vector::vector) AS similarity
+                1 - (ce.vector <=> CAST(:query_vector AS vector)) AS similarity
             FROM content_embeddings ce
             JOIN lessons l ON l.id = ce.lesson_id
             JOIN course_modules m ON m.id = l.module_id
             WHERE m.course_id = :course_id
               AND l.status = 'published'
-            ORDER BY ce.vector <=> :query_vector::vector ASC
+            ORDER BY ce.vector <=> CAST(:query_vector AS vector) ASC
             LIMIT :top_k
         """)
 
@@ -198,7 +198,7 @@ async def retrieve_course_chunks(
             lesson_version=e.lesson_version,
             chunk_index=e.chunk_index,
             chunk_text=e.chunk_text,
-            similarity=0.90
+            similarity=0.0
         )
         for e in embeds
     ]
