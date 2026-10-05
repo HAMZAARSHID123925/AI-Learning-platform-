@@ -41,6 +41,18 @@ export function LessonPlayer({ title, subtitle, subject, steps, exitTo, onProgre
 
   }
 
+  if (!step) {
+    return (
+      <div className="min-h-screen w-full bg-white">
+        <FocusTopBar exitTo={exitTo} title={title} subtitle={subtitle} progress={100} barClassName={s.solid} />
+        <main className="mx-auto max-w-2xl px-5 pt-20 text-center space-y-4">
+          <h2 className="text-2xl font-black text-ink">Lesson content coming soon</h2>
+          <p className="text-ink-soft">Interactive steps for this lesson are being built.</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-white">
       <FocusTopBar exitTo={exitTo} title={title} subtitle={subtitle} progress={player.progress} barClassName={s.solid} />
@@ -53,7 +65,7 @@ export function LessonPlayer({ title, subtitle, subject, steps, exitTo, onProgre
             exit={{ opacity: 0, x: -16 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
             
-            {step.kind === 'concept' &&
+            {step?.kind === 'concept' &&
             <div className="space-y-6">
                 <h1 className="text-3xl font-black tracking-tight text-ink sm:text-4xl">{step.title}</h1>
                 {step.visual &&

@@ -122,12 +122,36 @@ function mapBackendLessonSummary(l: any): import('@/types/learning').LessonSumma
 
 function mapBackendLessonToFrontendLesson(l: any, courseId: string): Lesson {
   const summary = mapBackendLessonSummary(l);
-  // Find static steps if they exist, otherwise empty
   const staticContent = lessonContent.find((c) => c.lessonId === l.id);
+  
+  // If no hardcoded steps exist (newly created dynamic lesson), generate interactive steps from lesson title & content
+  const steps: LessonStep[] = (staticContent?.steps && staticContent.steps.length > 0)
+    ? staticContent.steps
+    : [
+        {
+          kind: 'concept',
+          title: l.title || 'Core Lesson Concepts',
+          body: l.body_markdown || `Welcome to ${l.title}! In this lesson, we explore foundational concepts, practical examples, and essential skills to deepen your understanding.`
+        },
+        {
+          kind: 'question',
+          prompt: `Which of the following best represents the key principle of ${l.title}?`,
+          options: [
+            `Understanding core foundational rules and applying them carefully`,
+            `Skipping definitions and guessing the outcome`,
+            `Ignoring patterns and relationships`,
+            `Only memorizing words without practice`
+          ],
+          answer: 0,
+          explanation: `Great job! Mastering ${l.title} begins with understanding the core rules and concepts.`,
+          skill: l.title
+        }
+      ];
+
   return {
     ...summary,
     courseId,
-    steps: staticContent?.steps || []
+    steps
   };
 }
 
