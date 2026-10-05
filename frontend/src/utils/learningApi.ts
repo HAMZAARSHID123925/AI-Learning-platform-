@@ -235,9 +235,13 @@ export const learningApi = {
   },
 
   async getStudentProgress(): Promise<string[]> {
-    const res = await fetchWithAuth(`/students/me/progress/lessons`);
-    if (!res.ok) throw new Error('Failed to load progress');
-    return res.json();
+    try {
+      const res = await fetchWithAuth(`/students/me/progress/lessons`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+    return [];
   },
 
   getChallenge(courseId: string): Promise<{course: Course;questions: ChallengeQuestion[];}> {
