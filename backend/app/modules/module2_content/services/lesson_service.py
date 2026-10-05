@@ -139,6 +139,7 @@ async def update_lesson(
     thumbnail_url: str | None = None,
     video_object_key: str | None = None,
     thumbnail_object_key: str | None = None,
+    duration_seconds: int | None = None,
 ) -> Lesson:
     """Update lesson fields and optionally replace skill tags."""
     lesson = await get_lesson(db, lesson_id)
@@ -162,6 +163,8 @@ async def update_lesson(
         lesson.video_object_key = video_object_key
     if thumbnail_object_key is not None:
         lesson.thumbnail_object_key = thumbnail_object_key
+    if duration_seconds is not None:
+        lesson.duration_seconds = duration_seconds
 
     if skill_ids is not None:
         # Replace all skill tags

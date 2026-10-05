@@ -40,7 +40,7 @@ from app.modules.module4_experience.services import (
     progress_service,
     sse_service,
 )
-from app.shared.dependencies import get_current_user
+from app.shared.dependencies import get_current_user, require_any_role
 from app.shared.exceptions import AuthorizationError
 
 router = APIRouter(tags=["Student Experience & Dashboard"])
@@ -54,6 +54,7 @@ router = APIRouter(tags=["Student Experience & Dashboard"])
     "/students/me/dashboard",
     response_model=StudentDashboardResponse,
     summary="Get aggregated student dashboard (Redis-cached)",
+    dependencies=[Depends(require_any_role("Student"))]
 )
 async def get_my_dashboard(
     current_user=Depends(get_current_user),
@@ -76,6 +77,7 @@ async def get_my_dashboard(
     "/students/me/courses",
     response_model=list[CourseProgressSummary],
     summary="Get enrolled courses with progress",
+    dependencies=[Depends(require_any_role("Student"))]
 )
 async def get_my_courses(
     current_user=Depends(get_current_user),
@@ -127,7 +129,7 @@ async def get_student_dashboard_for_staff(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Allows Instructors and Admins to inspect any student's learning progress,
+    Allows assigned Instructors and Admins to inspect student learning progress,
     skill mastery radar, and active remediation plans.
     """
     if not (current_user.has_role("Instructor") or current_user.has_role("Admin")):
@@ -137,6 +139,7 @@ async def get_student_dashboard_for_staff(
         db=db,
         student_id=student_id,
         use_cache=False,
+        instructor_id=None if current_user.has_role("Admin") else current_user.id,
     )
 
 

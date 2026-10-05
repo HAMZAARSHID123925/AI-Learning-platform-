@@ -1,0 +1,260 @@
+[
+  {
+    "check": "Module10 passed before Module11",
+    "pass": true
+  },
+  {
+    "check": "owned focused/assessment delivery student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real deterministic retest submission student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused duplicate submission returns identical result",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "owned focused/assessment delivery student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "changing answers after focused submission denied",
+    "pass": true,
+    "status": 409
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "failing focused attempt preserves active weakness and plan",
+    "pass": true,
+    "attempt_count": 1
+  },
+  {
+    "check": "real next focused handoff",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "owned focused/assessment delivery student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real deterministic retest submission student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused duplicate submission returns identical result",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "failing focused attempt preserves active weakness and plan",
+    "pass": true,
+    "attempt_count": 2
+  },
+  {
+    "check": "real next focused handoff",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "owned focused/assessment delivery student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real deterministic retest submission student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused duplicate submission returns identical result",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "failing focused attempt preserves active weakness and plan",
+    "pass": true,
+    "attempt_count": 3
+  },
+  {
+    "check": "three failed retests escalate without a fourth generation",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "escalation completion replay is idempotent",
+    "pass": true
+  },
+  {
+    "check": "failure event replay does not create another remediation",
+    "pass": true,
+    "plans": 1
+  },
+  {
+    "check": "passing-branch real lesson completion",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "owned focused/assessment delivery module11_pass",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "passing branch starts with real weak ten-MCQ result",
+    "pass": true
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "passing branch has real four-MCQ handoff",
+    "pass": true
+  },
+  {
+    "check": "focused retrieval role/ownership None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused retrieval role/ownership student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused retrieval role/ownership other",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused retrieval role/ownership foreign_instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused retrieval role/ownership instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused retrieval role/ownership admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "owned focused/assessment delivery module11_pass",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real deterministic retest submission module11_pass",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused duplicate submission returns identical result",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real grading event located",
+    "pass": true
+  },
+  {
+    "check": "actual adaptive event processed",
+    "pass": true
+  },
+  {
+    "check": "passing retest resolves weakness and completes remediation",
+    "pass": true
+  },
+  {
+    "check": "source-defined skill threshold improvement",
+    "pass": true,
+    "before_score": 0.0,
+    "after_score": 1.0,
+    "threshold": 0.6
+  },
+  {
+    "check": "mastered upstream preserved and downstream unlocked",
+    "pass": true
+  },
+  {
+    "check": "one passing submission and durable published event",
+    "pass": true,
+    "submissions": 1
+  },
+  {
+    "check": "focused result ownership module11_pass",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused result ownership student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused result ownership instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused result ownership foreign_instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "focused result ownership admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Module11 closed",
+    "pass": true
+  }
+]

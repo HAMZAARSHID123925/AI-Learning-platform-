@@ -58,10 +58,10 @@ class WeaknessFlag(Base):
     """
     Flags a skill as weak for a student when score < 0.60 (WEAKNESS_THRESHOLD).
 
-    UNIQUE constraint on (student_id, skill_id) for ACTIVE flags:
-        Only one active weakness per skill per student.
+    UNIQUE constraint on (student_id, skill_id) across lifecycle states:
+        One current lifecycle row per skill per student; recurrence reactivates it.
         When resolved, status changes to 'resolved' (not deleted).
-        Historical record is preserved.
+        The row is retained; this table is not a full event-history ledger.
     """
     __tablename__ = "weakness_flags"
     __table_args__ = (
@@ -128,6 +128,9 @@ class RemediationPlan(Base):
     remedial_course_markdown: Mapped[str | None] = mapped_column(Text, nullable=True)
     study_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     study_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    focused_retest_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tests.id", ondelete="SET NULL"), nullable=True
+    )
 
     retest_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     instructor_escalated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -176,6 +179,8 @@ class VideoGenerationJob(Base):
         Index("ix_video_generation_jobs_student_id", "student_id"),
         Index("ix_video_generation_jobs_status", "status"),
         Index("ix_video_generation_jobs_weakness_flag_id", "weakness_flag_id"),
+        Index("uq_live_video_job_per_weakness_v2", "weakness_flag_id", unique=True,
+              postgresql_where=text("status NOT IN ('ready', 'failed')")),
         Index(
             "uq_active_video_job_per_weakness",
             "weakness_flag_id",

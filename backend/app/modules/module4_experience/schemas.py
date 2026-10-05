@@ -56,7 +56,7 @@ class SkillMasteryItem(BaseModel):
     skill_id: uuid.UUID
     skill_name: str
     score: float = Field(ge=0.0, le=1.0)
-    status: str = Field(description="'mastered', 'learning', or 'needs_remediation'")
+    status: str = Field(description="'mastered', 'learning', 'needs_remediation', or 'not_assessed'")
 
 
 class ActiveRemediationSummary(BaseModel):

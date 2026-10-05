@@ -1,0 +1,183 @@
+{
+  "repository": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git",
+  "branch": "hamza-work",
+  "head": "5ea4084d9a606d70654ed8e3a1b51b190bf67d9f",
+  "files": [
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module2_content\\router.py",
+      "sha256": "2ea8024538580b8aa791ed7cad65523fafa7a74b14d53ef3846a29419eccd118",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module4_experience\\router.py",
+      "sha256": "49ce65bc5c9ca8adafb9e5838ee772eaca39b7cf1763e9458ee87012b866d706",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module4_experience\\schemas.py",
+      "sha256": "6af2a1d01652af1e2a7ff6b424c76894dd05d2eaf8d938c1371f56aa321ad540",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module4_experience\\services\\dashboard_service.py",
+      "sha256": "e7adf3cbd559b31befbcc40e56320f276a4db124369f3192803bcf16ec2d6d19",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module5_assessment\\models.py",
+      "sha256": "5a75bbe85cbe49a05c4c62447a4960b6e93a06aef5e415eb677427aa834bdf08",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module5_assessment\\router.py",
+      "sha256": "ce1064870d3c84b0940bfaca117ea9720ed4bc84ab3d8f175b8aa02c05a8ed17",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module5_assessment\\services\\grading_service.py",
+      "sha256": "f1cf33fdf7c4100d8028ff3f318483191493321994466bf7689626cf783964e5",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\models.py",
+      "sha256": "77357ca39d8142333a4085e18d7c2cc7ee235fe0d5be2f537fdb5c0a20fcf0bf",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\router.py",
+      "sha256": "01cfe78f132e5fae8d575222c7fe464df179a0fed5e0d33af79b2cb2e938fa37",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\audio_generation_service.py",
+      "sha256": "060cb49782b49600a5009e0a57d62fb2ac441b2e0de170912739fa260d8bc14f",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\remedial_course_service.py",
+      "sha256": "2c0d151cf9d7238b484b49eb3120ecd2b824c69422bff0334e034e6eadc31485",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\render_service.py",
+      "sha256": "83e82696d310cbd2fa9e5fb69619065408933ae0f15acc6ea0885dd8aff4311f",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\script_generation_service.py",
+      "sha256": "4953d915a9c39a656ace722bb71af10efb82fd4c0529bde19cf7e40aa74fbb10",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\video_job_service.py",
+      "sha256": "dd6c78520faad098ee5941f288bb98bc90730c00084e1ecea37a48a526f1f952",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\modules\\module6_adaptive\\services\\weakness_detector.py",
+      "sha256": "03d336373af921f94e3ab5978b89f9954f0cd08da65ff9d22cf4154f655cb9a5",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\shared\\events.py",
+      "sha256": "fad7f7475c6a34944cfed7381ca4116d7b71b3f50e1f473e3367275958773359",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\workers\\adaptive_consumer.py",
+      "sha256": "4ef58a32de08acecde2d7537b346ff9431ed190c3494abfbc5e01882a8db7361",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\app\\workers\\video_generation_consumer.py",
+      "sha256": "2e761da0b048ebeda22653fbf66c5d4b83755e7805be17b4f0942d55c67690b9",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\alembic\\versions\\017_video_job_live_uniqueness.py",
+      "sha256": "82bb696b1c818bab8449cff08149a9b3eaae61b03daf8c1cf4fc7706d6d987fb",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\alembic\\versions\\018_test_graded_outbox.py",
+      "sha256": "69891886008b0864ae147abd2fd6de3df72fabe1d3eaec982f6aa4cc933ec682",
+      "kind": "production/migration"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\BATCH_STATE.json",
+      "sha256": "acf617d2e606d5c182d04b26071945963b90d3904fe1a655649fad02999d152a",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\certify_module10.py",
+      "sha256": "20c0188ccfd13ce966817ce0024864dc810493d0e4acdbeb54c31426c4540d57",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\certify_module11.py",
+      "sha256": "2849441a309b3122c5919d6f7e8d61f00c2a2b60d81019eb371a62b52326fa00",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\certify_module12.py",
+      "sha256": "ef92e32fc6c1b77f31e0da2d3e16aaaaffb6bf1d93bd7011ee76b96439dc275c",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\probe_module11.py",
+      "sha256": "a0ba6729cb5bb4dd70b704455e08060e9aa3944453c5e02372791e29d4cfdfa6",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\test_module10.py",
+      "sha256": "947c96235ab50192d00e4181e0774363347817a4537c4364f1f03f8c20ef7965",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\test_module11.py",
+      "sha256": "689db116464ee5c28717a0930c9c5b310fc23c197ae035adb293cf47556bbc42",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\test_module12.py",
+      "sha256": "b66eb177bfe06b2306cb70b1c0dbb1352f1c17aa6d100151b682854ff5d7cc09",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\test_regressions.py",
+      "sha256": "0c5555fc73624e07a79a2ae9ccb5765931b647903e5f39342047feccda635847",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\MODULE10_EVIDENCE.json",
+      "sha256": "f096f0d23bd79c7d743ae4ea27f5b31e06dee1802f4a3779e1bd3b5b3f938614",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\MODULE11_EVIDENCE.json",
+      "sha256": "8ce224ab347f9f4cb46b1698ca77be2ed29b01ba0d330c63690a3fa016cc6ff6",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\MODULE11_PROBE.json",
+      "sha256": "f3f342bbf96adc756c5c04dacbab1cba63208351344ae890e7841e6296af316c",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\MODULE12_EVIDENCE.json",
+      "sha256": "6bed9de164a866d538d6bee0bd5e1db558dd5b313fa4fbac3ef8bf1c1782e6e3",
+      "kind": "certification"
+    },
+    {
+      "path": "C:\\Users\\ali\\Desktop\\AI-Learning-platform-git\\backend\\tests\\certification\\MODULE12_BASELINE_EVIDENCE.json",
+      "sha256": "b4b369b883abb0f097a3a02a61c5a651828c8e8b99c5fa2f7c36e3d6f7dd0e9c",
+      "kind": "certification"
+    }
+  ],
+  "additional_report_files": [
+    "BATCH_CERTIFICATION_REPORT.md",
+    "BATCH_CHANGE_MANIFEST.json",
+    "BATCH_FINAL_CHECKS.json"
+  ],
+  "preserved_preexisting_changes": true
+}

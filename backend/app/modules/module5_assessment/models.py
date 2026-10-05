@@ -147,3 +147,14 @@ class SkillScore(Base):
     llm_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     submission: Mapped[Submission] = relationship("Submission", back_populates="skill_scores")
+    skill: Mapped["SkillTaxonomy"] = relationship("SkillTaxonomy")
+
+
+class TestGradedOutbox(Base):
+    """A grade and its adaptive event are committed atomically."""
+    __tablename__ = 'test_graded_outbox'
+    __table_args__ = (Index('ix_test_graded_outbox_pending', 'published_at'),)
+    submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),ForeignKey('submissions.id',ondelete='CASCADE'),primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSONB,nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),default=lambda:datetime.now(timezone.utc),nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),nullable=True)

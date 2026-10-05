@@ -12,11 +12,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.module2_content.models import Course
+from app.modules.module2_content.models import Course, CourseStatus
+from app.modules.module4_experience.models import Enrollment
 from app.modules.module3_live.models import AttendanceStatus, LiveSession, SessionAttendance, SessionStatus
 from app.modules.module3_live.services.video_provider import get_video_provider
 from app.shared.exceptions import AuthorizationError, BusinessRuleError, ResourceNotFoundError
@@ -34,6 +35,7 @@ async def create_live_session(
     scheduled_at: datetime,
     duration_minutes: int = 60,
     max_participants: int = 100,
+    is_admin: bool = False,
 ) -> LiveSession:
     """
     Creates a new live session and provisions a virtual room via the configured video provider.
@@ -42,6 +44,9 @@ async def create_live_session(
     course = await db.get(Course, course_id)
     if not course:
         raise ResourceNotFoundError("Course", course_id)
+
+    if not is_admin and course.instructor_id != instructor_id:
+        raise AuthorizationError("Only the assigned instructor or Admin can schedule this course.")
 
     # 2. Provision room on video provider
     provider = get_video_provider()
@@ -79,6 +84,7 @@ async def create_live_session(
 
 async def list_live_sessions(
     db: AsyncSession,
+    user,
     course_id: uuid.UUID | None = None,
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
@@ -87,7 +93,15 @@ async def list_live_sessions(
     """
     Lists live sessions with optional course and temporal filters.
     """
-    query = select(LiveSession).order_by(LiveSession.scheduled_at.asc())
+    query = select(LiveSession).join(Course, Course.id == LiveSession.course_id).order_by(LiveSession.scheduled_at.asc())
+    if not user.has_role("Admin"):
+        if user.has_role("Instructor"):
+            query = query.where(or_(Course.instructor_id == user.id, LiveSession.instructor_id == user.id))
+        elif user.has_role("Student"):
+            enrolled = select(Enrollment.course_id).where(Enrollment.student_id == user.id, Enrollment.status == "active")
+            query = query.where(Course.id.in_(enrolled), Course.status == CourseStatus.published)
+        else:
+            raise AuthorizationError("No live class access for this role.")
     if course_id:
         query = query.where(LiveSession.course_id == course_id)
     if from_dt:
@@ -106,6 +120,21 @@ async def get_live_session(db: AsyncSession, session_id: uuid.UUID) -> LiveSessi
     if not session:
         raise ResourceNotFoundError("LiveSession", session_id)
     return session
+
+
+async def require_session_access(db: AsyncSession, session: LiveSession, user) -> None:
+    if user.has_role("Admin") or (user.has_role("Instructor") and session.instructor_id == user.id):
+        return
+    course = await db.get(Course, session.course_id)
+    if not course:
+        raise ResourceNotFoundError("Course", session.course_id)
+    if user.has_role("Instructor") and course.instructor_id == user.id:
+        return
+    if user.has_role("Student") and course.status == CourseStatus.published:
+        enrolled = (await db.execute(select(Enrollment.id).where(Enrollment.course_id == course.id, Enrollment.student_id == user.id, Enrollment.status == "active"))).scalar_one_or_none()
+        if enrolled:
+            return
+    raise AuthorizationError("Session is outside your assigned or enrolled course scope.")
 
 
 async def update_live_session(
@@ -141,11 +170,15 @@ async def join_live_session(
     Records/upserts initial attendance record for students.
     """
     session = await get_live_session(db, session_id)
+    await require_session_access(db, session, user)
 
     if session.status in (SessionStatus.ended, SessionStatus.cancelled):
         raise BusinessRuleError(f"Cannot join a session that is {session.status.value}.")
 
     is_host = (session.instructor_id == user.id) or user.has_role("Admin")
+
+    if not is_host and not user.has_role("Student"):
+        raise AuthorizationError("Only the host, Admin or an enrolled Student can join.")
 
     # If host joins a scheduled session, transition to live
     now = datetime.now(timezone.utc)

@@ -1,0 +1,304 @@
+[
+  {
+    "check": "Module11 closed before Module12",
+    "pass": true
+  },
+  {
+    "check": "Module11 closed before Module12",
+    "pass": true
+  },
+  {
+    "check": "two current teacher-specific endpoints",
+    "pass": true,
+    "active_endpoints": 2
+  },
+  {
+    "check": "assigned dashboard authorization None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "assigned dashboard authorization student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "assigned dashboard authorization foreign_instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "assigned dashboard authorization instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "teacher sees actual completed progress and graded assessment",
+    "pass": true
+  },
+  {
+    "check": "teacher sees escalated remediation with three attempts",
+    "pass": true
+  },
+  {
+    "check": "teacher sees real assessed weak skill",
+    "pass": true
+  },
+  {
+    "check": "assigned dashboard authorization admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "escalation role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "escalation role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "escalation role instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "escalation course scope instructor",
+    "pass": true
+  },
+  {
+    "check": "escalation role foreign_instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "escalation course scope foreign_instructor",
+    "pass": true
+  },
+  {
+    "check": "escalation role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "escalation course scope admin",
+    "pass": true
+  },
+  {
+    "check": "teacher creates own controlled course",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "multi-instructor student dashboard scoped instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "multi-instructor student dashboard scoped foreign_instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "no foreign assessment skill or remediation leak",
+    "pass": true
+  },
+  {
+    "check": "multi-instructor student dashboard scoped admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "staff views do not poison student cache",
+    "pass": true
+  },
+  {
+    "check": "draft syllabus scope instructor",
+    "pass": true
+  },
+  {
+    "check": "draft syllabus scope foreign_instructor",
+    "pass": true
+  },
+  {
+    "check": "draft syllabus scope admin",
+    "pass": true
+  },
+  {
+    "check": "draft syllabus scope None",
+    "pass": true
+  },
+  {
+    "check": "teacher denied unauthorized POST /users/3802f6fb-169b-48ba-b925-c602a0262eb6/roles",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "teacher denied unauthorized GET /users",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "teacher denied unauthorized GET /users/decf1edb-829c-43e1-9ac0-9222260ea96e",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "teacher denied unauthorized PATCH /users/decf1edb-829c-43e1-9ac0-9222260ea96e",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "teacher denied unauthorized PATCH /courses/fa60324a-4d4c-48cc-870e-f9832a32e265",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "teacher denied unauthorized POST /courses/fa60324a-4d4c-48cc-870e-f9832a32e265/publish",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "private results/remediation/retest/video scope instructor /submissions/af8cd115-e4d8-4bfd-9440-dd235980d9c6",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope foreign_instructor /submissions/af8cd115-e4d8-4bfd-9440-dd235980d9c6",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "private results/remediation/retest/video scope admin /submissions/af8cd115-e4d8-4bfd-9440-dd235980d9c6",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope instructor /remediation-plans/f293e28e-2b91-44c5-bcd4-00daaa03b46d",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope foreign_instructor /remediation-plans/f293e28e-2b91-44c5-bcd4-00daaa03b46d",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "private results/remediation/retest/video scope admin /remediation-plans/f293e28e-2b91-44c5-bcd4-00daaa03b46d",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope instructor /assessments/tests/84511868-bb35-4e1a-a273-9aab5fc69f73",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope foreign_instructor /assessments/tests/84511868-bb35-4e1a-a273-9aab5fc69f73",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "private results/remediation/retest/video scope admin /assessments/tests/84511868-bb35-4e1a-a273-9aab5fc69f73",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope instructor /remediation/video-jobs/ffc84a6e-48c9-4941-9dc7-7254a931ac7f",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "private results/remediation/retest/video scope foreign_instructor /remediation/video-jobs/ffc84a6e-48c9-4941-9dc7-7254a931ac7f",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "private results/remediation/retest/video scope admin /remediation/video-jobs/ffc84a6e-48c9-4941-9dc7-7254a931ac7f",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Module12 teacher baseline closed",
+    "pass": true
+  },
+  {
+    "check": "real normal assessment closes escalated weakness",
+    "pass": true
+  },
+  {
+    "check": "escalated plan completed and weakness resolved",
+    "pass": true
+  },
+  {
+    "check": "one existing real video remains ready",
+    "pass": true
+  },
+  {
+    "check": "escalated plan completed and weakness resolved",
+    "pass": true
+  },
+  {
+    "check": "one existing real video remains ready",
+    "pass": true
+  },
+  {
+    "check": "resolved weakness removed from active teacher escalations",
+    "pass": true
+  },
+  {
+    "check": "current escalation scope after resolution instructor",
+    "pass": true
+  },
+  {
+    "check": "current escalation scope after resolution foreign_instructor",
+    "pass": true
+  },
+  {
+    "check": "current escalation scope after resolution admin",
+    "pass": true
+  },
+  {
+    "check": "resolved skill dashboard reflects latest passing grade student",
+    "pass": true
+  },
+  {
+    "check": "resolved skill dashboard reflects latest passing grade module11_pass",
+    "pass": true
+  },
+  {
+    "check": "Module12 closed",
+    "pass": true
+  },
+  {
+    "check": "compact E2E actual lesson and ten-MCQ failing grade",
+    "pass": true
+  },
+  {
+    "check": "compact E2E persisted weakness written study and one video relationship",
+    "pass": true
+  },
+  {
+    "check": "compact E2E exactly one real video",
+    "pass": true,
+    "count": 1
+  },
+  {
+    "check": "compact E2E primary resolution preserves mastery and unlocks downstream",
+    "pass": true
+  },
+  {
+    "check": "compact E2E real focused passing result retained",
+    "pass": true
+  },
+  {
+    "check": "compact E2E ready authorized signed playback remains available",
+    "pass": true
+  },
+  {
+    "check": "Compact 10-12 E2E persisted chain verified without regeneration",
+    "pass": true
+  }
+]

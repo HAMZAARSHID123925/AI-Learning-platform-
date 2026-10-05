@@ -17,8 +17,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.module2_content.models import LessonSkill
-from app.modules.module4_experience.models import LearningPathState, PathState
+from app.modules.module2_content.models import LessonSkill, Lesson, CourseModule, Course, LessonStatus, CourseStatus
+from app.modules.module4_experience.models import LearningPathState, PathState, Enrollment
 from app.modules.module6_adaptive.models import WeaknessFlag, WeaknessStatus
 from app.modules.shared_models.skill_taxonomy import SkillTaxonomy
 from app.shared.logging_config import get_logger
@@ -40,7 +40,7 @@ async def lock_lessons_for_weakness(
     reason = f"Prerequisite skill '{skill_name}' requires remediation."
 
     # Find lessons requiring this skill
-    query = select(LessonSkill.lesson_id).where(LessonSkill.skill_id == skill_id)
+    query = select(LessonSkill.lesson_id).join(Lesson).join(CourseModule).join(Course).join(Enrollment, Enrollment.course_id == Course.id).where(LessonSkill.skill_id == skill_id, Enrollment.student_id == student_id, Enrollment.status == "active", Lesson.status == LessonStatus.published, Course.status == CourseStatus.published)
     res = await db.execute(query)
     lesson_ids = res.scalars().all()
 
@@ -53,7 +53,6 @@ async def lock_lessons_for_weakness(
             lesson_id=lid,
             state=PathState.locked,
             locked_reason=reason,
-            created_at=now,
             updated_at=now
         ).on_conflict_do_update(
             index_elements=["student_id", "lesson_id"],
@@ -61,10 +60,11 @@ async def lock_lessons_for_weakness(
                 "state": PathState.locked,
                 "locked_reason": reason,
                 "updated_at": now
-            }
+            },
+            where=LearningPathState.state != PathState.mastered
         )
-        await db.execute(stmt)
-        locked_count += 1
+        result = await db.execute(stmt)
+        locked_count += result.rowcount
 
     await db.commit()
     logger.info("lessons_locked_for_weakness", student_id=str(student_id), skill_id=str(skill_id), count=locked_count)
@@ -91,7 +91,7 @@ async def unlock_lessons_if_clear(
         return 0  # Still has active weakness, keep locked
 
     # Find lessons requiring this skill
-    query = select(LessonSkill.lesson_id).where(LessonSkill.skill_id == skill_id)
+    query = select(LessonSkill.lesson_id).join(Lesson).join(CourseModule).join(Course).join(Enrollment, Enrollment.course_id == Course.id).where(LessonSkill.skill_id == skill_id, Enrollment.student_id == student_id, Enrollment.status == "active", Lesson.status == LessonStatus.published, Course.status == CourseStatus.published)
     res = await db.execute(query)
     lesson_ids = res.scalars().all()
 
@@ -107,6 +107,9 @@ async def unlock_lessons_if_clear(
         path_res = await db.execute(path_query)
         path_state = path_res.scalar_one_or_none()
         if path_state:
+            remaining = (await db.execute(select(WeaknessFlag.id).join(LessonSkill, LessonSkill.skill_id == WeaknessFlag.skill_id).where(LessonSkill.lesson_id == lid, WeaknessFlag.student_id == student_id, WeaknessFlag.status == WeaknessStatus.active).limit(1))).scalar_one_or_none()
+            if remaining:
+                continue
             path_state.state = PathState.unlocked
             path_state.locked_reason = None
             path_state.updated_at = now

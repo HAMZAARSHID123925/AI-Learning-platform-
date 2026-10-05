@@ -1,0 +1,389 @@
+[
+  {
+    "check": "current API inventory discovers eleven live routes",
+    "pass": true
+  },
+  {
+    "check": "GET /users role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "GET /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "PATCH /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /users/7fade99c-812f-4c0d-b225-95c99cbe63ef role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Admin grade persists in response",
+    "pass": true
+  },
+  {
+    "check": "POST /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "DELETE /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles/Instructor role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "DELETE /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles/Instructor role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "DELETE /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles/Instructor role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "DELETE /users/7fade99c-812f-4c0d-b225-95c99cbe63ef/roles/Instructor role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "clean invalid filter/id /users?page=0",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /users?page_size=101",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /users?status_filter=INVALID",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /users/not-a-uuid",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /courses?page=0",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /courses?status_filter=INVALID",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid filter/id /courses?grade=9",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "clean invalid user/role GET",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "clean invalid user/role POST",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "clean invalid user/role DELETE",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "clean invalid user/role POST",
+    "pass": true,
+    "status": 422
+  },
+  {
+    "check": "cannot self promote student",
+    "pass": true
+  },
+  {
+    "check": "cannot self promote instructor",
+    "pass": true
+  },
+  {
+    "check": "user pagination empty state",
+    "pass": true
+  },
+  {
+    "check": "no user secret disclosure",
+    "pass": true
+  },
+  {
+    "check": "concurrent duplicate role assignment is one row",
+    "pass": true
+  },
+  {
+    "check": "POST /courses role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /courses role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /courses role instructor",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "POST /courses role admin",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "Admin course created",
+    "pass": true
+  },
+  {
+    "check": "GET /courses role None",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "GET /courses role student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "GET /courses role instructor",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "GET /courses role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "GET /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "PATCH /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0 role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "POST /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0/modules role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0/modules role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0/modules role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /courses/5011fe34-73de-4ec3-ad6d-31dbb3f2fdf0/modules role admin",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "Admin module created",
+    "pass": true
+  },
+  {
+    "check": "POST /modules/3bba1a2e-ed69-41b2-975d-641ee43717e0/lessons role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /modules/3bba1a2e-ed69-41b2-975d-641ee43717e0/lessons role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /modules/3bba1a2e-ed69-41b2-975d-641ee43717e0/lessons role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /modules/3bba1a2e-ed69-41b2-975d-641ee43717e0/lessons role admin",
+    "pass": true,
+    "status": 201
+  },
+  {
+    "check": "Admin lesson created",
+    "pass": true
+  },
+  {
+    "check": "GET /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "GET /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Admin content mutation/read GET /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136",
+    "pass": true
+  },
+  {
+    "check": "PATCH /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "PATCH /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136 role admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Admin content mutation/read PATCH /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136",
+    "pass": true
+  },
+  {
+    "check": "POST /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136/publish role None",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136/publish role student",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136/publish role instructor",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "POST /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136/publish role admin",
+    "pass": false,
+    "status": 422
+  },
+  {
+    "check": "Admin content mutation/read POST /lessons/b44f63d2-3718-46cc-9eb4-008edf46a136/publish",
+    "pass": false
+  }
+]

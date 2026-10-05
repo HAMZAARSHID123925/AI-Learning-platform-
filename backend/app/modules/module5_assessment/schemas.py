@@ -1,19 +1,21 @@
 """
-ELARION AI Learning Platform — Backend
+ELARION AI Learning Platform â€” Backend
 Module: app/modules/module5_assessment/schemas.py
 
 Purpose:
-    Pydantic schemas for Module 5 — AI Assessment Generation & Grading.
+    Pydantic schemas for Module 5 â€” AI Assessment Generation & Grading.
     Includes strict Anti-Cheat serialization (student views never receive answer keys or rubrics).
 """
 
 from __future__ import annotations
 
 import uuid
+import hashlib
+import hmac
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.modules.module5_assessment.models import GraderType, QuestionType, SubmissionStatus
 
@@ -27,7 +29,15 @@ class AssessmentGenerateRequest(BaseModel):
     course_id: uuid.UUID | None = None
     is_focused_retest: bool = False
     skill_filter: list[uuid.UUID] | None = None
-    num_questions: int = Field(default=5, ge=1, le=20)
+    num_questions: int = Field(default=10, ge=10, le=10)
+
+    @model_validator(mode="after")
+    def validate_target(self):
+        if bool(self.lesson_id) == bool(self.course_id):
+            raise ValueError("Provide exactly one lesson_id or course_id")
+        if self.is_focused_retest or self.skill_filter:
+            raise ValueError("Focused retests must be created through remediation")
+        return self
 
 
 class SubmissionAnswerItem(BaseModel):
@@ -44,6 +54,15 @@ class SubmissionCreateRequest(BaseModel):
 # Anti-Cheat Student Views (Answer Keys & Rubrics Stripped)
 # =============================================================================
 
+def student_option_id(question_id: uuid.UUID, user_id: uuid.UUID, original_id: str, *, key: bytes | None = None) -> str:
+    """Opaque, student-specific choice identifiers; no correctness information."""
+    if key is None:
+        from app.config import get_settings
+        key = get_settings().jwt_private_key.encode("utf-8")
+    message = f"elarion:assessment:option:v1:{question_id}:{user_id}:{original_id}".encode("utf-8")
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
 class QuestionOptionStudentView(BaseModel):
     id: str
     text: str
@@ -59,16 +78,18 @@ class QuestionStudentView(BaseModel):
     max_score: float
 
     @classmethod
-    def from_orm_model(cls, question: Any) -> QuestionStudentView:
+    def from_orm_model(cls, question: Any, user_id: uuid.UUID | None = None) -> QuestionStudentView:
         opts = None
         if question.options:
             opts = [
                 QuestionOptionStudentView(
-                    id=str(o.get("id", "")),
+                    id=student_option_id(question.id, user_id, str(o.get("id", ""))) if user_id else str(o.get("id", "")),
                     text=str(o.get("text", ""))
                 )
                 for o in question.options
             ]
+            if user_id:
+                opts.sort(key=lambda option: option.id)
         return cls(
             id=question.id,
             skill_id=question.skill_id,
@@ -110,6 +131,8 @@ class SubmissionDetailResponse(BaseModel):
     attempt_number: int
     status: SubmissionStatus
     overall_score: float | None = None
+    total_count: int = 0
+    correct_percentage: float | None = None
     submitted_at: datetime
     graded_at: datetime | None = None
     skill_scores: list[SkillScoreResponse] = []

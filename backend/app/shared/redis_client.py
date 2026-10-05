@@ -19,6 +19,7 @@ from collections.abc import AsyncGenerator
 
 import redis.asyncio as redis
 from redis.asyncio import Redis
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from app.config import get_settings
 
@@ -37,8 +38,8 @@ def _get_pool() -> redis.ConnectionPool | None:
                 settings.REDIS_URL,
                 max_connections=50,
                 decode_responses=True,
-                socket_timeout=1,
-                socket_connect_timeout=1,
+                socket_timeout=10,
+                socket_connect_timeout=5,
             )
         except Exception:
             _redis_pool = None
@@ -55,7 +56,7 @@ def get_redis_client() -> Any:
                 raise RuntimeError(f"Redis connection failed in production: {e}") from e
     if settings.is_production:
         raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
-    return _mock_redis
+    raise RuntimeError("Redis connection pool unavailable")
 
 async def get_redis() -> AsyncGenerator[Any, None]:
     settings = get_settings()
@@ -75,7 +76,7 @@ async def get_redis() -> AsyncGenerator[Any, None]:
     else:
         if settings.is_production:
             raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
-        yield _mock_redis
+        raise RuntimeError("Redis authentication dependency unavailable")
 
 
 async def close_redis_pool() -> None:
@@ -85,5 +86,10 @@ async def close_redis_pool() -> None:
     """
     global _redis_pool
     if _redis_pool is not None:
-        await _redis_pool.aclose()
-        _redis_pool = None
+        try:
+            await _redis_pool.aclose()
+        except (TimeoutError, RedisTimeoutError, OSError):
+            # TLS shutdown failure must not turn successful requests into failures.
+            pass
+        finally:
+            _redis_pool = None

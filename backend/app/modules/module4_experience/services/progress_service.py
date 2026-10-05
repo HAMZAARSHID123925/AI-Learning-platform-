@@ -26,6 +26,7 @@ async def check_lesson_access(
     db: AsyncSession,
     lesson_id: uuid.UUID,
     user,
+    *, as_student: bool = False,
 ) -> None:
     """
     FastAPI dependency / service function: check if a student can access a lesson.
@@ -39,7 +40,7 @@ async def check_lesson_access(
     Raises: LessonLockedError (403) if lesson is locked.
     """
     # Instructors and Admins bypass gating (spec §Module4)
-    if user.has_role("Instructor") or user.has_role("Admin"):
+    if not as_student and (user.has_role("Instructor") or user.has_role("Admin")):
         return
 
     result = await db.execute(
@@ -170,6 +171,7 @@ async def get_course_progress(
             StudentProgress.student_id == student_id,
             CourseModule.course_id == course_id,
             StudentProgress.completed == True,
+            Lesson.status == LessonStatus.published,
         )
     )
     completed = completed_result.scalar_one()

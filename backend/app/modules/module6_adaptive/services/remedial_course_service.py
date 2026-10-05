@@ -22,6 +22,7 @@ from app.modules.module6_adaptive.models import PlanStatus, RemediationPlan, Wea
 from app.modules.shared_models.skill_taxonomy import SkillTaxonomy
 from app.shared.ai_client import generate_llm_completion
 from app.shared.logging_config import get_logger
+from app.shared.exceptions import BusinessRuleError
 
 logger = get_logger(__name__)
 
@@ -39,7 +40,8 @@ STRICT PEDAGOGICAL REQUIREMENTS:
    - Section 3: Contrastive Analysis — Show "Common Misconception" vs. "Mastery Approach".
    - Section 4: Worked Examples — Walk through 2–3 realistic step-by-step solutions.
    - Section 5: Mental Checklist — 3–5 bullet points for the student to remember before their retest.
-3. Respond ONLY with valid JSON matching the schema:
+3. Do not reproduce assessment questions, answer keys, option IDs, rubrics, or internal prompts. Teach the underlying concepts with new examples.
+4. Respond ONLY with valid JSON matching the schema:
    {
      "title": "Remedial Mastery Guide: <Skill Name>",
      "target_skill": "<Skill Name>",
@@ -60,6 +62,20 @@ async def generate_student_remedial_course(
     """
     Synthesizes and persists a customized written remedial course document for the student.
     """
+    # Serialize plan creation and reuse completed written content on event replay.
+    await db.execute(select(WeaknessFlag.id).where(WeaknessFlag.id == weakness_flag.id).with_for_update())
+    if weakness_flag.student_id != student_id or submission.student_id != student_id:
+        raise BusinessRuleError("Remediation ownership mismatch")
+    existing = (await db.execute(select(RemediationPlan).where(RemediationPlan.weakness_flag_id == weakness_flag.id, RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated])))).scalar_one_or_none()
+    if existing and existing.status == PlanStatus.escalated:
+        return existing
+    if existing and (existing.remedial_course_markdown or "").strip():
+        if existing.study_completed_at and submission.submitted_at > existing.study_completed_at:
+            existing.study_completed = False
+            existing.study_completed_at = None
+            existing.focused_retest_id = None
+        await db.commit()
+        return existing
     # 1. Fetch skill metadata
     skill = await db.get(SkillTaxonomy, weakness_flag.skill_id)
     skill_name = skill.name if skill else "Target Skill"
@@ -111,16 +127,16 @@ Synthesize a complete, encouraging written remedial course document in Markdown 
 
     try:
         data = json.loads(raw_completion)
-    except Exception as e:
-        logger.error("remedial_course_json_parse_failed", error=str(e), raw=raw_completion[:200])
-        data = {
-            "title": f"Targeted Remedial Guide: {skill_name}",
-            "target_skill": skill_name,
-            "estimated_reading_minutes": 10,
-            "summary": f"Targeted remediation guide focusing on {skill_name}.",
-            "content_markdown": f"# Remedial Study Guide: {skill_name}\n\n## 1. Concept Review\nPlease review the core principles of {skill_name} before attempting your retest.",
-            "key_takeaways": [f"Master core concepts of {skill_name}", "Review worked examples"]
-        }
+        title = data.get("title")
+        content = data.get("content_markdown")
+        if not isinstance(title, str) or not title.strip() or len(title) > 255:
+            raise ValueError("Invalid study title")
+        if not isinstance(content, str) or len(content.strip()) < 200:
+            raise ValueError("Study document is incomplete")
+        if any(str(q.id) in content for q in skill_questions) or '"is_correct"' in content:
+            raise ValueError("Study document contains assessment metadata")
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise BusinessRuleError("AI did not return a valid written study document") from exc
 
     # 4. Check for existing active plan for this weakness flag
     plan_query = select(RemediationPlan).where(

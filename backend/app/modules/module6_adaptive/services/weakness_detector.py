@@ -40,6 +40,9 @@ async def evaluate_submission_skills_for_weaknesses(
     new_weaknesses: list[WeaknessFlag] = []
     resolved_weaknesses: list[WeaknessFlag] = []
 
+    from app.modules.module1_auth.models import User
+    # Serialize lifecycle changes for a student, including the first flag insert.
+    await db.execute(select(User.id).where(User.id == submission.student_id).with_for_update())
     # Fetch skill scores for this submission
     query = select(SkillScore).where(SkillScore.submission_id == submission.id)
     res = await db.execute(query)
@@ -51,16 +54,27 @@ async def evaluate_submission_skills_for_weaknesses(
         # Check if student already has an active weakness flag for this skill
         flag_query = select(WeaknessFlag).where(
             WeaknessFlag.student_id == submission.student_id,
-            WeaknessFlag.skill_id == item.skill_id,
-            WeaknessFlag.status == WeaknessStatus.active
+            WeaknessFlag.skill_id == item.skill_id
         )
         flag_res = await db.execute(flag_query)
         existing_flag = flag_res.scalar_one_or_none()
+        if existing_flag:
+            previous_ids = [existing_flag.submission_id, existing_flag.resolution_submission_id]
+            previous = list((await db.execute(select(Submission).where(Submission.id.in_([i for i in previous_ids if i])))).scalars())
+            if any(old.submitted_at > submission.submitted_at for old in previous):
+                continue  # Delayed events must not overwrite a newer result.
 
         if score_ratio < threshold:
             # Deficit detected!
             if existing_flag:
-                # Update existing active flag with latest score
+                if existing_flag.status == WeaknessStatus.active and existing_flag.submission_id == submission.id:
+                    plan_exists = (await db.execute(select(RemediationPlan.id).where(RemediationPlan.weakness_flag_id == existing_flag.id, RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated])).limit(1))).scalar_one_or_none()
+                    if plan_exists:
+                        continue  # Already processed; avoid resetting a studied plan.
+                existing_flag.status = WeaknessStatus.active
+                existing_flag.resolved_at = None
+                existing_flag.resolution_submission_id = None
+                # Reuse the database's unique student/skill lifecycle row.
                 existing_flag.score_at_flag = score_ratio
                 existing_flag.submission_id = submission.id
                 logger.info(
@@ -94,7 +108,7 @@ async def evaluate_submission_skills_for_weaknesses(
 
         else:
             # Passing score achieved!
-            if existing_flag:
+            if existing_flag and existing_flag.status == WeaknessStatus.active:
                 # Resolve the active weakness
                 existing_flag.status = WeaknessStatus.resolved
                 existing_flag.resolution_submission_id = submission.id
@@ -103,12 +117,13 @@ async def evaluate_submission_skills_for_weaknesses(
                 # Mark associated remediation plan as completed
                 plan_query = select(RemediationPlan).where(
                     RemediationPlan.weakness_flag_id == existing_flag.id,
-                    RemediationPlan.status == PlanStatus.active
+                    RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated])
                 )
                 plan_res = await db.execute(plan_query)
                 plan = plan_res.scalar_one_or_none()
                 if plan:
                     plan.status = PlanStatus.completed
+                    plan.instructor_escalated = False
                     plan.completed_at = datetime.now(timezone.utc)
 
                 logger.info(

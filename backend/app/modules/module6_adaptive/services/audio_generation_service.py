@@ -346,7 +346,7 @@ async def generate_scene_audio(
 
         # ── Upload to object storage ─────────────────────────────────────────
         try:
-            _, audio_url = await upload_file(
+            object_key, audio_url = await upload_file(
                 file_data=synthesis_result.audio_bytes,
                 original_filename=f"scene-{idx+1:03d}.mp3",
                 content_type="audio/mpeg",
@@ -380,6 +380,9 @@ async def generate_scene_audio(
             status="ready",
         )
         completed_clips.append(clip)
+        # Persist every completed clip so worker recovery reuses paid TTS.
+        job.audio_manifest_json = {"scenes": [c.to_dict() for c in completed_clips], "is_mock": any_mock or synthesis_result.is_mock}
+        await db.commit()
 
         if synthesis_result.is_mock:
             any_mock = True

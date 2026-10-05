@@ -1,0 +1,422 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "category": "01",
+    "summary": "Register a new user"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "category": "01",
+    "summary": "Login with email and password"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "category": "01",
+    "summary": "Refresh access token using refresh token cookie"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "category": "01",
+    "summary": "Logout and revoke tokens"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/sessions",
+    "category": "01",
+    "summary": "List active sessions for current user"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/sessions/revoke-others",
+    "category": "01",
+    "summary": "Remote logout: Revoke all other active sessions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/forgot-password",
+    "category": "01",
+    "summary": "Request password reset email"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/reset-password",
+    "category": "01",
+    "summary": "Reset password using reset token"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/me",
+    "category": "01",
+    "summary": "Get current user profile"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/users/me",
+    "category": "01",
+    "summary": "Update own profile"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "category": "01",
+    "summary": "Get current user profile (Authentication alias)"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users",
+    "category": "13",
+    "summary": "List all users (Admin only)"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/{user_id}",
+    "category": "13",
+    "summary": "Get user by ID (Admin or own profile)"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/users/{user_id}",
+    "category": "13",
+    "summary": "Update any user (Admin only)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/users/{user_id}/roles",
+    "category": "13",
+    "summary": "Assign role to user (Admin only)"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/users/{user_id}/roles/{role_name}",
+    "category": "13",
+    "summary": "Revoke role from user (Admin only)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/courses",
+    "category": "02",
+    "summary": "Create a new course"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/courses",
+    "category": "02",
+    "summary": "List courses"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/courses/{course_id}",
+    "category": "02",
+    "summary": "Get course detail with full syllabus"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/courses/{course_id}",
+    "category": "02",
+    "summary": "Update course"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/courses/{course_id}",
+    "category": "02",
+    "summary": "Delete a course"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/courses/{course_id}/publish",
+    "category": "02",
+    "summary": "Publish a course"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/courses/{course_id}/modules",
+    "category": "03",
+    "summary": "Create a module within a course"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/modules/{module_id}/lessons",
+    "category": "03",
+    "summary": "Create a lesson in a module"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/lessons/{lesson_id}",
+    "category": "04",
+    "summary": "Get lesson detail"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/lessons/{lesson_id}",
+    "category": "04",
+    "summary": "Update a lesson"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/lessons/{lesson_id}/publish",
+    "category": "04",
+    "summary": "Publish a lesson (triggers embedding pipeline)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/lessons/{lesson_id}/assets",
+    "category": "05",
+    "summary": "Upload a file asset to a lesson"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/presign",
+    "category": "05",
+    "summary": "Request a presigned URL for direct S3 upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/uploads/confirm",
+    "category": "05",
+    "summary": "Confirm a direct S3 upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/live-sessions",
+    "category": "14",
+    "summary": "Schedule a new live class session"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/live-sessions",
+    "category": "14",
+    "summary": "List live sessions with filters"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/live-sessions/{session_id}",
+    "category": "14",
+    "summary": "Get live session details"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/live-sessions/{session_id}",
+    "category": "14",
+    "summary": "Update live session details"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/live-sessions/{session_id}",
+    "category": "14",
+    "summary": "Cancel scheduled live session"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/live-sessions/{session_id}/join",
+    "category": "14",
+    "summary": "Join live session and retrieve WebRTC token"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/live-sessions/{session_id}/end",
+    "category": "14",
+    "summary": "End live session and close room"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/live-sessions/{session_id}/attendance",
+    "category": "14",
+    "summary": "View verified attendance logs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/session-join",
+    "category": "14",
+    "summary": "Provider webhook: Participant joined"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/session-leave",
+    "category": "14",
+    "summary": "Provider webhook: Participant left"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/recording-complete",
+    "category": "14",
+    "summary": "Provider webhook: Recording complete & archival"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/dashboard",
+    "category": "06",
+    "summary": "Get aggregated student dashboard (Redis-cached)"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/courses",
+    "category": "06",
+    "summary": "Get enrolled courses with progress"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/events",
+    "category": "06",
+    "summary": "Real-time Server-Sent Events (SSE) stream"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/{student_id}/dashboard",
+    "category": "12/13",
+    "summary": "View specific student dashboard (Instructor / Admin only)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/lessons/{lesson_id}/complete",
+    "category": "06",
+    "summary": "Mark a lesson as completed"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/progress/lessons",
+    "category": "06",
+    "summary": "Get list of completed lesson IDs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/courses/{course_id}/progress",
+    "category": "06",
+    "summary": "Get course completion statistics"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "category": "06",
+    "summary": "Get paginated student notifications"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/notifications/{notification_id}/read",
+    "category": "06",
+    "summary": "Mark notification as read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/notifications/read-all",
+    "category": "06",
+    "summary": "Mark all notifications as read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/enrollments",
+    "category": "06",
+    "summary": "Enroll student in a course"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/enrollments/me",
+    "category": "06",
+    "summary": "List student's active enrollments"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/enrollments/{course_id}",
+    "category": "06",
+    "summary": "Unenroll from a course"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessments/generate",
+    "category": "07/11",
+    "summary": "Generate an AI-powered assessment for a lesson"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/lessons/{lesson_id}/assessment",
+    "category": "07/11",
+    "summary": "Get current assessment for a lesson (Anti-cheat sanitized)"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/courses/{course_id}/assessment",
+    "category": "07/11",
+    "summary": "Get current assessment for a course (Anti-cheat sanitized)"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/assessments/tests/{test_id}",
+    "category": "07/11",
+    "summary": "Get a specific test by ID (Anti-cheat sanitized)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/assessments/{test_id}/submit",
+    "category": "07/11",
+    "summary": "Submit answers for grading"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/submissions/{submission_id}",
+    "category": "07/11",
+    "summary": "Get submission result, score breakdown, and constructive feedback"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/weakness-flags",
+    "category": "08",
+    "summary": "Get active and resolved weaknesses for current student"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/remediation-plans",
+    "category": "09/11",
+    "summary": "Get all remediation plans and customized courses for current student"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/remediation-plans/{plan_id}",
+    "category": "09/11",
+    "summary": "Read AI-generated written remedial course document"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/remediation-plans/{plan_id}/complete-study",
+    "category": "09/11",
+    "summary": "Confirm study and create an owned focused retest; lesson gates await mastery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/students/me/learning-path",
+    "category": "09/11",
+    "summary": "View lesson lock/unlock states across curriculum"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/escalations",
+    "category": "12/13",
+    "summary": "List students requiring instructor intervention (Failed 3 retests)"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/remediation/video-jobs",
+    "category": "10",
+    "summary": "Create a new personalized video generation job"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/remediation/video-jobs/{job_id}",
+    "category": "10",
+    "summary": "Get status of a personalized video generation job"
+  },
+  {
+    "method": "GET",
+    "path": "/health/live",
+    "category": "00",
+    "summary": "Liveness check"
+  },
+  {
+    "method": "GET",
+    "path": "/health/ready",
+    "category": "00",
+    "summary": "Readiness check"
+  }
+]

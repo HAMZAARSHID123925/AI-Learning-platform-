@@ -1,0 +1,17 @@
+[
+  {
+    "check": "existing real focused retest retrieval",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "real failing focused submission graded",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "focused submission retry is idempotent",
+    "pass": true,
+    "status": 200
+  }
+]
