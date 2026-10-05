@@ -60,43 +60,8 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
     }
 
     try {
-      toast.loading('Requesting upload URL...', { id: 'upload' });
-      const presign = await adminApi.requestPresignedUpload(courseId, {
-        lesson_id: lessonId,
-        media_type: mediaType,
-        filename: file.name,
-        content_type: file.type,
-        size_bytes: file.size,
-      });
-
-      // XMLHttpRequest for progress
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', presign.presigned_url);
-        xhr.setRequestHeader('Content-Type', file.type);
-        
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            toast.loading(`Uploading... ${pct}%`, { id: 'upload' });
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error('Upload failed with status ' + xhr.status));
-        };
-        xhr.onerror = () => reject(new Error('Network error during upload'));
-
-        xhr.send(file);
-      });
-      
-      toast.loading('Confirming upload...', { id: 'upload' });
-      await adminApi.confirmUpload(courseId, presign.upload_id, {
-        lesson_id: lessonId,
-        media_type: mediaType,
-      });
-      
+      toast.loading('Uploading media directly...', { id: 'upload' });
+      await adminApi.directUpload(courseId, file, mediaType, lessonId);
       toast.success('Media uploaded successfully!', { id: 'upload' });
       loadCourse();
     } catch (err: any) {

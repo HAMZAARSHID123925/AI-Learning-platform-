@@ -156,6 +156,18 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
     );
   };
 
+  const handleUpdateLessonMultiple = (modId: string, lesId: string, updates: Partial<DraftLesson>) => {
+    setModules((prev) =>
+      prev.map((m) => {
+        if (m.id !== modId) return m;
+        return {
+          ...m,
+          lessons: m.lessons.map((l) => (l.id === lesId ? { ...l, ...updates } : l)),
+        };
+      })
+    );
+  };
+
   const handleThumbnailChange = (file: File) => {
     setThumbnailFile(file);
     const url = URL.createObjectURL(file);
@@ -239,33 +251,16 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
 
             if (les.videoFile) {
               setSubmitStep(`Uploading video for lesson ${lIdx + 1}…`);
+              console.log('[Upload] Lesson video:', les.videoFile.name, 'size:', les.videoFile.size, 'lesson_id:', lesRes?.id, 'course_id:', newCourseId);
               try {
-                await adminApi.directUpload(newCourseId, les.videoFile, 'lesson_video', lesRes.id);
-              } catch (vErr) {
-                console.warn('Lesson video direct upload failed, trying presign fallback:', vErr);
-                try {
-                  const vPresign = await adminApi.requestPresignedUpload(newCourseId, {
-                    lesson_id: lesRes.id,
-                    media_type: 'lesson_video',
-                    filename: les.videoFile.name,
-                    content_type: les.videoFile.type,
-                    size_bytes: les.videoFile.size,
-                  });
-
-                  await fetch(vPresign.presigned_url, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': les.videoFile.type },
-                    body: les.videoFile,
-                  });
-
-                  await adminApi.confirmUpload(newCourseId, vPresign.upload_id, {
-                    lesson_id: lesRes.id,
-                    media_type: 'lesson_video',
-                  });
-                } catch (fallbackVErr) {
-                  console.warn('Lesson video upload fallback warning:', fallbackVErr);
-                }
+                const uploadRes = await adminApi.directUpload(newCourseId, les.videoFile, 'lesson_video', lesRes.id);
+                console.log('[Upload] Video upload success:', uploadRes);
+              } catch (vErr: any) {
+                console.error('[Upload] Lesson video upload FAILED:', vErr);
+                toast.error(`Video upload failed for lesson ${lIdx + 1}: ${vErr.message}`);
               }
+            } else {
+              console.log('[Upload] No video attached for lesson:', les.title);
             }
             if (publish) {
               await adminApi.publishLesson(lesRes.id).catch(() => {});
@@ -483,7 +478,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
                       />
 
                       {/* Lesson Video File Selector */}
-                      <div className="flex items-center gap-2 pt-1">
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
                         <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1 text-xs font-bold text-ink hover:bg-line border border-line">
                           <VideoIcon className="h-3.5 w-3.5 text-brand-600" />
                           <span>{l.videoName ? l.videoName : 'Attach Video (MP4)'}</span>
@@ -494,13 +489,19 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
                             onChange={(e) => {
                               const f = e.target.files?.[0];
                               if (f) {
-                                handleUpdateLesson(m.id, l.id, 'videoFile', f);
-                                handleUpdateLesson(m.id, l.id, 'videoName', f.name);
+                                handleUpdateLessonMultiple(m.id, l.id, {
+                                  videoFile: f,
+                                  videoName: f.name,
+                                });
                               }
                             }}
                           />
                         </label>
-                        {!l.videoFile && (
+                        {l.videoFile ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2 py-1 text-xs font-bold text-green-700">
+                            ✓ Video attached ({(l.videoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                          </span>
+                        ) : (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 text-xs font-bold text-amber-700">
                             ⚠ No video — students will see text only
                           </span>
@@ -554,16 +555,62 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
               </div>
             </div>
 
-            {/* Lesson Documentation Notice */}
-            <div className="rounded-2xl border-2 border-line bg-surface p-4">
-              <div className="flex items-start gap-3">
-                <FileTextIcon className="h-5 w-5 text-brand-600 mt-0.5" />
-                <div>
-                  <p className="text-sm font-bold text-ink">Lesson Videos & Documentation</p>
-                  <p className="text-xs text-ink-soft">
-                    You can attach dedicated lesson videos and write Markdown lecture notes for each lesson in the <strong>Curriculum</strong> tab.
-                  </p>
+            {/* 2. Lesson Videos Upload Section */}
+            <div className="rounded-2xl border-2 border-line bg-surface p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <VideoIcon className="h-5 w-5 text-brand-600" />
+                  <h3 className="text-sm font-extrabold text-ink">Lesson Videos (MP4 / WebM)</h3>
                 </div>
+                <span className="text-xs font-bold text-ink-muted">
+                  {modules.reduce((acc, m) => acc + m.lessons.filter((l) => !!l.videoFile).length, 0)} of{' '}
+                  {modules.reduce((acc, m) => acc + m.lessons.length, 0)} uploaded
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft">
+                Upload a video file for each lesson so students can watch interactive video lectures.
+              </p>
+
+              <div className="space-y-2 pt-1">
+                {modules.map((m, mIdx) => (
+                  <div key={m.id} className="space-y-2">
+                    <p className="text-xs font-bold text-ink-muted uppercase tracking-wider">{m.title || `Module ${mIdx + 1}`}</p>
+                    {m.lessons.map((l, lIdx) => (
+                      <div
+                        key={l.id}
+                        className={`flex items-center justify-between gap-3 rounded-xl border p-3 bg-white transition-all ${
+                          l.videoFile ? 'border-brand-300 bg-brand-50/20' : 'border-line'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold text-ink truncate">{l.title || `Lesson ${lIdx + 1}`}</p>
+                          <p className="text-[11px] text-ink-muted truncate">
+                            {l.videoName ? `Attached: ${l.videoName}` : 'No video attached'}
+                          </p>
+                        </div>
+
+                        <label className="cursor-pointer shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-colors border border-line bg-surface hover:bg-line text-ink">
+                          <UploadIcon className="h-3.5 w-3.5 text-brand-600" />
+                          <span>{l.videoFile ? 'Replace Video' : 'Upload Video'}</span>
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                handleUpdateLessonMultiple(m.id, l.id, {
+                                  videoFile: f,
+                                  videoName: f.name,
+                                });
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
