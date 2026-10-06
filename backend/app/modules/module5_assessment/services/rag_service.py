@@ -130,10 +130,15 @@ async def retrieve_course_chunks(
     """
     Performs cosine similarity search over ALL published lessons in a course.
     """
-    query_vector = await get_embedding(query_text)
-    vector_literal = f"[{','.join(f'{x:.6f}' for x in query_vector)}]"
-
     try:
+        # Some local databases deliberately omit optional pgvector. Avoid a
+        # failing SQL query and unnecessary embedding request in that setup.
+        async with db.begin_nested():
+            supported = (await db.execute(text("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'content_embeddings' AND column_name = 'embedding')"))).scalar_one()
+        if not supported:
+            return await _course_text_chunks(course_id, db, top_k)
+        query_vector = await get_embedding(query_text)
+        vector_literal = f"[{','.join(f'{x:.6f}' for x in query_vector)}]"
         sql = text("""
             SELECT
                 ce.id,
@@ -141,13 +146,13 @@ async def retrieve_course_chunks(
                 ce.lesson_version,
                 ce.chunk_index,
                 ce.chunk_text,
-                1 - (ce.vector <=> CAST(:query_vector AS vector)) AS similarity
+                1 - (ce.embedding <=> CAST(:query_vector AS vector)) AS similarity
             FROM content_embeddings ce
             JOIN lessons l ON l.id = ce.lesson_id
             JOIN course_modules m ON m.id = l.module_id
             WHERE m.course_id = :course_id
               AND l.status = 'published'
-            ORDER BY ce.vector <=> CAST(:query_vector AS vector) ASC
+            ORDER BY ce.embedding <=> CAST(:query_vector AS vector) ASC
             LIMIT :top_k
         """)
 
@@ -180,7 +185,10 @@ async def retrieve_course_chunks(
     except Exception as e:
         logger.warning("pgvector_course_query_fallback", error=str(e))
 
-    # Fallback
+    return await _course_text_chunks(course_id, db, top_k)
+
+
+async def _course_text_chunks(course_id: uuid.UUID, db: AsyncSession, top_k: int) -> list[RetrievedChunk]:
     from app.modules.module2_content.models import Lesson, CourseModule
     fallback_query = (
         select(ContentEmbedding)

@@ -69,7 +69,7 @@ async def generate_student_remedial_course(
     existing = (await db.execute(select(RemediationPlan).where(RemediationPlan.weakness_flag_id == weakness_flag.id, RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated])))).scalar_one_or_none()
     if existing and existing.status == PlanStatus.escalated:
         return existing
-    if existing and (existing.remedial_course_markdown or "").strip():
+    if existing and existing.source_submission_id == submission.id and (existing.remedial_course_markdown or "").strip():
         if existing.study_completed_at and submission.submitted_at > existing.study_completed_at:
             existing.study_completed = False
             existing.study_completed_at = None
@@ -148,6 +148,7 @@ Synthesize a complete, encouraging written remedial course document in Markdown 
 
     if plan:
         # Update existing plan with new remedial content
+        plan.source_submission_id = submission.id
         plan.remedial_course_title = data.get("title", f"Remedial Guide: {skill_name}")
         plan.remedial_course_markdown = data.get("content_markdown", "")
         plan.study_completed = False
@@ -156,6 +157,7 @@ Synthesize a complete, encouraging written remedial course document in Markdown 
         # Create new remediation plan
         plan = RemediationPlan(
             student_id=student_id,
+            source_submission_id=submission.id,
             weakness_flag_id=weakness_flag.id,
             status=PlanStatus.active,
             retest_attempt_count=0,

@@ -9,7 +9,7 @@ export interface BackendSubmission {
   skill_scores: {id: string; skill_id: string; skill_name: string | null; score: number; max_score: number}[];
 }
 export interface BackendWeakness {id: string; skill_id: string; submission_id: string; status: string; score_at_flag: number; threshold: number;}
-export interface BackendRemediation {id: string; weakness_flag_id: string; status: string; remedial_course_title: string | null; remedial_course_markdown: string | null;}
+export interface BackendRemediation {source_submission_id?: string | null;id: string; weakness_flag_id: string; status: string; remedial_course_title: string | null; remedial_course_markdown: string | null;}
 export interface BackendCourseSummary { id: string; title: string; slug: string; grade: Grade; instructor_id: string; status: 'draft' | 'published' | 'archived'; }
 
 export interface BackendLesson {

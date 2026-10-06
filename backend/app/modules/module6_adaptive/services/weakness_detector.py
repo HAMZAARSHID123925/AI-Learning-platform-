@@ -43,6 +43,15 @@ async def evaluate_submission_skills_for_weaknesses(
     from app.modules.module1_auth.models import User
     # Serialize lifecycle changes for a student, including the first flag insert.
     await db.execute(select(User.id).where(User.id == submission.student_id).with_for_update())
+    from app.modules.module5_assessment.models import Test
+    from app.modules.module2_content.models import Lesson, CourseModule
+    from app.shared.exceptions import BusinessRuleError
+    test = await db.get(Test, submission.test_id)
+    course_id = test.course_id
+    if not course_id and test.lesson_id:
+        course_id = (await db.execute(select(CourseModule.course_id).join(Lesson, Lesson.module_id == CourseModule.id).where(Lesson.id == test.lesson_id))).scalar_one_or_none()
+    if not course_id:
+        raise BusinessRuleError("Assessment has no course context")
     # Fetch skill scores for this submission
     query = select(SkillScore).where(SkillScore.submission_id == submission.id)
     res = await db.execute(query)
@@ -54,7 +63,8 @@ async def evaluate_submission_skills_for_weaknesses(
         # Check if student already has an active weakness flag for this skill
         flag_query = select(WeaknessFlag).where(
             WeaknessFlag.student_id == submission.student_id,
-            WeaknessFlag.skill_id == item.skill_id
+            WeaknessFlag.skill_id == item.skill_id,
+            WeaknessFlag.course_id == course_id
         )
         flag_res = await db.execute(flag_query)
         existing_flag = flag_res.scalar_one_or_none()
@@ -89,6 +99,7 @@ async def evaluate_submission_skills_for_weaknesses(
                 # Create new active weakness flag
                 new_flag = WeaknessFlag(
                     student_id=submission.student_id,
+                    course_id=course_id,
                     skill_id=item.skill_id,
                     submission_id=submission.id,
                     score_at_flag=score_ratio,

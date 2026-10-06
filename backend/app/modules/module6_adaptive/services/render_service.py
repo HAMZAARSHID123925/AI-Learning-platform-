@@ -269,21 +269,35 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
         ["npm", "run", "render", "--", input_path, output_path]
     ]
 
+    # Longer real narration produces more frames; the fixed ten-minute budget
+    # timed out valid course videos. Bound the budget using measured clip timing.
+    duration = sum(c.get("render_duration_seconds", 0) for c in json.loads(
+        Path(input_path).read_text(encoding="utf-8"))["audio_manifest"]["scenes"])
+    timeout_seconds = max(RENDER_TIMEOUT_SECONDS, min(1800, int(duration * 6)))
+
     last_error: Optional[str] = None
     for cmd in executors:
         try:
-            proc = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=RENDER_TIMEOUT_SECONDS,
-                cwd=str(VIDEO_RENDER_DIR),
-                env=node_env,
-                shell=os.name == 'nt',
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                cwd=str(VIDEO_RENDER_DIR), env=node_env, shell=os.name == 'nt',
             )
+            try:
+                stdout, stderr = proc.communicate(timeout=timeout_seconds)
+            except subprocess.TimeoutExpired:
+                # Killing only npm's Windows shell leaves renderer/Chromium
+                # children running, competing with the next explicit retry.
+                if os.name == 'nt':
+                    subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                                   capture_output=True, timeout=15)
+                else:
+                    proc.kill()
+                proc.communicate(timeout=15)
+                last_error = f"Render timeout after {timeout_seconds}s"
+                break
 
             # Parse stdout JSON result
-            stdout_lines = proc.stdout.strip().splitlines()
+            stdout_lines = stdout.strip().splitlines()
             result_line = next(
                 (l for l in reversed(stdout_lines) if l.startswith("{")), None
             )
@@ -305,11 +319,11 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
                 )
 
             if proc.returncode != 0:
-                last_error = (proc.stderr or proc.stdout)[:500]
+                last_error = (stderr or stdout)[:500]
                 continue
 
         except subprocess.TimeoutExpired:
-            last_error = f"Render timeout after {RENDER_TIMEOUT_SECONDS}s"
+            last_error = f"Render timeout after {timeout_seconds}s"
             break
         except FileNotFoundError:
             last_error = f"Executor not found: {cmd[0]}"

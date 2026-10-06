@@ -69,3 +69,22 @@ test('confirm failure retries the same private object without another upload',as
  await assert.rejects(adminApi.uploadMedia('course',file,'lesson_video','lesson'),/Transient failure/);
  await adminApi.uploadMedia('course',file,'lesson_video','lesson');assert.equal(presigns,1);assert.equal(puts,1);assert.equal(confirms,2);
 });
+
+test('shared Admin listing loads every backend page without owner filtering',async()=>{
+ const original=adminApi.listCourses;const calls=[];
+ adminApi.listCourses=async(params)=>{calls.push(params);return{items:[{id:'course-'+params.page}],pages:3};};
+ try{assert.deepEqual((await adminApi.listAllCourses()).map(c=>c.id),['course-1','course-2','course-3']);assert.deepEqual(calls.map(c=>c.page),[1,2,3]);assert.ok(calls.every(c=>!('instructor_id' in c)));}finally{adminApi.listCourses=original;}
+});
+
+test('settled video request is not kept as stale component state',async()=>{
+ const originals={...learningApi};let creates=0;
+ learningApi.requestPersonalizedVideo=async(weak,submission)=>{creates++;assert.equal(submission,'saved-submission');return{id:'saved-job',status:'failed'};};
+ learningApi.getPersonalizedVideoJob=async()=>({id:'saved-job',status:creates===1?'failed':'ready',video_url:creates===1?null:'private-playback'});
+ try{assert.equal((await findOrCreateVideo('refresh-student','refresh-weak','saved-submission')).status,'failed');assert.equal((await findOrCreateVideo('refresh-student','refresh-weak','saved-submission')).status,'ready');assert.equal(creates,2);}finally{Object.assign(learningApi,originals);}
+});
+
+test('video restart uses explicit owned retry endpoint and surfaces rejection',async()=>{
+ const calls=[];global.fetch=async(url,options)=>{calls.push({url:String(url),method:options.method});return json({detail:'This video belongs to an earlier remediation lifecycle'},409);};
+ await assert.rejects(learningApi.retryPersonalizedVideo('owned-job'),/earlier remediation lifecycle/);
+ assert.equal(calls[0].method,'POST');assert.ok(calls[0].url.endsWith('/remediation/video-jobs/owned-job/retry'));
+});

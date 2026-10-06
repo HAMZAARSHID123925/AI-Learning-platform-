@@ -1,3 +1,4 @@
+import type { BackendCourseSummary } from '@/types/backend';
 import { fetchWithAuth } from '@/lib/api';
 import type { Course } from '@/types/learning';
 import { mapBackendCourseDetailToFrontendCourse } from './learningApi';
@@ -55,6 +56,16 @@ export const adminApi = {
     const res = await fetchWithAuth(url);
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch courses'));
     return res.json();
+  },
+
+  async listAllCourses(): Promise<BackendCourseSummary[]> {
+    const first = await this.listCourses({page: 1, page_size: 100});
+    const items: BackendCourseSummary[] = [...first.items];
+    for (let page = 2; page <= first.pages; page++) {
+      const next = await this.listCourses({page, page_size: 100});
+      items.push(...next.items);
+    }
+    return items;
   },
 
   async createCourse(data: { title: string; description?: string; grade: number; slug?: string; instructor_id?: string }) {

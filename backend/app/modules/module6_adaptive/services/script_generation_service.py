@@ -126,6 +126,8 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
         if not source_chunks:
             raise ValueError("No authoritative curriculum text is available")
         plan = await db.get(RemediationPlan, job.remediation_plan_id) if job.remediation_plan_id else None
+        if plan and plan.source_submission_id != job.submission_id:
+            raise ValueError("Written remediation belongs to another submission")
         context = {
             "course_title": course.title,
             "skill_name": skill.name,

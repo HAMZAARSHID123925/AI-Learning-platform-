@@ -29,7 +29,7 @@ function SavedCourseResults({courseId}: {courseId: string}) {
         const submission = await learningApi.getRealSubmission(progress.latest_submission_id);
         const [flags, plans] = await Promise.all([learningApi.getActiveWeaknesses(), learningApi.getRemediationPlans()]);
         const ownFlags = flags.filter(flag => flag.submission_id === submission.id);
-        const ownPlans = plans.filter(plan => ownFlags.some(flag => flag.id === plan.weakness_flag_id));
+        const ownPlans = plans.filter(plan => plan.source_submission_id === submission.id && ownFlags.some(flag => flag.id === plan.weakness_flag_id));
         if (!active) return;
         setData({ submission, flags: ownFlags, plans: ownPlans });
         setError(null);
@@ -57,7 +57,7 @@ function SavedCourseResults({courseId}: {courseId: string}) {
     <h2 className="text-2xl font-black">Personalized learning</h2>
     {data.plans.filter(plan => Boolean(plan.remedial_course_markdown)).length === 0 && <p>{(data.submission.correct_percentage ?? 0) < 60 ? 'Preparing your personalized lesson… We are checking for your saved remediation automatically.' : 'No active remediation for this assessment.'}</p>}
     {data.plans.filter(plan => Boolean(plan.remedial_course_markdown)).map(plan => <div key={plan.id} className="space-y-4">
-      {user?.id && <PersonalizedVideoPanel userId={user.id} weaknessId={plan.weakness_flag_id} submissionId={data.submission.id} title={plan.remedial_course_title || 'Your personalized lesson'} />}
+      {user?.id && <PersonalizedVideoPanel key={data.submission.id + ':' + plan.weakness_flag_id} userId={user.id} weaknessId={plan.weakness_flag_id} submissionId={data.submission.id} title={plan.remedial_course_title || 'Your personalized lesson'} />}
       {plan.remedial_course_markdown && <details className="rounded-2xl border-2 border-line p-5"><summary className="cursor-pointer font-bold">Lesson notes</summary><p className="mt-3 whitespace-pre-wrap">{plan.remedial_course_markdown}</p></details>}
     </div>)}
     <div className="pt-3"><ButtonLink variant="secondary" href={`/dashboard/courses/${courseId}`}>Back to course</ButtonLink></div>
