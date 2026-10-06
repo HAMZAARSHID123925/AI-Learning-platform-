@@ -249,6 +249,9 @@ export interface RemediationPlan {
 }
 
 export interface VideoGenerationJob {
+  updated_at?: string | null;
+  created_at?: string;
+  started_at?: string | null;
   weakness_flag_id?: string;
   error_code?: string | null;
   id: string;

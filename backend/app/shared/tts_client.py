@@ -250,7 +250,7 @@ async def _synthesize_openai(text: str) -> bytes:
             "Set it in .env or enable TTS_MOCK_MODE=true for development."
         )
     import openai
-    client = openai.AsyncOpenAI(api_key=key, timeout=30.0)
+    client = openai.AsyncOpenAI(api_key=key, timeout=30.0, max_retries=0)
     response = await client.audio.speech.create(
         model=settings.OPENAI_TTS_MODEL,
         voice=settings.OPENAI_TTS_VOICE,          # type: ignore[arg-type]
@@ -387,10 +387,11 @@ async def synthesize_narration(
         except ValueError:
             raise # Configuration errors shouldn't retry
         except Exception as e:
+            from app.modules.module6_adaptive.services.pipeline_errors import is_transient
             delay = 1.5 * (2 ** attempt)
-            logger.warning("tts_provider_failed", attempt=attempt+1, error=str(e), next_retry_delay=delay)
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"TTS synthesis failed after {max_retries} attempts [{provider}]: {e}") from e
+            logger.warning("tts_provider_failed", attempt=attempt+1, error_type=type(e).__name__)
+            if not is_transient(e) or attempt == max_retries - 1:
+                raise RuntimeError(f"TTS synthesis failed [{provider}]: {type(e).__name__}") from e
             import asyncio
             await asyncio.sleep(delay)
 

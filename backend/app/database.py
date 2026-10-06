@@ -69,6 +69,7 @@ def _create_engine(database_url: str) -> AsyncEngine:
         max_overflow=20,
         pool_pre_ping=True,
         pool_recycle=1800,
+        hide_parameters=True,  # Never log persisted audio bytes, signed URLs or secrets.
         echo=settings.is_development,  # Log SQL in dev only
     )
 

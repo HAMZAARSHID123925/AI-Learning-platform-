@@ -69,3 +69,46 @@ test('confirm failure retries the same private object without another upload',as
  await assert.rejects(adminApi.uploadMedia('course',file,'lesson_video','lesson'),/Transient failure/);
  await adminApi.uploadMedia('course',file,'lesson_video','lesson');assert.equal(presigns,1);assert.equal(puts,1);assert.equal(confirms,2);
 });
+
+test('shared Admin listing loads every backend page without owner filtering',async()=>{
+ const original=adminApi.listCourses;const calls=[];
+ adminApi.listCourses=async(params)=>{calls.push(params);return{items:[{id:'course-'+params.page}],pages:3};};
+ try{assert.deepEqual((await adminApi.listAllCourses()).map(c=>c.id),['course-1','course-2','course-3']);assert.deepEqual(calls.map(c=>c.page),[1,2,3]);assert.ok(calls.every(c=>!('instructor_id' in c)));}finally{adminApi.listCourses=original;}
+});
+
+test('settled video request is not kept as stale component state',async()=>{
+ const originals={...learningApi};let creates=0;
+ learningApi.requestPersonalizedVideo=async(weak,submission)=>{creates++;assert.equal(submission,'saved-submission');return{id:'saved-job',status:'failed'};};
+ learningApi.getPersonalizedVideoJob=async()=>({id:'saved-job',status:creates===1?'failed':'ready',video_url:creates===1?null:'private-playback'});
+ try{assert.equal((await findOrCreateVideo('refresh-student','refresh-weak','saved-submission')).status,'failed');assert.equal((await findOrCreateVideo('refresh-student','refresh-weak','saved-submission')).status,'ready');assert.equal(creates,2);}finally{Object.assign(learningApi,originals);}
+});
+
+test('video restart uses explicit owned retry endpoint and surfaces rejection',async()=>{
+ const calls=[];global.fetch=async(url,options)=>{calls.push({url:String(url),method:options.method});return json({detail:'This video belongs to an earlier remediation lifecycle'},409);};
+ await assert.rejects(learningApi.retryPersonalizedVideo('owned-job'),/earlier remediation lifecycle/);
+ assert.equal(calls[0].method,'POST');assert.ok(calls[0].url.endsWith('/remediation/video-jobs/owned-job/retry'));
+});
+
+test('failed saved video explicitly retries same job, resumes polling and restores READY on refresh',async()=>{
+ const original={...learningApi};const calls=[];let status='failed';
+ learningApi.requestPersonalizedVideo=async()=>{calls.push('create-or-reuse');return{id:'saved-retry-job',status};};
+ learningApi.getPersonalizedVideoJob=async(id)=>{assert.equal(id,'saved-retry-job');calls.push('poll');return{id,status,video_url:status==='ready'?'private-playback':null};};
+ learningApi.retryPersonalizedVideo=async(id)=>{assert.equal(id,'saved-retry-job');calls.push('explicit-retry');status='rendering';return{id,status};};
+ try {
+  let job=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(job),'failed');
+  job=await learningApi.retryPersonalizedVideo(job.id);assert.equal(videoView(job),'preparing');
+  job=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(job),'preparing');
+  status='ready';job=await learningApi.getPersonalizedVideoJob(job.id);assert.equal(videoView(job),'ready');
+  const refreshed=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(refreshed),'ready');assert.equal(refreshed.id,job.id);
+  assert.equal(calls.filter(c=>c==='explicit-retry').length,1);
+ } finally {Object.assign(learningApi,original);}
+});
+
+
+test('video resume prompt respects fresh stage activity and a bounded long render',()=>{
+ const {videoCanResume}=require('../src/utils/personalizedVideo.ts');const now=Date.parse('2026-10-06T16:00:00Z');
+ assert.equal(videoCanResume({status:'rendering',started_at:'2026-10-06T15:40:00Z'},now),false);
+ assert.equal(videoCanResume({status:'audio_generating',started_at:'2026-10-06T15:00:00Z',updated_at:'2026-10-06T15:59:00Z'},now),false);
+ assert.equal(videoCanResume({status:'rendering',updated_at:'2026-10-06T15:28:00Z'},now),true);
+ assert.equal(videoCanResume({status:'ready',video_url:'private',updated_at:'2026-10-06T15:00:00Z'},now),false);
+});

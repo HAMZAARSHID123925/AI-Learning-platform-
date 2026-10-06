@@ -86,7 +86,7 @@ async def unlock_lessons_if_clear(
         WeaknessFlag.skill_id == skill_id,
         WeaknessFlag.status == WeaknessStatus.active
     )
-    active_res = await db.execute(active_query)
+    active_res = await db.execute(active_query.limit(1))
     if active_res.scalar_one_or_none():
         return 0  # Still has active weakness, keep locked
 

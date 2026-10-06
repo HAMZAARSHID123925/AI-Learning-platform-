@@ -15,9 +15,9 @@ from app.workers import adaptive_consumer as adaptive,video_generation_consumer 
 from app.modules.module6_adaptive.services import render_service
 import os,shutil,re
 invoke=render_service.invoke_remotion_render
-def capture(input_path,output_path):
+def capture(input_path,output_path,cancel_event=None):
  shutil.copyfile(input_path,Path(os.environ['TEMP'])/'elarion-latest-flow/strict-render-input.json')
- result=invoke(input_path,output_path)
+ result=invoke(input_path,output_path,cancel_event=cancel_event)
  report={'success':result.success,'duration_seconds':result.duration_seconds,'error':re.sub(r'https?://[^\s]+','[URL REDACTED]',result.error or '')}
  Path(__file__).with_name('strict_render_diagnostics.json').write_text(json.dumps(report,indent=2))
  print(json.dumps({'real_render':report}),flush=True)

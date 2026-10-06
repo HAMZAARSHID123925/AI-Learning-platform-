@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+import time
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,8 +29,11 @@ from app.modules.module6_adaptive.models import WeaknessFlag, RemediationPlan
 from app.modules.module6_adaptive.services.script_generation_service import generate_personalized_script_and_scenes
 from app.modules.module6_adaptive.services.audio_generation_service import generate_scene_audio
 from app.modules.module6_adaptive.services.render_service import render_video
-from app.shared.logging_config import get_logger
+from app.shared.logging_config import configure_logging, get_logger
 from app.shared.redis_client import get_redis_client
+from app.modules.module6_adaptive.services.pipeline_errors import VideoPipelineError, safe_error
+from app.modules.module6_adaptive.services.script_generation_service import validate_storyboard
+from app.modules.module6_adaptive.services.storyboard_schema import normalize_storyboard
 
 logger = get_logger(__name__)
 
@@ -50,8 +54,9 @@ async def process_video_generation_job(event_payload: dict, db: AsyncSession) ->
     async def renew():
         from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
         loop = asyncio.get_running_loop()
-        # Retry transient broker failures only within the last confirmed lease.
-        deadline = loop.time() + 110
+        # Reserve forty seconds of the confirmed lease to stop the owned
+        # renderer before another worker can acquire the key.
+        deadline = loop.time() + 80
         delay = 30
         while True:
             await asyncio.sleep(delay)
@@ -69,7 +74,7 @@ async def process_video_generation_job(event_payload: dict, db: AsyncSession) ->
                 continue
             if not refreshed:
                 raise RuntimeError('Video worker lease lost')
-            deadline = started + 110
+            deadline = started + 80
             delay = 30
     heartbeat=asyncio.create_task(renew())
     processing=asyncio.create_task(_process_owned_job(job_id,db))
@@ -81,6 +86,9 @@ async def process_video_generation_job(event_payload: dict, db: AsyncSession) ->
             raise RuntimeError('Video worker ownership unavailable')
         return await processing
     finally:
+        if not processing.done():
+            processing.cancel()
+            with suppress(asyncio.CancelledError, Exception): await processing
         heartbeat.cancel()
         with suppress(asyncio.CancelledError, Exception):await heartbeat
         try:
@@ -93,17 +101,43 @@ async def _process_owned_job(job_id: uuid.UUID, db: AsyncSession) -> dict:
     job=await db.get(VideoGenerationJob,job_id)
     if not job:return {'status':'error','reason':'Job not found'}
     if job.status==VideoJobStatus.ready:return {'status':'skipped','reason':'Already ready'}
-    if job.status==VideoJobStatus.failed and job.retry_count>=3:return {'status':'error','reason':'Retry limit reached'}
-    stage='planning'
+    if job.status==VideoJobStatus.failed:return {'status':'skipped','reason':'Explicit retry required'}
+    from structlog.contextvars import bind_contextvars, reset_contextvars
+    context_tokens=bind_contextvars(job_id=str(job.id),student_id=str(job.student_id),remediation_id=str(job.remediation_plan_id),attempt=job.retry_count+1)
+    stage='plan'
+    started=time.monotonic()
     try:
+        flag=await db.get(WeaknessFlag,job.weakness_flag_id)
+        plan=await db.get(RemediationPlan,job.remediation_plan_id) if job.remediation_plan_id else None
+        if (not flag or not plan or flag.student_id != job.student_id
+                or flag.submission_id != job.submission_id or flag.course_id != job.course_id
+                or flag.status.value != 'active' or plan.student_id != job.student_id
+                or plan.source_submission_id != job.submission_id or plan.status.value != 'active'):
+            raise VideoPipelineError('VIDEO_PLAN_FAILED','Remediation context is no longer current')
+        logger.info('video_job_started',job_id=str(job.id),student_id=str(job.student_id),
+                    remediation_id=str(job.remediation_plan_id),stage=stage,attempt=job.retry_count+1)
         if job.status in (VideoJobStatus.rendering,VideoJobStatus.uploading):job.status=VideoJobStatus.failed
         if job.status==VideoJobStatus.failed:job.status=VideoJobStatus.queued
         if job.status==VideoJobStatus.queued:
             job.status=VideoJobStatus.planning
+            job.error_code=None
+            job.error_message=None
             job.started_at=job.started_at or datetime.now(timezone.utc)
             await db.commit()
+        valid_cached=False
+        if job.scene_json and job.script_json:
+            try:
+                validate_storyboard(normalize_storyboard({**job.script_json,**job.scene_json}),True)
+                valid_cached=True
+            except ValueError:
+                logger.warning('video_cached_storyboard_rejected',job_id=str(job.id),stage='storyboard')
+        if not valid_cached and job.status not in (VideoJobStatus.planning,VideoJobStatus.scripting):
+            job.status=VideoJobStatus.failed
+            job.status=VideoJobStatus.queued
+            job.status=VideoJobStatus.planning
+            await db.commit()
         if job.status in (VideoJobStatus.planning,VideoJobStatus.scripting):
-            if job.scene_json and job.script_json:
+            if valid_cached:
                 if job.status==VideoJobStatus.planning:job.status=VideoJobStatus.scripting
                 job.status=VideoJobStatus.storyboard_ready
                 await db.commit()
@@ -111,29 +145,27 @@ async def _process_owned_job(job_id: uuid.UUID, db: AsyncSession) -> dict:
                 stage='script'
                 await generate_personalized_script_and_scenes(job.id,db)
         if job.status in (VideoJobStatus.storyboard_ready,VideoJobStatus.assets_preparing,VideoJobStatus.audio_generating):
-            stage='audio'
+            stage='tts'
             await generate_scene_audio(job.id,db)
         if job.status==VideoJobStatus.audio_ready:
-            stage='render_upload'
+            stage='render'
             await render_video(job.id,db)
         if job.status!=VideoJobStatus.ready:raise RuntimeError('Video pipeline did not reach ready')
         return {'status':'success'}
     except Exception as exc:
         await db.rollback()
         job=await db.get(VideoGenerationJob,job_id)
-        # Services already persist the specific failure; do not replace it with
-        # just the exception type, which hides actionable rendering diagnostics.
         detail = job.error_message if job.status == VideoJobStatus.failed and job.error_message else stage+': '+type(exc).__name__
-        import re
-        detail = re.sub(r'https?://[^\s]+', '[URL REDACTED]', detail)
-        detail = re.sub(r'(?i)Bearer\s+\S+|sk-[A-Za-z0-9_*\-]+', '[CREDENTIAL REDACTED]', detail)
+        code = exc.code if isinstance(exc,VideoPipelineError) else (job.error_code if job.status == VideoJobStatus.failed and job.error_code else 'VIDEO_'+stage.upper()+'_FAILED')
         job.status=VideoJobStatus.failed
-        job.error_code='VIDEO_'+stage.upper()+'_FAILED'
-        job.error_message=detail[:2000]
+        job.error_code=code
+        job.error_message=safe_error(detail)
         job.retry_count+=1
         await db.commit()
-        logger.error('video_job_failed',job_id=str(job_id),stage=stage,error_type=type(exc).__name__,error_detail=job.error_message)
+        logger.error('video_job_failed',job_id=str(job_id),student_id=str(job.student_id),remediation_id=str(job.remediation_plan_id),stage=stage,attempt=job.retry_count,duration_seconds=round(time.monotonic()-started,3),failure_code=job.error_code,error_type=type(exc).__name__)
         return {'status':'error','reason':job.error_code}
+    finally:
+        reset_contextvars(**context_tokens)
 
 
 async def run_consumer_loop(poll_delay: float = 1.0):
@@ -146,7 +178,7 @@ async def run_consumer_loop(poll_delay: float = 1.0):
 
     # Ensure stream and consumer group exist
     try:
-        await redis.xgroup_create(stream_key, CONSUMER_GROUP, id="0", mkstream=True)
+        await redis.xgroup_create(stream_key, CONSUMER_GROUP, id="$", mkstream=True)
     except Exception as exc:
         if "BUSYGROUP" not in str(exc):
             raise
@@ -155,6 +187,9 @@ async def run_consumer_loop(poll_delay: float = 1.0):
 
     while True:
         try:
+            from app.modules.module6_adaptive.services.video_job_service import dispatch_pending_video_jobs
+            async with AsyncSessionLocal() as outbox_session:
+                await dispatch_pending_video_jobs(outbox_session)
             # Recover pending messages idle for > 5 minutes (300000 ms)
             try:
                 # XAUTOCLAIM syntax: stream, group, consumer, min_idle_time, start_id, count
@@ -173,9 +208,9 @@ async def run_consumer_loop(poll_delay: float = 1.0):
                                     if result.get("status") == "busy": continue
                             await redis.xack(stream_key, CONSUMER_GROUP, msg_id)
                         except Exception as e:
-                            logger.error("error_processing_claimed_msg", msg_id=msg_id, error=str(e))
+                            logger.error("error_processing_claimed_msg", msg_id=msg_id, error_type=type(e).__name__)
             except Exception as e:
-                logger.error("error_claiming_pending_messages", error=str(e))
+                logger.error("error_claiming_pending_messages", error_type=type(e).__name__)
 
             # Read new messages for this consumer group
             entries = await redis.xreadgroup(
@@ -199,10 +234,10 @@ async def run_consumer_loop(poll_delay: float = 1.0):
                             # Acknowledge processed message
                             await redis.xack(stream_key, CONSUMER_GROUP, msg_id)
                         except Exception as e:
-                            logger.error("error_processing_stream_msg", msg_id=msg_id, error=str(e))
+                            logger.error("error_processing_stream_msg", msg_id=msg_id, error_type=type(e).__name__)
 
         except Exception as e:
-            logger.error("video_generation_consumer_loop_error", error=str(e))
+            logger.error("video_generation_consumer_loop_error", error_type=type(e).__name__)
             await asyncio.sleep(poll_delay)
 
 

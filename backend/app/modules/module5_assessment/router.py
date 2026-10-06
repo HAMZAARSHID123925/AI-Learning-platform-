@@ -158,19 +158,7 @@ async def get_course_assessment(
     if current_user.has_role("Student") and not privileged_preview and (progress["total_lessons"] == 0 or progress["completed_lessons"] < progress["total_lessons"]):
         raise BusinessRuleError("Course is not fully completed.")
 
-    query = (
-        select(Test)
-        .where(Test.course_id == course_id)
-        .where(Test.is_focused_retest == False)
-        .order_by(desc(Test.created_at))
-        .options(selectinload(Test.questions))
-        .limit(1)
-    )
-    result = await db.execute(query)
-    test = result.scalar_one_or_none()
-
-    if not test:
-        test = await generate_course_assessment(course_id=course_id, db=db)
+    test = await generate_course_assessment(course_id=course_id, db=db)
 
     from app.modules.module5_assessment.services.access_service import require_test_access
     await require_test_access(db, current_user, test)

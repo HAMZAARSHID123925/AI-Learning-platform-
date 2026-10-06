@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    LargeBinary,
     Boolean, DateTime, Enum, ForeignKey, Index, Integer,
     Numeric, String, Text, UniqueConstraint, text
 )
@@ -58,14 +59,14 @@ class WeaknessFlag(Base):
     """
     Flags a skill as weak for a student when score < 0.60 (WEAKNESS_THRESHOLD).
 
-    UNIQUE constraint on (student_id, skill_id) across lifecycle states:
-        One current lifecycle row per skill per student; recurrence reactivates it.
+    UNIQUE constraint on (student_id, skill_id, course_id) across lifecycle states:
+        One current lifecycle row per course/skill/student; recurrence reactivates it.
         When resolved, status changes to 'resolved' (not deleted).
         The row is retained; this table is not a full event-history ledger.
     """
     __tablename__ = "weakness_flags"
     __table_args__ = (
-        UniqueConstraint("student_id", "skill_id", name="uq_active_weakness_per_student_skill"),
+        UniqueConstraint("student_id", "skill_id", "course_id", name="uq_weakness_per_student_skill_course"),
         Index("ix_weakness_flags_student_id", "student_id"),
         Index("ix_weakness_flags_status", "status"),
     )
@@ -73,6 +74,9 @@ class WeaknessFlag(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     student_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
     )
     skill_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("skill_taxonomy.id", ondelete="RESTRICT"), nullable=False
@@ -119,6 +123,9 @@ class RemediationPlan(Base):
     )
     weakness_flag_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("weakness_flags.id", ondelete="CASCADE"), nullable=False
+    )
+    source_submission_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[PlanStatus] = mapped_column(
         Enum(PlanStatus, name="plan_status"), nullable=False, default=PlanStatus.active
@@ -217,6 +224,10 @@ class VideoGenerationJob(Base):
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     target_duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # Bounded, durable upload checkpoint. Deferred bytes never enter polling queries.
+    render_manifest_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    render_checkpoint_bytes: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+
     # JSONB for structured metadata
     script_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     scene_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
@@ -251,7 +262,7 @@ class VideoGenerationJob(Base):
         old_status = self.status
         
         # Any state can go to failed
-        if new_status == VideoJobStatus.failed:
+        if new_status == VideoJobStatus.failed and old_status != VideoJobStatus.ready:
             return new_status
             
         valid_transitions = {

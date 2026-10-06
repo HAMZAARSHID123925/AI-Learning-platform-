@@ -104,7 +104,8 @@ async def generate_llm_completion(
     temperature: float = 0.2,
     max_tokens: int = 4000,
     json_mode: bool = True,
-    max_retries: int = 3
+    max_retries: int = 3,
+    sdk_max_retries: int | None = None
 ) -> str:
     """
     Calls the configured LLM (Anthropic Claude API or Groq).
@@ -117,7 +118,7 @@ async def generate_llm_completion(
             # 1. Anthropic Claude API
             if settings.LLM_PROVIDER == "anthropic" and settings.ANTHROPIC_API_KEY and not settings.ANTHROPIC_API_KEY.startswith("#"):
                 import anthropic
-                client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY, timeout=60.0)
+                client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY, timeout=60.0, **({"max_retries":sdk_max_retries} if sdk_max_retries is not None else {}))
                 resp = await client.messages.create(
                     model=settings.ANTHROPIC_LLM_MODEL,
                     max_tokens=max_tokens,
@@ -133,7 +134,8 @@ async def generate_llm_completion(
                 client = openai.AsyncOpenAI(
                     base_url="https://api.groq.com/openai/v1",
                     api_key=settings.GROQ_API_KEY,
-                    timeout=60.0
+                    timeout=60.0,
+                    **({"max_retries":sdk_max_retries} if sdk_max_retries is not None else {})
                 )
                 kwargs: dict[str, Any] = {
                     "model": settings.GROQ_LLM_MODEL,
@@ -155,7 +157,8 @@ async def generate_llm_completion(
                 import openai
                 client = openai.AsyncOpenAI(
                     api_key=settings.OPENAI_API_KEY,
-                    timeout=60.0
+                    timeout=60.0,
+                    **({"max_retries":sdk_max_retries} if sdk_max_retries is not None else {})
                 )
                 kwargs: dict[str, Any] = {
                     "model": settings.OPENAI_LLM_MODEL,
@@ -180,7 +183,7 @@ async def generate_llm_completion(
 
         except Exception as e:
             delay = 1.5 * (2 ** attempt)
-            logger.warning("llm_call_failed", attempt=attempt + 1, error=str(e), next_retry_delay=delay)
+            logger.warning("llm_call_failed", attempt=attempt + 1, error_type=type(e).__name__, next_retry_delay=delay)
             if attempt == max_retries - 1:
                 raise
             await asyncio.sleep(delay)
