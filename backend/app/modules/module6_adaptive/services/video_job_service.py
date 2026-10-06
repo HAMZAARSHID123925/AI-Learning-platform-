@@ -84,7 +84,8 @@ async def build_video_generation_context(db: AsyncSession, weakness_flag: Weakne
 async def create_video_generation_job(
     db: AsyncSession,
     student_id: uuid.UUID,
-    weakness_flag_id: uuid.UUID
+    weakness_flag_id: uuid.UUID,
+    submission_id: uuid.UUID | None = None
 ) -> VideoGenerationJob:
     """
     Securely creates a VideoGenerationJob, preventing duplicates, and enqueues it.
@@ -100,6 +101,9 @@ async def create_video_generation_job(
     if flag.status != WeaknessStatus.active:
         raise BusinessRuleError("Video jobs can only be created for active weaknesses.")
 
+    if submission_id is not None and flag.submission_id != submission_id:
+        raise BusinessRuleError("This weakness belongs to a different assessment")
+
     # 3. Prevent duplicate active jobs (Idempotency)
     active_statuses = [
         VideoJobStatus.queued, VideoJobStatus.planning, VideoJobStatus.scripting,
@@ -111,6 +115,7 @@ async def create_video_generation_job(
     dup_query = select(VideoGenerationJob).where(
         VideoGenerationJob.student_id == student_id,
         VideoGenerationJob.weakness_flag_id == weakness_flag_id,
+        VideoGenerationJob.submission_id == flag.submission_id,
         VideoGenerationJob.status.in_(active_statuses)
     )
     dup_result = await db.execute(dup_query)
@@ -122,7 +127,7 @@ async def create_video_generation_job(
     ready_query = select(VideoGenerationJob).where(VideoGenerationJob.weakness_flag_id == weakness_flag_id, VideoGenerationJob.student_id == student_id, VideoGenerationJob.submission_id == flag.submission_id, VideoGenerationJob.status == VideoJobStatus.ready).order_by(VideoGenerationJob.created_at.desc()).limit(1)
     ready = (await db.execute(ready_query)).scalar_one_or_none()
     if ready: return ready
-    plan = (await db.execute(select(RemediationPlan).where(RemediationPlan.weakness_flag_id == weakness_flag_id, RemediationPlan.student_id == student_id, RemediationPlan.status == PlanStatus.active).order_by(RemediationPlan.created_at.desc()).limit(1))).scalar_one_or_none()
+    plan = (await db.execute(select(RemediationPlan).where(RemediationPlan.weakness_flag_id == weakness_flag_id, RemediationPlan.student_id == student_id, RemediationPlan.status == PlanStatus.active, RemediationPlan.source_submission_id == flag.submission_id).order_by(RemediationPlan.created_at.desc()).limit(1))).scalar_one_or_none()
     if not plan or not plan.remedial_course_markdown:
         raise BusinessRuleError("An active written remediation plan is required")
     # 4. Resolve Context
@@ -152,23 +157,73 @@ async def create_video_generation_job(
     
     await db.refresh(job)
 
-    # 6. Publish to Stream
-    settings = get_settings()
-    stream_key = f"{settings.REDIS_KEY_PREFIX}:video_generation:jobs"
-    redis = get_redis_client()
-    
-    payload = {
-        "job_id": str(job.id)
-    }
-    
-    try:
-        await redis.xadd(stream_key, {"data": json.dumps(payload)})
-    except Exception as e:
-        # If stream publish fails, we should probably mark the job as failed or rely on a retry sweeper
-        job.status = VideoJobStatus.failed
-        job.error_code = "VIDEO_ENQUEUE_FAILED"
-        job.error_message = "Failed to enqueue job to Redis Stream"
-        await db.commit()
-        raise e
+    await enqueue_video_job(db, job)
+    return job
 
+
+async def enqueue_video_job(db: AsyncSession, job: VideoGenerationJob) -> None:
+    """Queued DB rows are the durable outbox; dispatch is safe to repeat."""
+    settings = get_settings()
+    stream = f"{settings.REDIS_KEY_PREFIX}:video_generation:jobs"
+    key = f"{stream}:dispatched:{job.id}:{job.retry_count}"
+    try:
+        await get_redis_client().eval(
+            "if redis.call('get',KEYS[2]) then return 0 end; local id=redis.call('xadd',KEYS[1],'*','data',ARGV[1]); redis.call('set',KEYS[2],id,'EX',300); return id",
+            2, stream, key, json.dumps({"job_id": str(job.id)})
+        )
+    except Exception:
+        # The worker dispatch sweep retries this committed row after reconnect.
+        job.error_code = "VIDEO_ENQUEUE_PENDING"
+        job.error_message = "Waiting for the video queue to reconnect"
+        await db.commit()
+
+
+async def dispatch_pending_video_jobs(db: AsyncSession) -> None:
+    jobs = (await db.execute(select(VideoGenerationJob).where(
+        VideoGenerationJob.status == VideoJobStatus.queued
+    ).order_by(VideoGenerationJob.created_at).limit(20))).scalars().all()
+    for job in jobs:
+        await enqueue_video_job(db, job)
+
+
+async def retry_video_generation_job(db: AsyncSession, student_id: uuid.UUID, job_id: uuid.UUID) -> VideoGenerationJob:
+    """Explicit owned retry resumes checkpoints; refresh never restarts paid work."""
+    from datetime import datetime, timezone
+    job = await db.get(VideoGenerationJob, job_id)
+    if not job or job.student_id != student_id:
+        raise NotFoundError("VideoGenerationJob", job_id)
+    flag = (await db.execute(select(WeaknessFlag).where(
+        WeaknessFlag.id == job.weakness_flag_id).with_for_update())).scalar_one()
+    await db.refresh(job)
+    if flag.student_id != student_id or flag.submission_id != job.submission_id or flag.status != WeaknessStatus.active:
+        raise BusinessRuleError("This video belongs to an earlier remediation lifecycle")
+    if job.status == VideoJobStatus.ready:
+        return job
+    if job.status != VideoJobStatus.failed:
+        age = (datetime.now(timezone.utc) - (job.started_at or job.created_at)).total_seconds()
+        if age < 900:
+            return job
+        lease = f"{get_settings().REDIS_KEY_PREFIX}:video_generation:lease:{job.id}"
+        if await get_redis_client().get(lease):
+            return job
+        job.status = VideoJobStatus.failed
+    # Prevent concurrent retry/create from starting another job for the flag.
+    other = (await db.execute(select(VideoGenerationJob.id).where(
+        VideoGenerationJob.weakness_flag_id == flag.id,
+        VideoGenerationJob.id != job.id,
+        VideoGenerationJob.status.notin_([VideoJobStatus.ready, VideoJobStatus.failed])
+    ).limit(1))).scalar_one_or_none()
+    if other:
+        raise BusinessRuleError("Another video for this weakness is already running")
+    plan = await db.get(RemediationPlan, job.remediation_plan_id)
+    if not plan or plan.student_id != student_id or plan.status != PlanStatus.active or plan.source_submission_id != job.submission_id:
+        raise BusinessRuleError("The current written remediation is required")
+    job.status = VideoJobStatus.queued
+    job.error_code = None
+    job.error_message = None
+    job.started_at = datetime.now(timezone.utc)
+    job.completed_at = None
+    # Keep retry_count for audit history. One explicit retry permits one attempt.
+    await db.commit()
+    await enqueue_video_job(db, job)
     return job

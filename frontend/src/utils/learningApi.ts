@@ -314,12 +314,21 @@ export const learningApi = {
     return res.json();
   },
 
-  async requestPersonalizedVideo(weaknessFlagId: string): Promise<VideoGenerationJob> {
+  async requestPersonalizedVideo(weaknessFlagId: string, submissionId?: string): Promise<VideoGenerationJob> {
     const res = await fetchWithAuth(`/remediation/video-jobs`, {
       method: 'POST',
-      body: JSON.stringify({ weakness_flag_id: weaknessFlagId })
+      body: JSON.stringify({ weakness_flag_id: weaknessFlagId, submission_id: submissionId })
     });
     if (!res.ok) throw new Error('Failed to create video job');
+    return res.json();
+  },
+
+  async retryPersonalizedVideo(jobId: string): Promise<VideoGenerationJob> {
+    const res = await fetchWithAuth('/remediation/video-jobs/' + jobId + '/retry', {method: 'POST'});
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(typeof body.detail === 'string' ? body.detail : 'Could not retry your lesson. Please try again.');
+    }
     return res.json();
   },
 

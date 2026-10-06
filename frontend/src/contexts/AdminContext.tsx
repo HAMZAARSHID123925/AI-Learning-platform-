@@ -3,12 +3,12 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useAuth } from './AuthContext';
 import { adminApi } from '@/utils/adminApi';
 import { courses as catalog } from '@/data/courses';
-import { students as seedStudents } from '@/data/students';
 import type { AdminCourse, Grade, StudentRecord, Teacher, Subject } from '@/types';
 
 interface AdminContextValue {
   courses: AdminCourse[];
   refreshCourses: () => Promise<void>;
+  coursesError: string | null;
   students: StudentRecord[];
   teachers: Teacher[];
   courseTitle: (c: AdminCourse) => string;
@@ -25,29 +25,22 @@ export function AdminProvider({ children }: {children: React.ReactNode;}) {
   return <AdminIdentityProvider key={user?.id || 'signed-out'}>{children}</AdminIdentityProvider>;
 }
 function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
-  // Dynamically initialize courses from actual catalog courses so titles and subjects match
-  const initialAdminCourses: AdminCourse[] = useMemo(() => {
-    return catalog.map((c) => ({
-      id: c.id,
-      title: c.title,
-      grade: c.grade,
-      subject: c.subject,
-      enrolled: 0,
-      teacherId: null,
-      status: 'published',
-      avgProgress: 0,
-    }));
-  }, []);
-
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const { user } = useAuth();
+  const [coursesError, setCoursesError] = useState<string | null>(null);
   const refreshCourses = useCallback(async () => {
-    const data = await adminApi.listCourses({ page_size: 100 });
-    setCourses(data.items.map((b: BackendCourseSummary) => ({
+    try {
+    const items = await adminApi.listAllCourses();
+    setCourses(items.map((b: BackendCourseSummary) => ({
       id: b.id, title: b.title, grade: b.grade,
-      subject: ['math','science','english','computer'].includes(b.slug?.split('-')[0]) ? b.slug.split('-')[0] : 'science',
+      subject: (['math','science','english','computer'].includes(b.slug?.split('-')[0]) ? b.slug.split('-')[0] : 'science') as Subject,
       enrolled: 0, teacherId: b.instructor_id, status: b.status, avgProgress: 0,
     })));
+    setCoursesError(null);
+    } catch (cause) {
+      setCoursesError(cause instanceof Error ? cause.message : 'Could not load shared courses.');
+      throw cause;
+    }
   }, []);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -56,36 +49,8 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
   useEffect(() => {
     if (!user || user.role === 'student') return;
     import('@/utils/adminApi').then(({ adminApi }) => {
-      // 1. Fetch courses from database
-      adminApi.listCourses({ page_size: 100 })
-        .then((data) => {
-          if (data?.items && Array.isArray(data.items)) {
-            const dbCourses: AdminCourse[] = data.items.map((b: BackendCourseSummary) => {
-              const t = (b.title || '').toLowerCase();
-              let sub: Subject = 'math';
-              if (t.includes('plant') || t.includes('photo') || t.includes('body') || t.includes('science') || t.includes('solar') || t.includes('space')) {
-                sub = 'science';
-              } else if (t.includes('reading') || t.includes('writing') || t.includes('essay') || t.includes('vocab') || t.includes('grammar') || t.includes('english')) {
-                sub = 'english';
-              } else if (t.includes('code') || t.includes('digital') || t.includes('computer') || t.includes('python')) {
-                sub = 'computer';
-              }
-              return {
-                id: b.id,
-                title: b.title,
-                grade: (b.grade || 5) as Grade,
-                subject: sub,
-                enrolled: 0,
-                teacherId: b.instructor_id || null,
-                status: b.status === 'published' ? 'published' : 'draft',
-                avgProgress: 0,
-              };
-            });
-            setCourses(dbCourses);
-          }
-        })
-        .catch(() => {});
-
+      // Fetch the complete shared list from the authenticated backend.
+      void refreshCourses().catch(() => {});
       // 2. Fetch users
       adminApi.listUsers({ page_size: 100 })
         .then((data) => {
@@ -123,7 +88,7 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
         })
         .catch(() => {});
     });
-  }, [user?.email, user?.role]);
+  }, [user?.email, user?.role, refreshCourses]);
 
   const courseTitle = useCallback((c: AdminCourse) => c.title ?? catalog.find((k) => k.id === c.id)?.title ?? 'Untitled course', []);
 
@@ -153,8 +118,8 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
   }, []);
 
   const value = useMemo(
-    () => ({ courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses }),
-    [courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses]
+    () => ({ courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError }),
+    [courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError]
   );
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }

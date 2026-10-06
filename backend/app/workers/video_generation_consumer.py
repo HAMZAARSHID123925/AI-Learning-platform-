@@ -100,6 +100,8 @@ async def _process_owned_job(job_id: uuid.UUID, db: AsyncSession) -> dict:
         if job.status==VideoJobStatus.failed:job.status=VideoJobStatus.queued
         if job.status==VideoJobStatus.queued:
             job.status=VideoJobStatus.planning
+            job.error_code=None
+            job.error_message=None
             job.started_at=job.started_at or datetime.now(timezone.utc)
             await db.commit()
         if job.status in (VideoJobStatus.planning,VideoJobStatus.scripting):
@@ -155,6 +157,9 @@ async def run_consumer_loop(poll_delay: float = 1.0):
 
     while True:
         try:
+            from app.modules.module6_adaptive.services.video_job_service import dispatch_pending_video_jobs
+            async with AsyncSessionLocal() as outbox_session:
+                await dispatch_pending_video_jobs(outbox_session)
             # Recover pending messages idle for > 5 minutes (300000 ms)
             try:
                 # XAUTOCLAIM syntax: stream, group, consumer, min_idle_time, start_id, count

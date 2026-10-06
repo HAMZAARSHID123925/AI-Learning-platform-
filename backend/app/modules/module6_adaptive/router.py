@@ -103,6 +103,7 @@ async def get_my_remediation_plans(
             id=p.id,
             student_id=p.student_id,
             weakness_flag_id=p.weakness_flag_id,
+            source_submission_id=p.source_submission_id,
             status=p.status,
             remedial_course_title=p.remedial_course_title,
             remedial_course_markdown=p.remedial_course_markdown,
@@ -151,6 +152,7 @@ async def get_remediation_plan_detail(
         id=plan.id,
         student_id=plan.student_id,
         weakness_flag_id=plan.weakness_flag_id,
+        source_submission_id=plan.source_submission_id,
         status=plan.status,
         remedial_course_title=plan.remedial_course_title,
         remedial_course_markdown=plan.remedial_course_markdown,
@@ -187,6 +189,7 @@ async def complete_remedial_study_endpoint(
         id=plan.id,
         student_id=plan.student_id,
         weakness_flag_id=plan.weakness_flag_id,
+        source_submission_id=plan.source_submission_id,
         status=plan.status,
         remedial_course_title=plan.remedial_course_title,
         remedial_course_markdown=plan.remedial_course_markdown,
@@ -272,6 +275,7 @@ async def list_instructor_escalations(
             plan_id=p.id,
             student_id=p.student_id,
             weakness_flag_id=p.weakness_flag_id,
+            source_submission_id=p.source_submission_id,
             retest_attempt_count=p.retest_attempt_count,
             created_at=p.created_at
         )
@@ -300,7 +304,8 @@ async def create_video_job(
     job = await create_video_generation_job(
         db=db,
         student_id=current_user.id,
-        weakness_flag_id=payload.weakness_flag_id
+        weakness_flag_id=payload.weakness_flag_id,
+        submission_id=payload.submission_id
     )
     # Sign URLs if keys exist
     from app.config import get_settings
@@ -327,6 +332,15 @@ async def create_video_job(
         started_at=job.started_at,
         completed_at=job.completed_at
     )
+
+
+@router.post("/remediation/video-jobs/{job_id}/retry", response_model=VideoGenerationJobResponse,
+             summary="Explicitly retry an owned failed or abandoned personalized video")
+async def retry_video_job(job_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+                          current_user: User = Depends(require_any_role("Student"))):
+    from app.modules.module6_adaptive.services.video_job_service import retry_video_generation_job
+    await retry_video_generation_job(db, current_user.id, job_id)
+    return await get_video_job_status(job_id, db, current_user)
 
 
 @router.get(

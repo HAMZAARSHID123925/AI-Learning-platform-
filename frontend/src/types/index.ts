@@ -62,7 +62,7 @@ export interface AdminCourse {
   subject: Subject;
   enrolled: number;
   teacherId: string | null;
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'archived';
   avgProgress: number;
 }
 

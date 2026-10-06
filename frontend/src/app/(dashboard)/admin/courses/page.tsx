@@ -16,7 +16,7 @@ import type { AdminCourse, Grade } from '@/types';
 const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 
 export default function AdminCourses() {
-  const { courses, courseTitle, toggleStatus, teachers: contextTeachers } = useAdmin();
+  const { courses, toggleStatus, refreshCourses, coursesError, teachers: contextTeachers } = useAdmin();
   const [grade, setGrade] = useState<Grade | 'all'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [assigning, setAssigning] = useState<AdminCourse | null>(null);
@@ -36,6 +36,10 @@ export default function AdminCourses() {
         </Button>
       </header>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={() => void refreshCourses().catch(() => {})}>Refresh courses</Button>
+        {coursesError && <p role="alert">{coursesError}</p>}
+      </div>
       <div role="tablist" aria-label="Filter by grade" className="flex flex-wrap gap-2">
         {gradeFilters.map((g) =>
         <button
@@ -89,13 +93,13 @@ export default function AdminCourses() {
               </div>
 
               <div className="col-start-3 row-start-1 flex items-center gap-2 md:col-start-auto md:row-start-auto">
-                <span className={`hidden text-xs font-extrabold sm:inline ${published ? 'text-science-700' : 'text-ink-muted'}`}>{published ? 'Published' : 'Draft'}</span>
+                <span className={`hidden text-xs font-extrabold sm:inline ${published ? 'text-science-700' : 'text-ink-muted'}`}>{published ? 'Published' : c.status === 'archived' ? 'Archived' : 'Draft'}</span>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={published}
                   aria-label={`${courseName(c.grade, c.subject)} visible to students`}
-                  disabled={published}
+                  disabled={published || c.status === 'archived'}
                   onClick={async () => {
                     try { await toggleStatus(c.id); toast.success('Published — students can see it now'); }
                     catch (error) { toast.error(error instanceof Error ? error.message : 'Could not publish course'); }

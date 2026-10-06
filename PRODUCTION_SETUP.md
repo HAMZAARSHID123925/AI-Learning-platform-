@@ -80,3 +80,15 @@ When deploying a new environment, verify in this order:
 4. Deploy Frontend and check Next.js renders.
 5. Deploy Adaptive Worker (check logs for successful Redis stream connection).
 6. Deploy Video Worker (check logs for Remotion binary/ffmpeg path resolutions).
+
+## Collaborators using separate localhost frontends
+
+`localhost` means each person's own computer. Git shares source code; it does not share courses, users, progress or video jobs. Two independent local databases will show independent records even when both users are Admin.
+
+To test the same platform, run both frontends against one existing team backend. Set each frontend's local, untracked `.env.local` `NEXT_PUBLIC_API_URL` to that backend's reachable `/api/v1` URL and restart the frontend. The backend must allow the intended frontend origins in `CORS_ORIGINS`. Do not put a database password, Redis credential, signing secret or storage key in a `NEXT_PUBLIC_*` variable or Git. Confirm the actual host with your collaborator; another computer cannot reach your backend through your `localhost` URL.
+
+If the team intentionally runs multiple backends, configure their local secrets for the same intended database, Redis namespace and private storage environment, with compatible signing configuration and coordinated workers. Do not merge independent databases or broaden course authorization to compensate for different environments.
+
+Admin accounts in this single platform scope see all courses, including drafts. Instructor accounts remain limited to owned/assigned courses. Student accounts remain limited to published courses in their grade and the required enrollment/progress rules. There is currently no tenant/workspace model; separate organizations should not share this single platform database.
+
+Apply migration `019_course_scoped_weakness` before running the updated adaptive/video workers. Failed personalized videos now have an explicit owned retry action; refreshing results or checking status does not restart paid generation. An actively leased video is never restarted by that action.

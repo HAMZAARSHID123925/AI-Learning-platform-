@@ -257,6 +257,19 @@ JSON SCHEMA TO RETURN:
     return test_obj
 
 
+def valid_course_assessment(test: Test) -> bool:
+    """Do not deliver legacy partial or malformed finals."""
+    try:
+        validate_generated_mcqs({"questions": [
+            {"question_type": q.question_type.value, "prompt": q.prompt,
+             "options": q.options, "max_score": float(q.max_score)}
+            for q in test.questions
+        ]}, 10)
+        return True
+    except (ValueError, TypeError, AttributeError, KeyError):
+        return False
+
+
 async def generate_course_assessment(
     course_id: uuid.UUID,
     db: AsyncSession
@@ -268,12 +281,22 @@ async def generate_course_assessment(
 
     query = (
         select(Course)
-        .where(Course.id == course_id)
+        .where(Course.id == course_id).with_for_update()
     )
     res = await db.execute(query)
     course = res.scalar_one_or_none()
     if not course:
         raise NotFoundError("Course", course_id)
+
+    # Serialize all GET/POST generation paths through commit. Failed provider
+    # output is never persisted, so the next explicit request can safely retry.
+    candidates = (await db.execute(
+        select(Test).where(Test.course_id == course_id, Test.is_focused_retest == False)
+        .order_by(Test.created_at.desc()).options(selectinload(Test.questions))
+    )).scalars().all()
+    for existing in candidates:
+        if valid_course_assessment(existing):
+            return existing
 
     from app.modules.module2_content.models import CourseModule, LessonSkill, LessonStatus
     lessons = list((await db.execute(select(Lesson).join(CourseModule).where(CourseModule.course_id == course.id, Lesson.status == LessonStatus.published).options(selectinload(Lesson.lesson_skills)))).scalars().all())
