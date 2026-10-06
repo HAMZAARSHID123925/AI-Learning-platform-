@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    LargeBinary,
     Boolean, DateTime, Enum, ForeignKey, Index, Integer,
     Numeric, String, Text, UniqueConstraint, text
 )
@@ -223,6 +224,10 @@ class VideoGenerationJob(Base):
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
     target_duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # Bounded, durable upload checkpoint. Deferred bytes never enter polling queries.
+    render_manifest_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    render_checkpoint_bytes: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+
     # JSONB for structured metadata
     script_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     scene_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
@@ -257,7 +262,7 @@ class VideoGenerationJob(Base):
         old_status = self.status
         
         # Any state can go to failed
-        if new_status == VideoJobStatus.failed:
+        if new_status == VideoJobStatus.failed and old_status != VideoJobStatus.ready:
             return new_status
             
         valid_transitions = {

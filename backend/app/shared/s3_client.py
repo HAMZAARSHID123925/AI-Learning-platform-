@@ -224,3 +224,34 @@ async def delete_file(storage_key: str) -> None:
     except ClientError as e:
         logger.error("s3_delete_failed", key=storage_key, error=str(e))
         raise StorageError("delete", str(e)) from e
+
+
+async def upload_verified_bytes(file_data: bytes, storage_key: str, content_type: str) -> tuple[str, str]:
+    """Idempotent private PUT, confirmed by size/type/content hash before READY.
+
+    A retry after an ambiguous successful PUT uses HEAD and does not upload again.
+    No public ACL is ever set. Existing general-purpose uploads are unchanged.
+    """
+    import hashlib
+    if not file_data or len(file_data) > 64 * 1024 * 1024:
+        raise ValueError("Video artifact must be nonempty and <=64 MiB")
+    settings = get_settings()
+    digest = hashlib.sha256(file_data).hexdigest()
+    def matches(head):
+        return (head.get("ContentLength") == len(file_data)
+                and head.get("ContentType") == content_type
+                and head.get("Metadata", {}).get("sha256") == digest)
+    async with _get_s3_client() as s3:
+        try:
+            if matches(await s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=storage_key)):
+                return storage_key, ""
+        except ClientError as exc:
+            if str(exc.response.get("Error", {}).get("Code")) not in {"404", "NoSuchKey", "NotFound"}:
+                raise
+        await s3.put_object(Bucket=settings.S3_BUCKET_NAME, Key=storage_key, Body=file_data,
+                            ContentType=content_type, Metadata={"sha256": digest})
+        head = await s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=storage_key)
+        if not matches(head):
+            raise RuntimeError("Object upload confirmation mismatch")
+    logger.info("video_artifact_upload_confirmed", key=storage_key, bytes_size=len(file_data))
+    return storage_key, ""

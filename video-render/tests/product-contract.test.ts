@@ -8,3 +8,11 @@ test('silent scene without a matching ready audio rejected',()=>{const p=payload
 test('invalid fraction data rejected before rendering',()=>{const p=payload();p.scenes[0].diagram!.values=[9,2];assert.ok(validatePayload(p).some(e=>e.message.includes('fraction quantities')));});
 test('long silent planned hold rejected',()=>{const p=payload();p.audio_manifest.scenes[0].render_duration_seconds=40;assert.ok(validatePayload(p).some(e=>e.message.includes('measured audio')));});
 test('duplicate scenes rejected',()=>{const p=payload();p.scenes.push(p.scenes[0]);assert.ok(validatePayload(p).some(e=>e.message.includes('Duplicate')));});
+
+test('malformed structure returns a validation error rather than crashing',()=>assert.ok(validatePayload({} as RenderPayload).length));
+test('non-finite duration is rejected before bundle',()=>{const p=payload();p.scenes[0].duration_seconds=NaN;assert.ok(validatePayload(p).length);});
+test('mislabelled fraction rejected',()=>{const p=payload();p.scenes[0].diagram!.labels[0]='3/4';assert.ok(validatePayload(p).some(e=>e.message.includes('disagrees')));});
+test('infinite render timing rejected',()=>{const p=payload();p.audio_manifest.scenes[0].render_duration_seconds=NaN;assert.ok(validatePayload(p).some(e=>e.message.includes('measured audio')));});
+test('legacy visual bypass rejected',()=>{const p=payload();p.scenes[0].visual_version=1;assert.ok(validatePayload(p).some(e=>e.message.includes('visual_version')));});
+
+test('incorrect fraction equality rejected',()=>{const p=payload();p.scenes[0].diagram={kind:'equation_steps',labels:['1/2 = 2/3','Compare quantities'],values:[],denominators:[]};assert.ok(validatePayload(p).some(e=>e.message.includes('Incorrect fraction')));});

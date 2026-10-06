@@ -50,13 +50,14 @@ async def test_result_recovery_does_not_restart_failed_paid_job(monkeypatch):
  student=uuid.uuid4();weak=uuid.uuid4();submission=uuid.uuid4()
  flag=NS(id=weak,student_id=student,status=WeaknessStatus.active,submission_id=submission)
  failed=NS(status=VideoJobStatus.failed,retry_count=1,error_code='VIDEO_SCRIPT_FAILED')
- rows=[flag,None,None,NS(id=uuid.uuid4(),remedial_course_markdown='Saved curriculum'),failed]
+ rows=[flag,None,None,failed]
  db=NS(execute=AsyncMock(side_effect=[NS(scalar_one_or_none=lambda row=row:row) for row in rows]),add=Mock(),commit=AsyncMock())
- monkeypatch.setattr(service,'build_video_generation_context',AsyncMock(return_value={}))
+ context=AsyncMock(side_effect=AssertionError('Saved failed job must not resolve curriculum or call providers'))
+ monkeypatch.setattr(service,'build_video_generation_context',context)
  monkeypatch.setattr(service,'get_redis_client',Mock(side_effect=AssertionError('No paid pipeline queue access')))
  result=await service.create_video_generation_job(db,student,weak)
  assert result is failed and result.status==VideoJobStatus.failed and result.retry_count==1
- db.add.assert_not_called();db.commit.assert_not_awaited()
+ db.add.assert_not_called();db.commit.assert_not_awaited();context.assert_not_awaited()
 
 
 @pytest.mark.parametrize('label,valid', [('6/8 ÷ 2',False), ('(6 ÷ 2)/(8 ÷ 2)',True)])
@@ -137,8 +138,10 @@ async def test_video_worker_retains_safe_service_failure_diagnostics(monkeypatch
     from types import SimpleNamespace
     from app.workers import video_generation_consumer as worker
     from app.modules.module6_adaptive.models import VideoJobStatus
-    job=SimpleNamespace(id=uuid.uuid4(),status=VideoJobStatus.audio_ready,retry_count=0,error_message=None)
-    db=SimpleNamespace(get=AsyncMock(return_value=job),rollback=AsyncMock(),commit=AsyncMock())
+    job=SimpleNamespace(id=uuid.uuid4(),student_id=uuid.uuid4(),course_id=uuid.uuid4(),submission_id=uuid.uuid4(),weakness_flag_id=uuid.uuid4(),remediation_plan_id=uuid.uuid4(),status=VideoJobStatus.audio_ready,retry_count=0,error_message=None,error_code=None,scene_json={"scenes":board()["scenes"]},script_json={"lesson_plan":board()["lesson_plan"]})
+    flag=SimpleNamespace(student_id=job.student_id,course_id=job.course_id,submission_id=job.submission_id,status=SimpleNamespace(value="active"))
+    plan=SimpleNamespace(student_id=job.student_id,source_submission_id=job.submission_id,status=SimpleNamespace(value="active"))
+    db=SimpleNamespace(get=AsyncMock(side_effect=lambda model,key: flag if model.__name__=="WeaknessFlag" else plan if model.__name__=="RemediationPlan" else job),rollback=AsyncMock(),commit=AsyncMock())
     async def fail_render(*args):
         if persist_detail:
             job.status=VideoJobStatus.failed
@@ -146,18 +149,18 @@ async def test_video_worker_retains_safe_service_failure_diagnostics(monkeypatch
         raise RuntimeError('render failure')
     monkeypatch.setattr(worker,'render_video',fail_render)
     result=await worker._process_owned_job(job.id,db)
-    assert result['reason']=='VIDEO_RENDER_UPLOAD_FAILED' and job.retry_count==1
+    assert result['reason']=='VIDEO_RENDER_FAILED' and job.retry_count==1
     if persist_detail:
         assert 'encoder error' in job.error_message
         assert 'secret=token' not in job.error_message and 'sensitive-token' not in job.error_message and 'sk-secretkey' not in job.error_message
-    else:assert job.error_message=='render_upload: RuntimeError'
+    else:assert job.error_message=='render: RuntimeError'
 
 @pytest.mark.asyncio
 async def test_render_cancellation_keeps_output_directory_until_thread_finishes(monkeypatch,tmp_path):
     import asyncio,threading
     from app.modules.module6_adaptive.services import render_service
     started=threading.Event();release=threading.Event()
-    def render(input_path,output_path):
+    def render(input_path,output_path,cancel_event=None):
         started.set()
         assert release.wait(5)
         from pathlib import Path
@@ -212,4 +215,4 @@ async def test_video_lease_transient_retry_and_confirmed_ownership_loss(monkeypa
         with pytest.raises(RuntimeError,match='ownership unavailable'):
             await worker.process_video_generation_job({'job_id':str(uuid.uuid4())},None)
         assert cancelled
-        if broker_mode=='expired':assert clock[0]>=110
+        if broker_mode=='expired':assert 80 <= clock[0] < 120

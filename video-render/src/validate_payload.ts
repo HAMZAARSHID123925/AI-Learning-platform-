@@ -19,6 +19,9 @@ export interface ValidationError {
 export function validatePayload(payload: RenderPayload): ValidationError[] {
   const errors: ValidationError[] = [];
 
+  if (!payload || typeof payload !== "object") return [{field:"payload",message:"Payload must be an object"}];
+  if (!Array.isArray(payload.scenes) || !Array.isArray(payload.audio_manifest?.scenes) || !Array.isArray(payload.asset_manifest?.scene_slots) || !payload.video_config) return [{field:"payload",message:"Scenes, audio, assets and video_config are required"}];
+  if ([...payload.scenes,...payload.audio_manifest.scenes,...payload.asset_manifest.scene_slots].some(s=>!s || typeof s!=="object")) return [{field:"payload",message:"Invalid scene/clip/slot"}];
   // ── Basic structure ──────────────────────────────────────────────────────
   if (!payload.job_id) errors.push({ field: "job_id", message: "Missing job_id" });
   if (!payload.scenes?.length) errors.push({ field: "scenes", message: "No scenes in payload" });
@@ -52,13 +55,13 @@ export function validatePayload(payload: RenderPayload): ValidationError[] {
         message: `Unknown scene_type '${scene.scene_type}'. Must be one of: ${[...VALID_SCENE_TYPES].join(", ")}`,
       });
     }
-    if (!scene.narration || !scene.narration.trim()) {
+    if (typeof scene.narration !== "string" || !scene.narration.trim()) {
       errors.push({
         field: `scene[${scene.scene_id}].narration`,
         message: "Scene has empty narration — cannot sync audio",
       });
     }
-    if (scene.duration_seconds <= 0) {
+    if (!Number.isFinite(scene.duration_seconds) || scene.duration_seconds <= 0 || scene.duration_seconds > 600) {
       errors.push({
         field: `scene[${scene.scene_id}].duration_seconds`,
         message: `Scene duration must be > 0, got ${scene.duration_seconds}`,
@@ -73,12 +76,27 @@ export function validatePayload(payload: RenderPayload): ValidationError[] {
     const slots = payload.asset_manifest?.scene_slots?.filter(s => s.scene_id === scene.scene_id) || [];
     if (clips.length !== 1 || !clips[0]?.audio_url || clips[0]?.status !== "ready") errors.push({field:scene.scene_id,message:"Exactly one ready audio source required"});
     if (slots.length !== 1) errors.push({field:scene.scene_id,message:"Exactly one asset slot required"});
-    if (clips[0] && (!Number.isFinite(clips[0].duration_seconds) || clips[0].duration_seconds <= 0 || clips[0].render_duration_seconds < clips[0].duration_seconds || clips[0].render_duration_seconds - clips[0].duration_seconds > 1.01)) errors.push({field:scene.scene_id,message:"Scene timing must follow measured audio with at most one second padding"});
+    if (clips[0] && (!Number.isFinite(clips[0].duration_seconds) || clips[0].duration_seconds <= 0 || !Number.isFinite(clips[0].render_duration_seconds) || clips[0].render_duration_seconds < clips[0].duration_seconds || clips[0].render_duration_seconds - clips[0].duration_seconds > 1.01)) errors.push({field:scene.scene_id,message:"Scene timing must follow measured audio with at most one second padding"});
+    if (scene.visual_version !== 2) errors.push({field:scene.scene_id,message:"visual_version 2 required"});
     if (scene.visual_version === 2) {
       const d = scene.diagram;
       const text=scene.on_screen_text;
-      if (!text || text.length<1 || text.length>3 || text.some(t => typeof t!=="string" || !t.trim() || t.length>80)) errors.push({field:scene.scene_id,message:"Invalid key points"});
+      if (!Array.isArray(text) || text.length<1 || text.length>3 || text.some(t => typeof t!=="string" || !t.trim() || t.length>80)) errors.push({field:scene.scene_id,message:"Invalid key points"});
       if (!d || !["none","fraction_bars","number_line","equation_steps","process","cycle","comparison"].includes(d.kind) || !Array.isArray(d.labels) || !Array.isArray(d.values) || !Array.isArray(d.denominators)) {errors.push({field:scene.scene_id,message:"Invalid diagram"});continue;}
+      if (Object.keys(d).some(k=>!["kind","labels","values","denominators"].includes(k))) errors.push({field:scene.scene_id,message:"Unknown diagram field"});
+      for (let i=0;i<d.labels.length;i++) {
+        const fraction=/^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(d.labels[i]);
+        if (fraction && ["fraction_bars","number_line"].includes(d.kind)) {
+          const n=Number(fraction[1]), den=Number(fraction[2]);
+          const value=d.kind==="fraction_bars" ? d.values[i]/d.denominators[i] : d.values[i];
+          if (!den || !Number.isFinite(value) || Math.abs(n/den-value)>0.001) errors.push({field:scene.scene_id,message:"Fraction label disagrees with visual quantity"});
+        }
+      }
+      if (d.kind==="equation_steps" && d.labels.some(t=>/^\s*\d+\s*\/\s*\d+\s*÷\s*\d+\s*$/.test(t))) errors.push({field:scene.scene_id,message:"Simplification must divide numerator and denominator"});
+      if (d.kind==="equation_steps") for (const label of d.labels) {
+        const m=/^\s*(\d+)\s*\/\s*(\d+)\s*=\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(label);
+        if (m && (!Number(m[2]) || !Number(m[4]) || Number(m[1])*Number(m[4])!==Number(m[3])*Number(m[2]))) errors.push({field:scene.scene_id,message:"Incorrect fraction equality"});
+      }
       if (d.labels.some(t=>typeof t!=="string" || !t.trim() || t.length>48) || d.values.some(v=>!Number.isFinite(v))) errors.push({field:scene.scene_id,message:"Invalid diagram data"});
       if (d.kind==="fraction_bars" && (d.labels.length<1 || d.labels.length>3 || d.values.length!==d.labels.length || d.denominators.length!==d.labels.length || d.denominators.some((n,i)=>!Number.isInteger(n)||n<1||n>12||!Number.isInteger(d.values[i])||d.values[i]<0||d.values[i]>n))) errors.push({field:scene.scene_id,message:"Invalid fraction quantities"});
       if (d.kind==="number_line" && (d.labels.length<1 || d.labels.length>4 || d.values.length!==d.labels.length || d.denominators.length || d.values.some(v=>v<0||v>1))) errors.push({field:scene.scene_id,message:"Invalid number line"});
@@ -102,7 +120,8 @@ export function validatePayload(payload: RenderPayload): ValidationError[] {
         message: `Audio clip status is 'failed' — cannot render with failed audio`,
       });
     }
-    if (clip.render_duration_seconds <= 0) {
+    if (clip.is_mock || clip.format !== "mp3" || !clip.audio_key) errors.push({field:clip.scene_id,message:"Real private MP3 clip required"});
+    if (!Number.isFinite(clip.render_duration_seconds) || clip.render_duration_seconds <= 0) {
       errors.push({
         field: `audio_manifest.scenes[${clip.scene_id}].render_duration_seconds`,
         message: `render_duration_seconds must be > 0`,
