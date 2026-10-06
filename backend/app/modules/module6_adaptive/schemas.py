@@ -81,6 +81,7 @@ class VideoGenerationJobResponse(BaseModel):
     video_url: str | None = None
     thumbnail_url: str | None = None
     error_code: str | None = None
+    updated_at: datetime | None = None
     created_at: datetime
     started_at: datetime | None = None
     completed_at: datetime | None = None

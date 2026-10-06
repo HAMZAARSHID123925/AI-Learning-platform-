@@ -113,7 +113,7 @@ def test_real_render_budget_scales_with_measured_audio_and_stays_bounded(monkeyp
     process.communicate.return_value=(json.dumps({"success":True,"is_mock_audio":False}),"")
     monkeypatch.setattr(service.subprocess,"Popen",Mock(return_value=process))
     assert service.invoke_remotion_render(str(payload),str(tmp_path/"video.mp4")).success
-    process.communicate.assert_called_once_with(timeout=1200)
+    process.communicate.assert_called_once_with(timeout=1800)
 
 def test_render_timeout_terminates_own_process_tree_before_retry(monkeypatch,tmp_path):
     import json,subprocess
@@ -122,11 +122,12 @@ def test_render_timeout_terminates_own_process_tree_before_retry(monkeypatch,tmp
     payload=tmp_path/"input.json"
     payload.write_text(json.dumps({"audio_manifest":{"scenes":[{"render_duration_seconds":180}]}}))
     process=Mock(pid=12345,returncode=1)
+    process.poll.return_value=None
     process.communicate.side_effect=[subprocess.TimeoutExpired("render",1080),("","")]
     monkeypatch.setattr(service.subprocess,"Popen",Mock(return_value=process))
     kill=Mock();monkeypatch.setattr(service.subprocess,"run",kill)
     result=service.invoke_remotion_render(str(payload),str(tmp_path/"video.mp4"))
-    assert not result.success and "1080s" in result.error
+    assert not result.success and "1620s" in result.error
     if service.os.name=="nt":assert kill.call_args.args[0]==["taskkill","/PID","12345","/T","/F"]
     else:process.kill.assert_called_once()
     assert process.communicate.call_count==2

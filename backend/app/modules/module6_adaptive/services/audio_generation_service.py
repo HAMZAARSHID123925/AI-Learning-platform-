@@ -38,6 +38,9 @@ Purpose:
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import math
 import hashlib
 import json
 import uuid
@@ -50,7 +53,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.modules.module6_adaptive.models import VideoGenerationJob, VideoJobStatus
 from app.shared.logging_config import get_logger
-from app.shared.s3_client import upload_file
+from app.shared.s3_client import upload_verified_bytes, object_exists
+from app.shared.tts_client import TTSSynthesisResult
+from .pipeline_errors import VideoPipelineError, retry_transient
 from app.shared.tts_client import synthesize_narration, sanitize_narration, _text_hash
 
 logger = get_logger(__name__)
@@ -59,7 +64,7 @@ logger = get_logger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-MAX_TTS_RETRIES = 3          # Per-scene retry limit
+MAX_TTS_RETRIES = 1          # Per-scene retry limit
 TOTAL_DURATION_TOLERANCE = 0.20  # ±20% from target_duration_seconds
 
 
@@ -177,6 +182,10 @@ def _existing_clip_matches(
     return (
         clip.status == "ready"
         and clip.text_hash == new_text_hash
+        and clip.format == "mp3" and bool(clip.audio_key)
+        and math.isfinite(clip.duration_seconds) and 0 < clip.duration_seconds <= 600
+        and math.isfinite(clip.render_duration_seconds)
+        and clip.duration_seconds <= clip.render_duration_seconds <= clip.duration_seconds + 1.01
     )
 
 
@@ -248,8 +257,11 @@ async def generate_scene_audio(
     existing_clips: dict[str, SceneAudioClip] = {}
     if existing_manifest.get("scenes"):
         for c in existing_manifest["scenes"]:
-            sc = SceneAudioClip(**c)
-            existing_clips[sc.scene_id] = sc
+            try:
+                sc = SceneAudioClip(**c)
+                existing_clips[sc.scene_id] = sc
+            except (TypeError, ValueError):
+                continue
 
     # ── Process each scene ───────────────────────────────────────────────────
     completed_clips: list[SceneAudioClip] = []
@@ -283,7 +295,10 @@ async def generate_scene_audio(
         # ── Idempotency: reuse if same narration already synthesized ─────────
         if scene_id in existing_clips:
             existing = existing_clips[scene_id]
-            if _existing_clip_matches(existing, text_hash):
+            if (_existing_clip_matches(existing, text_hash) and existing.scene_index == idx + 1
+                    and existing.tts_provider == provider_used and existing.tts_voice_id == voice_used
+                    and existing.is_mock == settings.TTS_MOCK_MODE
+                    and await object_exists(existing.audio_key)):
                 logger.info(
                     "audio_clip_reused",
                     job_id=str(job_id),
@@ -295,67 +310,42 @@ async def generate_scene_audio(
                     any_mock = True
                 continue
 
-        # ── Synthesize with retries ──────────────────────────────────────────
-        last_error: Optional[str] = None
-        synthesis_result = None
-
-        for attempt in range(1, MAX_TTS_RETRIES + 1):
+        # The TTS client owns the only bounded network retry loop. A durable
+        # pending clip survives upload failure without repeating paid synthesis.
+        pending = (job.audio_manifest_json or {}).get("pending_audio_upload")
+        if (pending and pending.get("scene_id") == scene_id and pending.get("text_hash") == text_hash
+                and pending.get("provider") == provider_used and pending.get("voice_id") == voice_used):
+            synthesis_result = TTSSynthesisResult(
+                provider=pending["provider"], voice_id=pending["voice_id"],
+                audio_bytes=base64.b64decode(pending["audio_b64"], validate=True), format="mp3",
+                duration_seconds=pending["duration_seconds"], text_hash=text_hash, is_mock=pending["is_mock"])
+        else:
             try:
                 synthesis_result = await synthesize_narration(
-                    text=clean_narration,
-                    scene_planned_duration=planned_duration,
-                )
-                break
-            except Exception as e:
-                last_error = str(e)
-                logger.warning(
-                    "tts_attempt_failed",
-                    job_id=str(job_id),
-                    scene_id=scene_id,
-                    attempt=attempt,
-                    error=last_error,
-                )
-                if attempt == MAX_TTS_RETRIES:
-                    # Persist failure for this scene; do not abort entire job
-                    failed_clip = SceneAudioClip(
-                        scene_id=scene_id,
-                        scene_index=idx + 1,
-                        audio_key="",
-                        audio_url="",
-                        format="mp3",
-                        duration_seconds=0.0,
-                        planned_duration_seconds=planned_duration,
-                        render_duration_seconds=planned_duration,
-                        text_hash=text_hash,
-                        tts_provider=provider_used,
-                        tts_voice_id=voice_used,
-                        is_mock=False,
-                        status="failed",
-                        error=last_error,
-                    )
-                    completed_clips.append(failed_clip)
-                    logger.error(
-                        "tts_scene_failed_all_retries",
-                        job_id=str(job_id),
-                        scene_id=scene_id,
-                        retries=MAX_TTS_RETRIES,
-                    )
-
-        if synthesis_result is None:
-            continue  # Already recorded failure above
-
-        # ── Upload to object storage ─────────────────────────────────────────
+                    text=clean_narration, scene_planned_duration=planned_duration)
+            except Exception as exc:
+                raise VideoPipelineError("VIDEO_TTS_FAILED", "Narration synthesis failed: " + type(exc).__name__) from exc
+            if (not synthesis_result.audio_bytes or synthesis_result.format != "mp3"
+                    or not math.isfinite(synthesis_result.duration_seconds)
+                    or not 0 < synthesis_result.duration_seconds <= 600
+                    or len(synthesis_result.audio_bytes) > 8 * 1024 * 1024):
+                raise VideoPipelineError("VIDEO_TTS_FAILED", "Invalid or oversized narration audio")
+            job.audio_manifest_json = {
+                **(job.audio_manifest_json or {}),
+                "pending_audio_upload": {"scene_id":scene_id, "text_hash":text_hash,
+                    "provider":synthesis_result.provider, "voice_id":synthesis_result.voice_id,
+                    "duration_seconds":synthesis_result.duration_seconds, "is_mock":synthesis_result.is_mock,
+                    "audio_b64":base64.b64encode(synthesis_result.audio_bytes).decode("ascii")}}
+            await db.commit()
+        # Content-hash keys prevent changed narration overwriting a clip used by
+        # a renderer. Ambiguous PUT success is confirmed and reused on retry.
+        request_hash = hashlib.sha256(f"{text_hash}:{provider_used}:{voice_used}".encode()).hexdigest()[:24]
+        object_key = f"{settings.TTS_AUDIO_OBJECT_PREFIX}/{job_id}/audio/{idx+1:03d}-{request_hash}.mp3"
         try:
-            object_key, audio_url = await upload_file(
-                file_data=synthesis_result.audio_bytes,
-                original_filename=f"scene-{idx+1:03d}.mp3",
-                content_type="audio/mpeg",
-                prefix=f"{settings.TTS_AUDIO_OBJECT_PREFIX}/{job_id}/audio",
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to upload audio for scene '{scene_id}': {e}"
-            ) from e
+            object_key, audio_url = await asyncio.wait_for(retry_transient(lambda: upload_verified_bytes(
+                synthesis_result.audio_bytes, object_key, "audio/mpeg")), timeout=120)
+        except Exception as exc:
+            raise VideoPipelineError("VIDEO_UPLOAD_FAILED", "Narration upload failed: " + type(exc).__name__) from exc
 
         # ── Reconcile timing ─────────────────────────────────────────────────
         render_dur = reconcile_scene_timing(
@@ -381,7 +371,8 @@ async def generate_scene_audio(
         )
         completed_clips.append(clip)
         # Persist every completed clip so worker recovery reuses paid TTS.
-        job.audio_manifest_json = {"scenes": [c.to_dict() for c in completed_clips], "is_mock": any_mock or synthesis_result.is_mock}
+        existing_clips[scene_id] = clip
+        job.audio_manifest_json = {"scenes": [c.to_dict() for c in existing_clips.values()], "is_mock": any_mock or synthesis_result.is_mock}
         await db.commit()
 
         if synthesis_result.is_mock:

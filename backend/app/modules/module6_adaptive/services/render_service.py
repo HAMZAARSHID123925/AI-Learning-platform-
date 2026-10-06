@@ -32,6 +32,11 @@ Purpose:
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import threading
+import functools
+import signal
+import time
 import json
 import os
 import subprocess
@@ -42,12 +47,14 @@ from pathlib import Path
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.config import get_settings
 from app.modules.module6_adaptive.models import VideoGenerationJob, VideoJobStatus
 from app.modules.module6_adaptive.visual.asset_manifest import build_asset_manifest
 from app.shared.logging_config import get_logger
-from app.shared.s3_client import upload_file
+from app.shared.s3_client import upload_verified_bytes, object_exists
+from .pipeline_errors import VideoPipelineError, safe_error, retry_transient
 
 logger = get_logger(__name__)
 
@@ -253,7 +260,7 @@ def build_render_payload(job: VideoGenerationJob, output_path: str) -> dict:
 # Node/Remotion subprocess invocation
 # ---------------------------------------------------------------------------
 
-def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
+def invoke_remotion_render(input_path: str, output_path: str, cancel_event: threading.Event | None = None) -> RenderResult:
     """
     Call video-render/src/render.ts via Node subprocess.
 
@@ -273,7 +280,7 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
     # timed out valid course videos. Bound the budget using measured clip timing.
     duration = sum(c.get("render_duration_seconds", 0) for c in json.loads(
         Path(input_path).read_text(encoding="utf-8"))["audio_manifest"]["scenes"])
-    timeout_seconds = max(RENDER_TIMEOUT_SECONDS, min(1800, int(duration * 6)))
+    timeout_seconds = max(RENDER_TIMEOUT_SECONDS, min(1800, int(duration * 9)))
 
     last_error: Optional[str] = None
     for cmd in executors:
@@ -281,20 +288,35 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                 cwd=str(VIDEO_RENDER_DIR), env=node_env, shell=os.name == 'nt',
+                start_new_session=os.name != 'nt',
             )
+            stop_monitor = threading.Event()
+            def stop_owned_process():
+                if proc.poll() is not None: return
+                if os.name == 'nt':
+                    subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=15)
+                else:
+                    try: os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+            def monitor():
+                while not stop_monitor.wait(0.1):
+                    if cancel_event is not None and cancel_event.is_set():
+                        stop_owned_process()
+                        return
+            watcher = threading.Thread(target=monitor, daemon=True)
+            if cancel_event is not None: watcher.start()
             try:
                 stdout, stderr = proc.communicate(timeout=timeout_seconds)
             except subprocess.TimeoutExpired:
-                # Killing only npm's Windows shell leaves renderer/Chromium
-                # children running, competing with the next explicit retry.
-                if os.name == 'nt':
-                    subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-                                   capture_output=True, timeout=15)
-                else:
-                    proc.kill()
+                stop_owned_process()
                 proc.communicate(timeout=15)
                 last_error = f"Render timeout after {timeout_seconds}s"
                 break
+            finally:
+                stop_monitor.set()
+                if cancel_event is not None: watcher.join(timeout=16)
+            if cancel_event is not None and cancel_event.is_set():
+                raise RuntimeError("Render cancelled after ownership loss")
 
             # Parse stdout JSON result
             stdout_lines = stdout.strip().splitlines()
@@ -305,7 +327,7 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
             if result_line:
                 result_data = json.loads(result_line)
                 return RenderResult(
-                    success=result_data.get("success", False),
+                    success=result_data.get("success", False) and proc.returncode == 0,
                     output_path=result_data.get("output_path", output_path),
                     duration_seconds=result_data.get("duration_seconds", 0.0),
                     total_frames=result_data.get("total_frames", 0),
@@ -315,11 +337,11 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
                     file_size_bytes=result_data.get("file_size_bytes", 0),
                     is_mock_audio=result_data.get("is_mock_audio", True),
                     character_version=result_data.get("character_version", "unknown"),
-                    error=result_data.get("error"),
+                    error=safe_error(result_data.get("error") or "") or None,
                 )
 
             if proc.returncode != 0:
-                last_error = (stderr or stdout)[:500]
+                last_error = safe_error((stderr or stdout)[:500])
                 continue
 
         except subprocess.TimeoutExpired:
@@ -346,14 +368,15 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
 
 async def await_render_completion(input_path: str, output_path: str) -> RenderResult:
     """Keep render files alive until the executor actually stops on cancellation."""
+    cancel_event = threading.Event()
     future = asyncio.get_running_loop().run_in_executor(
-        None, invoke_remotion_render, input_path, output_path
+        None, functools.partial(invoke_remotion_render, input_path, output_path, cancel_event=cancel_event)
     )
     try:
         return await asyncio.shield(future)
     except asyncio.CancelledError:
-        # Task cancellation cannot stop the subprocess thread. Wait before
-        # removing its files, then propagate cancellation without uploading.
+        # Stop only this owned renderer before releasing ownership or files.
+        cancel_event.set()
         try:
             await asyncio.shield(future)
         except Exception:
@@ -361,149 +384,101 @@ async def await_render_completion(input_path: str, output_path: str) -> RenderRe
         raise
 
 
-async def render_video(
-    job_id: uuid.UUID,
-    db: AsyncSession,
-) -> None:
-    """
-    Full render pipeline for a single VideoGenerationJob.
+def render_fingerprint(job) -> str:
+    """Identity uses saved input/clip keys, never expiring presigned URLs."""
+    clips = [{k:c.get(k) for k in ("scene_id", "audio_key", "text_hash", "tts_provider", "tts_voice_id", "duration_seconds", "render_duration_seconds")}
+             for c in (job.audio_manifest_json or {}).get("scenes", [])]
+    body = {"scenes":job.scene_json, "audio":clips, "assets":job.asset_manifest_json,
+            "renderer_contract":2, "width":EXPECTED_WIDTH, "height":EXPECTED_HEIGHT, "fps":EXPECTED_FPS}
+    return hashlib.sha256(json.dumps(body,sort_keys=True,separators=(",", ":")).encode()).hexdigest()
 
-    Preconditions:
-        Job must be in audio_ready
+async def render_video(job_id: uuid.UUID, db: AsyncSession) -> None:
+    """Validated render checkpoint survives worker restart and upload failure.
 
-    Flow:
-        audio_ready
-        → rendering   (build payload, invoke Remotion)
-        → ffprobe validation
-        → uploading   (S3 upload)
-        → ready       (video_url persisted)
-
-    Raises:
-        ValueError if job not found or wrong state
-        RuntimeError on render failure, validation failure, or upload failure
+    The <=64 MiB BYTEA is deferred from normal queries, used only until upload
+    succeeds and then cleared. It avoids relying on one worker's filesystem.
     """
     settings = get_settings()
-
     job = await db.get(VideoGenerationJob, job_id)
-    if not job:
-        raise ValueError(f"VideoGenerationJob {job_id} not found")
-
-    if job.status != VideoJobStatus.audio_ready:
-        raise ValueError(
-            f"Job {job_id} is in state '{job.status.value}' — render requires audio_ready"
-        )
-
-    if not job.scene_json or not job.audio_manifest_json:
-        raise ValueError(f"Job {job_id} missing scene_json or audio_manifest_json")
-
-    if job.audio_manifest_json.get("is_mock"):
-        raise ValueError("Personalized video requires real audio")
-
-    # Advance to rendering
-    job.status = VideoJobStatus.rendering
-    await db.commit()
-    logger.info("render_started", job_id=str(job_id))
-
-    # Calculate expected duration from audio manifest
-    audio_scenes = job.audio_manifest_json.get("scenes", [])
-    expected_duration = sum(c.get("render_duration_seconds", 0) for c in audio_scenes)
-    is_mock_audio = job.audio_manifest_json.get("is_mock", True)
-
-    with tempfile.TemporaryDirectory(prefix="elarion_render_") as tmpdir:
-        input_path = os.path.join(tmpdir, "input.json")
-        output_path = os.path.join(tmpdir, "video.mp4")
-
-        # ── Build and write render payload ────────────────────────────────
-        payload = build_render_payload(job, output_path)
-        from app.shared.s3_client import generate_presigned_url
-        for clip in payload["audio_manifest"]["scenes"]:
-            if not clip.get("audio_key"):
-                raise ValueError("Audio clip requires a private object key")
-            clip["audio_url"] = await generate_presigned_url(clip["audio_key"], expires_in=1200)
-        with open(input_path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-
-        logger.info(
-            "render_payload_written",
-            job_id=str(job_id),
-            input_path=input_path,
-            scene_count=len(payload["scenes"]),
-        )
-
-        # ── Invoke Remotion renderer ───────────────────────────────────────
-        render_result = await await_render_completion(input_path, output_path)
-
-        if not render_result.success:
-            job.status = VideoJobStatus.failed
-            job.error_message = f"Render failed: {render_result.error}"
-            await db.commit()
-            raise RuntimeError(f"Remotion render failed for job {job_id}: {render_result.error}")
-
-        logger.info(
-            "render_complete",
-            job_id=str(job_id),
-            duration_seconds=render_result.duration_seconds,
-            file_size_bytes=render_result.file_size_bytes,
-            is_mock_audio=render_result.is_mock_audio,
-        )
-
-        # ── ffprobe quality validation ────────────────────────────────────
-        probe = validate_mp4_with_ffprobe(output_path, expected_duration)
-        if not probe.valid:
-            job.status = VideoJobStatus.failed
-            job.error_message = f"ffprobe validation failed: {'; '.join(probe.errors)}"
-            await db.commit()
-            raise RuntimeError(
-                f"MP4 validation failed for job {job_id}: {probe.errors}"
-            )
-
-        logger.info(
-            "ffprobe_validation_passed",
-            job_id=str(job_id),
-            width=probe.width, height=probe.height,
-            fps=probe.fps, duration=probe.duration_seconds,
-        )
-
-        # ── Advance to uploading ──────────────────────────────────────────
-        job.status = VideoJobStatus.uploading
+    if not job or job.status != VideoJobStatus.audio_ready:
+        raise ValueError("Render requires an audio_ready job")
+    if not job.scene_json or not job.audio_manifest_json or job.audio_manifest_json.get("is_mock"):
+        raise VideoPipelineError("VIDEO_RENDER_FAILED", "Render requires real scene audio")
+    clips = job.audio_manifest_json.get("scenes", [])
+    scene_ids = [s["scene_id"] for s in job.scene_json["scenes"]]
+    if ([c.get("scene_id") for c in clips] != scene_ids or any(
+            c.get("status") != "ready" or c.get("is_mock") or c.get("format") != "mp3"
+            or not c.get("audio_key") or not 0 < c.get("duration_seconds", 0) <= c.get("render_duration_seconds", 0) <= 601
+            for c in clips)):
+        raise VideoPipelineError("VIDEO_RENDER_FAILED", "Invalid scene audio mapping")
+    expected_duration = sum(c["render_duration_seconds"] for c in clips)
+    fingerprint = render_fingerprint(job)
+    started = time.monotonic()
+    stage = "render"
+    try:
+        job.status = VideoJobStatus.rendering
         await db.commit()
-
-        # ── Upload to object storage ──────────────────────────────────────
-        prefix = settings.TTS_AUDIO_OBJECT_PREFIX  # "personalized-video"
-        video_object_prefix = f"{prefix}/{job_id}/final"
-
-        try:
-            with open(output_path, "rb") as f:
-                video_bytes = f.read()
-
-            video_key, video_url = await upload_file(
-                file_data=video_bytes,
-                original_filename="video.mp4",
-                content_type="video/mp4",
-                prefix=video_object_prefix,
-            )
-        except Exception as e:
-            job.status = VideoJobStatus.failed
-            job.error_message = f"S3 upload failed: {e}"
+        logger.info("video_stage_started", job_id=str(job.id), student_id=str(job.student_id),
+                    remediation_id=str(job.remediation_plan_id), stage=stage, attempt=job.retry_count+1)
+        with tempfile.TemporaryDirectory(prefix="elarion_render_") as tmpdir:
+            input_path, output_path = os.path.join(tmpdir,"input.json"), os.path.join(tmpdir,"video.mp4")
+            checkpoint = job.render_manifest_json or {}
+            video_bytes = None
+            if checkpoint.get("fingerprint") == fingerprint:
+                video_bytes = (await db.execute(select(VideoGenerationJob.render_checkpoint_bytes)
+                    .where(VideoGenerationJob.id == job.id))).scalar_one_or_none()
+                if (not video_bytes or len(video_bytes) != checkpoint.get("size")
+                        or hashlib.sha256(video_bytes).hexdigest() != checkpoint.get("sha256")):
+                    video_bytes = None
+            if video_bytes is not None:
+                Path(output_path).write_bytes(video_bytes)
+                logger.info("video_render_checkpoint_reused",job_id=str(job.id), stage="upload", bytes_size=len(video_bytes))
+            else:
+                payload = build_render_payload(job,output_path)
+                from app.shared.s3_client import generate_presigned_url
+                for clip in payload["audio_manifest"]["scenes"]:
+                    if not await object_exists(clip["audio_key"]):
+                        raise VideoPipelineError("VIDEO_RENDER_FAILED", "A narration object is missing")
+                    clip["audio_url"] = await generate_presigned_url(clip["audio_key"], expires_in=3600)
+                Path(input_path).write_text(json.dumps(payload),encoding="utf-8")
+                result = await await_render_completion(input_path,output_path)
+                if not result.success:
+                    raise VideoPipelineError("VIDEO_RENDER_FAILED", safe_error(result.error or "Renderer failed"))
+            probe = validate_mp4_with_ffprobe(output_path,expected_duration)
+            if not probe.valid:
+                raise VideoPipelineError("VIDEO_RENDER_FAILED", "MP4 validation: " + safe_error("; ".join(probe.errors)))
+            if video_bytes is None:
+                if probe.file_size_bytes > 64 * 1024 * 1024:
+                    raise VideoPipelineError("VIDEO_RENDER_FAILED", "Rendered MP4 exceeds 64 MiB checkpoint limit")
+                video_bytes = Path(output_path).read_bytes()
+                job.render_checkpoint_bytes = video_bytes
+                job.render_manifest_json = {"fingerprint":fingerprint, "sha256":hashlib.sha256(video_bytes).hexdigest(),
+                    "size":len(video_bytes), "duration_seconds":probe.duration_seconds}
+                await db.commit()
+            stage = "upload"
+            job.status = VideoJobStatus.uploading
             await db.commit()
-            raise RuntimeError(f"Upload failed for job {job_id}: {e}") from e
-
-        # ── Persist video_url and mark ready ─────────────────────────────
-        job.video_url = video_url
-        job.video_object_key = video_key
-        from datetime import datetime, timezone
-        job.completed_at = datetime.now(timezone.utc)
-        job.error_code = None
-        job.error_message = None
-        job.status = VideoJobStatus.ready
+            key = f"{settings.TTS_AUDIO_OBJECT_PREFIX}/{job.id}/final/video.mp4"
+            video_key, _ = await asyncio.wait_for(retry_transient(
+                lambda: upload_verified_bytes(video_bytes,key,"video/mp4")), timeout=UPLOAD_TIMEOUT_SECONDS)
+            job.video_object_key = video_key
+            job.video_url = None  # API signs the saved private key on demand.
+            from datetime import datetime, timezone
+            job.completed_at = datetime.now(timezone.utc)
+            job.error_code = job.error_message = None
+            job.render_checkpoint_bytes = None
+            job.status = VideoJobStatus.ready
+            await db.commit()
+            logger.info("video_stage_completed",job_id=str(job.id),student_id=str(job.student_id),
+                        remediation_id=str(job.remediation_plan_id),stage="ready",attempt=job.retry_count+1,
+                        duration_seconds=round(time.monotonic()-started,3),object_key=video_key)
+    except asyncio.CancelledError:
+        raise  # Consumer leaves delivery pending; saved checkpoints survive.
+    except Exception as exc:
+        code = exc.code if isinstance(exc,VideoPipelineError) else (
+            "VIDEO_UPLOAD_FAILED" if stage == "upload" else "VIDEO_RENDER_FAILED")
+        job.status = VideoJobStatus.failed
+        job.error_code = code
+        job.error_message = safe_error(str(exc))
         await db.commit()
-
-        logger.info(
-            "render_pipeline_complete",
-            job_id=str(job_id),
-            video_url=video_url,
-            duration_seconds=probe.duration_seconds,
-            file_size_bytes=probe.file_size_bytes,
-            is_mock_audio=is_mock_audio,
-            character_version=render_result.character_version,
-        )
+        raise VideoPipelineError(code,job.error_message) from exc

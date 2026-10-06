@@ -88,3 +88,27 @@ test('video restart uses explicit owned retry endpoint and surfaces rejection',a
  await assert.rejects(learningApi.retryPersonalizedVideo('owned-job'),/earlier remediation lifecycle/);
  assert.equal(calls[0].method,'POST');assert.ok(calls[0].url.endsWith('/remediation/video-jobs/owned-job/retry'));
 });
+
+test('failed saved video explicitly retries same job, resumes polling and restores READY on refresh',async()=>{
+ const original={...learningApi};const calls=[];let status='failed';
+ learningApi.requestPersonalizedVideo=async()=>{calls.push('create-or-reuse');return{id:'saved-retry-job',status};};
+ learningApi.getPersonalizedVideoJob=async(id)=>{assert.equal(id,'saved-retry-job');calls.push('poll');return{id,status,video_url:status==='ready'?'private-playback':null};};
+ learningApi.retryPersonalizedVideo=async(id)=>{assert.equal(id,'saved-retry-job');calls.push('explicit-retry');status='rendering';return{id,status};};
+ try {
+  let job=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(job),'failed');
+  job=await learningApi.retryPersonalizedVideo(job.id);assert.equal(videoView(job),'preparing');
+  job=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(job),'preparing');
+  status='ready';job=await learningApi.getPersonalizedVideoJob(job.id);assert.equal(videoView(job),'ready');
+  const refreshed=await findOrCreateVideo('retry-student','retry-weakness','retry-submission');assert.equal(videoView(refreshed),'ready');assert.equal(refreshed.id,job.id);
+  assert.equal(calls.filter(c=>c==='explicit-retry').length,1);
+ } finally {Object.assign(learningApi,original);}
+});
+
+
+test('video resume prompt respects fresh stage activity and a bounded long render',()=>{
+ const {videoCanResume}=require('../src/utils/personalizedVideo.ts');const now=Date.parse('2026-10-06T16:00:00Z');
+ assert.equal(videoCanResume({status:'rendering',started_at:'2026-10-06T15:40:00Z'},now),false);
+ assert.equal(videoCanResume({status:'audio_generating',started_at:'2026-10-06T15:00:00Z',updated_at:'2026-10-06T15:59:00Z'},now),false);
+ assert.equal(videoCanResume({status:'rendering',updated_at:'2026-10-06T15:28:00Z'},now),true);
+ assert.equal(videoCanResume({status:'ready',video_url:'private',updated_at:'2026-10-06T15:00:00Z'},now),false);
+});

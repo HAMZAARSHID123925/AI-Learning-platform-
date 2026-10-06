@@ -1,5 +1,8 @@
 import uuid
 import json
+import asyncio, time
+from app.modules.module6_adaptive.services.storyboard_schema import normalize_storyboard, validation_errors, repair_fields, apply_field_repair
+from app.modules.module6_adaptive.services.pipeline_errors import VideoPipelineError, safe_error, is_transient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -146,12 +149,14 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
         # Retain rejected structured drafts internally, so a repair can target the
         # actual validation failure instead of losing a paid provider response.
         candidate = (job.script_json or {}).get("candidate_storyboard")
+        if candidate is None and job.scene_json:
+            candidate = {**(job.script_json or {}), **job.scene_json}
         async def retain_candidate(data):
             job.script_json = {"candidate_storyboard": data}
             await db.commit()
             logger.info("storyboard_word_counts", job_id=str(job_id), words=_narration_word_counts(data))
 
-        data = await generate_validated_storyboard(user_prompt, candidate, retain_candidate)
+        data = await generate_validated_storyboard(user_prompt, candidate, retain_candidate, job_id=str(job_id))
         # Persist results
         job.title = data["lesson_plan"]["title"]
         job.script_json = {"lesson_plan": data["lesson_plan"], "validation": data.get("validation", {})}
@@ -162,9 +167,10 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
         logger.info("script_generation_success", job_id=str(job_id))
         
     except Exception as e:
-        logger.error("script_generation_failed", job_id=str(job_id), error=str(e))
+        logger.error("script_generation_failed", job_id=str(job_id), error_type=type(e).__name__, error=safe_error(e))
         job.status = VideoJobStatus.failed
-        job.error_message = f"Script generation failed: {str(e)}"
+        job.error_code = e.code if isinstance(e,VideoPipelineError) else "VIDEO_STORYBOARD_INVALID" if isinstance(e,ValueError) else "VIDEO_SCRIPT_FAILED"
+        job.error_message = "Script generation failed: " + safe_error(e)
         await db.commit()
         raise e
 
@@ -189,12 +195,13 @@ Return each scene ID exactly once. Do not return lesson_plan, diagrams or full s
 def apply_narration_repair(draft: dict, patch: dict) -> dict:
     """Replace narration only; refuse missing, duplicate or foreign scene IDs."""
     import copy
-    rows = patch.get("narrations") if isinstance(patch, dict) else None
+    if not isinstance(patch,dict) or set(patch)!={"narrations"}:raise ValueError("Narration repair requires only a narrations array")
+    rows = patch.get("narrations")
     if not isinstance(rows, list):
         raise ValueError("Narration repair must supply all scene narrations")
     replacements = {}
     for row in rows:
-        if not isinstance(row, dict) or not isinstance(row.get("scene_id"), str) or not isinstance(row.get("narration"), str) or not row["narration"].strip():
+        if not isinstance(row, dict) or set(row)!={"scene_id","narration"} or not isinstance(row.get("scene_id"), str) or not isinstance(row.get("narration"), str) or not row["narration"].strip():
             raise ValueError("Invalid narration repair")
         if row["scene_id"] in replacements:
             raise ValueError("Duplicate narration repair scene ID")
@@ -207,66 +214,69 @@ def apply_narration_repair(draft: dict, patch: dict) -> dict:
     return repaired
 
 
-async def generate_validated_storyboard(user_prompt: str, candidate=None, retain_candidate=None) -> dict:
-    """Validate before TTS; repair a rejected draft once, preserving its grounding.
-
-    A previously saved valid draft is reused without another provider call.
-    New generation is capped at two calls, including one targeted repair.
-    """
-    def repair_prompt(draft, failure):
-        counts = _narration_word_counts(draft)
-        return (user_prompt + "\nRepair this rejected storyboard using ONLY the original curriculum context. "
-                "Preserve correct content and structured visuals. Validation failure: " + str(failure)
-                + "\nCurrent narration words per scene: " + json.dumps(counts)
-                + "; total: " + str(sum(counts))
-                + ". Return the COMPLETE corrected JSON storyboard. Write 8 scenes, 50-58 narration words each, "
-                "400-460 total. Add sourced explanation and worked-example reasoning; do not pad or repeat sentences.\n"
-                + json.dumps(draft))
-
-    prompt = user_prompt
-    draft = candidate
-    failure = None
+async def generate_validated_storyboard(user_prompt: str, candidate=None, retain_candidate=None, job_id=None) -> dict:
+    """At most two provider requests, including repair or transient recovery."""
+    draft=normalize_storyboard(candidate); failure=None; errors=[]
     if candidate is not None:
-        try:
-            validate_storyboard(candidate, require_visuals=True)
-            return candidate
-        except ValueError as exc:
-            failure = str(exc)
-            prompt = repair_prompt(candidate, exc)
-
+        try: validate_storyboard(draft,True); return draft
+        except ValueError as exc: failure=str(exc);errors=validation_errors(draft)
     for attempt in range(2):
-        narration_only = (isinstance(draft, dict) and isinstance(draft.get("scenes"), list)
-                          and len(draft["scenes"]) == 8 and failure in {
-                              "Substantial narration required", "Narration length invalid",
-                              "Narration repair must supply all scene narrations"})
-        request_prompt = prompt
-        if narration_only:
-            request_prompt += "\nIMPORTANT: return only the narrations array, not the previous storyboard. " \
-                              "Rewrite each paragraph to 50-58 words; retain all exact scene IDs."
-        response = await generate_llm_completion(system_prompt=NARRATION_REPAIR_PROMPT if narration_only else SYSTEM_PROMPT,
-                                                 user_prompt=request_prompt, temperature=0.3, max_tokens=8000, json_mode=True)
-        data = None
+        started=time.monotonic(); allowed=repair_fields(draft,errors) if failure else None
+        narration_only=bool(failure and errors and all(not e["path"] and "Substantial narration required" in e["message"] for e in errors) and isinstance(draft,dict) and isinstance(draft.get("scenes"),list) and len(draft["scenes"])==8)
+        prompt=user_prompt;system=SYSTEM_PROMPT
+        if failure:
+            counts=_narration_word_counts(draft)
+            prompt += "\nRepair ONLY the rejected fields using the original curriculum. Validation errors: " + json.dumps(errors or [{"message":failure}]) + "\nNarration word counts: " + json.dumps(counts) + "; total: " + str(sum(counts)) + "\nSaved draft: " + json.dumps(draft)
+            if narration_only:
+                system=NARRATION_REPAIR_PROMPT; prompt += "\nReturn only the narrations array; preserve all exact scene IDs."
+            elif allowed:
+                system = SYSTEM_PROMPT + """
+THIS IS A TARGETED REPAIR, not a new storyboard.
+Return ONLY {"repairs":[{"scene_id":"exact requested ID","field":"diagram","value":{"kind":"process","labels":["Sourced step one","Sourced step two"],"values":[],"denominators":[]}}]}.
+The value MUST be the actual JSON object/array/number/string appropriate to that field, never stringified JSON.
+Address every requested scene/field exactly once. Return no complete storyboard, extra fields or markdown.
+Preserve all unrequested fields and original scene IDs. Keep the curriculum's exact teaching meaning.
+You MAY change an invalid diagram's kind to another allowed kind to faithfully express the same idea.
+A fraction bar represents only a quantity from zero to one: selected integer <= denominator integer <=12.
+A quantity greater than one cannot be represented by a unit fraction bar. Use sourced equation_steps/process instead; NEVER change the correct numerical answer to fit the diagram.
+Number lines have at most four labelled positions, each in [0,1]. If an example needs more entries, use another valid structured representation; preserve its teaching meaning in 2-4 labels.
+All diagram objects have exactly kind,labels,values,denominators. Structured diagram labels have 2-4 entries, each <=48 characters; numeric arrays are empty.
+Recheck ALL supplied validation errors before returning the targeted patch.
+"""
+
+                prompt += "\nRequested fields: " + json.dumps([{"scene_id":sid,"field":field} for sid,field in sorted(allowed)])
+            else: prompt += "\nReturn a complete corrected storyboard using the canonical schema."
         try:
-            if not response:
-                raise ValueError("Empty response from LLM")
-            parsed = json.loads(response)
-            data = apply_narration_repair(draft, parsed) if narration_only else parsed
-            if isinstance(data, dict) and retain_candidate:
-                await retain_candidate(data)
-            validate_storyboard(data, require_visuals=True)
+            response=await generate_llm_completion(system_prompt=system,user_prompt=prompt,temperature=0.2,max_tokens=8000,json_mode=True,max_retries=1,sdk_max_retries=0)
+        except Exception as exc:
+            logger.warning("video_provider_request_failed",job_id=job_id,stage="script",attempt=attempt+1,duration_seconds=round(time.monotonic()-started,3),error_type=type(exc).__name__)
+            if attempt==1 or not is_transient(exc): raise VideoPipelineError("VIDEO_SCRIPT_FAILED","Storyboard provider request failed: "+type(exc).__name__) from exc
+            await asyncio.sleep(1);continue
+        data=None
+        try:
+            if not isinstance(response,str) or not response.strip() or len(response)>100000: raise ValueError("Empty or oversized provider response")
+            import re
+            response=re.sub(r"^```(?:json)?\s*([\s\S]*?)\s*```$",r"\1",response.strip(),flags=re.IGNORECASE)
+            parsed=json.loads(response)
+            data=apply_narration_repair(draft,parsed) if narration_only else apply_field_repair(draft,parsed,allowed) if allowed else parsed
+            data=normalize_storyboard(data)
+            if isinstance(data,dict) and retain_candidate: await retain_candidate(data)
+            validate_storyboard(data,True)
+            logger.info("video_storyboard_validated",job_id=job_id,stage="script",attempt=attempt+1,repair_used=bool(failure),duration_seconds=round(time.monotonic()-started,3))
             return data
         except ValueError as exc:
-            if attempt == 1:
-                raise
-            # Invalid JSON is repaired without echoing arbitrary provider text.
-            if isinstance(data, dict):
-                draft = data
-            failure = str(exc)
-            prompt = repair_prompt(draft or {}, exc)
+            if isinstance(data,dict): draft=data
+            failure=str(exc);errors=validation_errors(draft)
+            logger.warning("video_storyboard_rejected",job_id=job_id,stage="script",attempt=attempt+1,validation_errors=errors,repair_error=safe_error(exc))
+            if attempt==1: raise
     raise ValueError("No valid storyboard generated")
 
 
 def validate_storyboard(data: dict, require_visuals: bool = False) -> None:
+    if require_visuals:
+        typed_errors = validation_errors(data)
+        if typed_errors:
+            raise ValueError('; '.join('.'.join(map(str,e['path'])) + ': ' + e['message'] for e in typed_errors))
     if not isinstance(data, dict) or not isinstance(data.get('lesson_plan'), dict):
         raise ValueError('Invalid lesson plan')
     title=data['lesson_plan'].get('title')

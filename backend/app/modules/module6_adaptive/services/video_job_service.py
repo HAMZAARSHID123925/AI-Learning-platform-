@@ -127,16 +127,16 @@ async def create_video_generation_job(
     ready_query = select(VideoGenerationJob).where(VideoGenerationJob.weakness_flag_id == weakness_flag_id, VideoGenerationJob.student_id == student_id, VideoGenerationJob.submission_id == flag.submission_id, VideoGenerationJob.status == VideoJobStatus.ready).order_by(VideoGenerationJob.created_at.desc()).limit(1)
     ready = (await db.execute(ready_query)).scalar_one_or_none()
     if ready: return ready
+    # Automatic result-page recovery must not restart a paid failed pipeline.
+    failed = (await db.execute(select(VideoGenerationJob).where(VideoGenerationJob.weakness_flag_id == weakness_flag_id, VideoGenerationJob.student_id == student_id, VideoGenerationJob.submission_id == flag.submission_id, VideoGenerationJob.status == VideoJobStatus.failed).order_by(VideoGenerationJob.created_at.desc()).limit(1))).scalar_one_or_none()
+    if failed:
+        return failed
     plan = (await db.execute(select(RemediationPlan).where(RemediationPlan.weakness_flag_id == weakness_flag_id, RemediationPlan.student_id == student_id, RemediationPlan.status == PlanStatus.active, RemediationPlan.source_submission_id == flag.submission_id).order_by(RemediationPlan.created_at.desc()).limit(1))).scalar_one_or_none()
     if not plan or not plan.remedial_course_markdown:
         raise BusinessRuleError("An active written remediation plan is required")
     # 4. Resolve Context
     context = await build_video_generation_context(db, flag)
 
-    # Automatic result-page recovery must not restart a paid failed pipeline.
-    failed = (await db.execute(select(VideoGenerationJob).where(VideoGenerationJob.weakness_flag_id == weakness_flag_id, VideoGenerationJob.student_id == student_id, VideoGenerationJob.submission_id == flag.submission_id, VideoGenerationJob.status == VideoJobStatus.failed).order_by(VideoGenerationJob.created_at.desc()).limit(1))).scalar_one_or_none()
-    if failed:
-        return failed
     job = VideoGenerationJob(
         student_id=student_id, remediation_plan_id=plan.id,
         course_id=uuid.UUID(context["course_id"]), submission_id=uuid.UUID(context["submission_id"]),
@@ -179,11 +179,24 @@ async def enqueue_video_job(db: AsyncSession, job: VideoGenerationJob) -> None:
 
 
 async def dispatch_pending_video_jobs(db: AsyncSession) -> None:
-    jobs = (await db.execute(select(VideoGenerationJob).where(
-        VideoGenerationJob.status == VideoJobStatus.queued
-    ).order_by(VideoGenerationJob.created_at).limit(20))).scalars().all()
+    """DB state also recovers active work if broker pending data was lost.
+
+    Never replay terminal historical jobs or disturb a healthy live owner.
+    Pending-stream reclaim remains the ordinary restart path.
+    """
+    from datetime import datetime, timezone, timedelta
+    from sqlalchemy import or_, and_, case
+    jobs = (await db.execute(select(VideoGenerationJob).where(or_(
+        VideoGenerationJob.status == VideoJobStatus.queued,
+        and_(VideoGenerationJob.status.notin_([VideoJobStatus.queued, VideoJobStatus.ready, VideoJobStatus.failed]),
+             VideoGenerationJob.updated_at < datetime.now(timezone.utc)-timedelta(minutes=5))
+    )).order_by(case((VideoGenerationJob.status == VideoJobStatus.queued,0),else_=1),
+                VideoGenerationJob.created_at).limit(20))).scalars().all()
     for job in jobs:
-        await enqueue_video_job(db, job)
+        if job.status != VideoJobStatus.queued:
+            lease=f"{get_settings().REDIS_KEY_PREFIX}:video_generation:lease:{job.id}"
+            if await get_redis_client().get(lease):continue
+        await enqueue_video_job(db,job)
 
 
 async def retry_video_generation_job(db: AsyncSession, student_id: uuid.UUID, job_id: uuid.UUID) -> VideoGenerationJob:

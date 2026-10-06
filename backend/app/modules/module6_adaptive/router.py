@@ -329,6 +329,7 @@ async def create_video_job(
         thumbnail_url=thumbnail_url,
         error_code=job.error_code,
         created_at=job.created_at,
+        updated_at=job.updated_at,
         started_at=job.started_at,
         completed_at=job.completed_at
     )
@@ -400,6 +401,7 @@ async def get_video_job_status(
         thumbnail_url=thumbnail_url,
         error_code=job.error_code,
         created_at=job.created_at,
+        updated_at=job.updated_at,
         started_at=job.started_at,
         completed_at=job.completed_at
     )
