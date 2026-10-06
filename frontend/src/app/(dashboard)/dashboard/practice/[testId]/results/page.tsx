@@ -54,7 +54,7 @@ export default function PracticeResultsPage() {
     );
   }
 
-  const flag = weaknesses.find((w: any) => w.skill_id === targetSkill.skill_id);
+  const flag = weaknesses.find((w) => w.skill_id === targetSkill.skill_id);
   
   const newScore = targetSkill.score / (targetSkill.max_score || 1);
   const previousScore = flag ? flag.score_at_flag : 0;
@@ -140,6 +140,6 @@ export default function PracticeResultsPage() {
 }
 
 // ArrowRightIcon local mock since it might not be imported above
-function ArrowRightIcon(props: any) {
+function ArrowRightIcon(props: React.SVGProps<SVGSVGElement>) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
 }

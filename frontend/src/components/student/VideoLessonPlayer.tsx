@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ButtonLink } from '@/components/student/ButtonLink';
 import { ArrowLeftIcon, PlayCircleIcon, CheckCircle2Icon } from 'lucide-react';
 import { useProgress } from '@/contexts/ProgressContext';
@@ -9,18 +10,33 @@ interface VideoLessonPlayerProps {
   lesson: Lesson;
   index: number;
   exitTo: string;
+  previewMode?: boolean;
 }
 
-export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLessonPlayerProps) {
+export function VideoLessonPlayer({ course, lesson, index, exitTo, previewMode = false }: VideoLessonPlayerProps) {
   const { completeLesson, lessons } = useProgress();
   const isCompleted = lessons[lesson.id]?.status === 'completed';
 
-  const handleComplete = () => {
-    if (!isCompleted) {
-      completeLesson(lesson.id, { correct: 1, total: 1 });
-    }
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState(false);
+  const handleComplete = async () => {
+    if (previewMode) return true;
+    if (saving) return false;
+    setSaving(true);
+    try {
+      if (!isCompleted) await completeLesson(lesson.id, { correct: 1, total: 1 });
+      setError(null);
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save completion.');
+      return false;
+    } finally { setSaving(false); }
   };
-
+  const nextHref = course.lessons[index + 1]
+    ? `/dashboard/learn/${course.id}/${course.lessons[index + 1].id}`
+    : `/dashboard/courses/${course.id}/challenge`;
   const formatDuration = (seconds?: number | null) => {
     if (!seconds) return '';
     const m = Math.floor(seconds / 60);
@@ -46,6 +62,8 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
 
       {/* Main Content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+        {error && <p role="alert" className="mb-4 text-red-700">{error}</p>}
+        {mediaError && <p role="alert" className="mb-4 text-red-700">Could not play this video. <button onClick={() => window.location.reload()} className="underline">Refresh the authorized playback link</button></p>}
         {/* Video Player Section */}
         <div className="bg-black rounded-2xl overflow-hidden shadow-lg aspect-video relative flex items-center justify-center">
           {lesson.videoUrl ? (
@@ -60,7 +78,8 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
               preload="auto"
               poster={lesson.thumbnailUrl || undefined}
               aria-label={lesson.title}
-              onEnded={handleComplete}
+              onEnded={() => { if (!previewMode) void handleComplete(); }}
+              onError={() => setMediaError(true)}
             >
               <source src={lesson.videoUrl} type="video/mp4" />
               Your browser does not support the video tag.
@@ -87,14 +106,16 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
                 </span>
               ) : null}
 
-              {isCompleted ? (
+              {previewMode ? (
+                <span className="text-sm font-bold text-slate-500">Preview · progress is not recorded</span>
+              ) : isCompleted ? (
                 <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-bold border border-green-200">
                   <CheckCircle2Icon className="w-4 h-4 mr-1.5" />
                   Completed
                 </span>
               ) : (
                 <button 
-                  onClick={handleComplete}
+                  onClick={() => void handleComplete()} disabled={saving}
                   className="inline-flex items-center px-4 py-1.5 rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 text-sm font-bold border border-brand-200 transition-colors"
                 >
                   Mark complete
@@ -120,23 +141,11 @@ export function VideoLessonPlayer({ course, lesson, index, exitTo }: VideoLesson
               Back to course
             </ButtonLink>
 
-            {course.lessons[index + 1] ? (
-              <ButtonLink 
-                href={`/dashboard/learn/${course.id}/${course.lessons[index + 1].id}`} 
-                onClick={handleComplete}
-                className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold"
-              >
-                Next lesson: {course.lessons[index + 1].title} →
-              </ButtonLink>
-            ) : (
-              <ButtonLink 
-                href={`/dashboard/courses/${course.id}/challenge`} 
-                onClick={handleComplete}
-                className="bg-brand-500 hover:bg-brand-600 text-white font-extrabold"
-              >
-                Take Challenge Test 🏆
-              </ButtonLink>
-            )}
+            <button disabled={saving} onClick={async () => {
+              if (await handleComplete()) router.push(nextHref);
+            }} className="rounded-full bg-brand-500 px-6 py-3 font-extrabold text-white disabled:opacity-50">
+              {saving ? 'Saving…' : course.lessons[index + 1] ? `Next lesson: ${course.lessons[index + 1].title}` : 'Take final assessment'}
+            </button>
           </div>
         </div>
       </main>

@@ -120,6 +120,7 @@ async function main(): Promise<void> {
       composition,
       serveUrl: bundleLocation,
       codec: "h264",
+      concurrency: 2, // Bound headless pages for the supported 8 GB local runtime.
       outputLocation: outputPath,
       inputProps: { payload },
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,

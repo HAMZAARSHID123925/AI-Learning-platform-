@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Role } from '@/types';
 
 export function RequireRole({ role, children }: { role: Role; children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       router.replace('/login');
     } else if (user.role !== role) {
@@ -16,9 +17,9 @@ export function RequireRole({ role, children }: { role: Role; children: React.Re
     } else if (role === 'student' && !user.grade) {
       router.replace('/onboarding/grade');
     }
-  }, [user, role, router]);
+  }, [user, loading, role, router]);
 
-  if (!user || user.role !== role || (role === 'student' && !user.grade)) {
+  if (loading || !user || user.role !== role || (role === 'student' && !user.grade)) {
     return null;
   }
 

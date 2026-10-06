@@ -1,4 +1,5 @@
 'use client';
+import type { BackendDashboard } from '@/types/backend';
 
 import React from 'react';
 import Link from 'next/link';
@@ -10,7 +11,8 @@ import { ContinueCard } from '@/components/student/ContinueCard';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/ProgressContext';
-import { courses } from '@/data/courses';
+import { StateMessage } from '@/components/student/StateMessage';
+import { useAsync } from '@/hooks/useAsync';
 import { subjectImages } from '@/data/illustrations';
 import { profileStats } from '@/data/profile';
 import { getCourseProgress } from '@/utils/progress';
@@ -21,35 +23,17 @@ import type { Grade } from '@/types';
 export default function Home() {
   const { user } = useAuth();
   const { lessons } = useProgress();
-  const [backendDashboard, setBackendDashboard] = React.useState<any>(null);
-  const [liveCourses, setLiveCourses] = React.useState<any[]>([]);
+  const [backendDashboard, setBackendDashboard] = React.useState<BackendDashboard | null>(null);
   const grade = (user?.grade ?? 5) as Grade;
   const name = user?.name ?? 'Learner';
-
+  const courseQuery = useAsync(() => learningApi.listCourses(grade), [grade, user?.id]);
   React.useEffect(() => {
-    let mounted = true;
-    learningApi.listCourses(grade)
-      .then((items) => {
-        if (mounted && items && items.length > 0) {
-          setLiveCourses(items);
-        }
-      })
-      .catch(() => {});
-
-    learningApi.getStudentDashboard()
-      .then((data) => {
-        if (mounted && data) {
-          setBackendDashboard(data);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      mounted = false;
-    };
-  }, [user, grade]);
-
-  const activeCourses = liveCourses.length > 0 ? liveCourses : courses.filter((c) => c.grade === grade);
+    if (!user) return;
+    let active = true;
+    learningApi.getStudentDashboard().then(data => { if (active) setBackendDashboard(data); }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.id]);
+  const activeCourses = courseQuery.data || [];
   const current = activeCourses[0];
   const currentProgress = current ? getCourseProgress(current, lessons) : null;
   const others = activeCourses.slice(1);
@@ -73,6 +57,9 @@ export default function Home() {
         </p>
       </header>
 
+      {courseQuery.loading && <StateMessage kind="loading" title="Loading your courses…" />}
+      {courseQuery.error && <StateMessage kind="error" message={courseQuery.error.message} onRetry={courseQuery.reload} />}
+      {courseQuery.data?.length === 0 && <StateMessage kind="empty" title="No published courses for your grade yet" />}
       <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
         {current && currentProgress && (
           <ContinueCard course={current} progress={currentProgress} />

@@ -128,25 +128,16 @@ async def create_video_generation_job(
     # 4. Resolve Context
     context = await build_video_generation_context(db, flag)
 
-    # Retrying an explicitly failed job preserves paid stage checkpoints.
+    # Automatic result-page recovery must not restart a paid failed pipeline.
     failed = (await db.execute(select(VideoGenerationJob).where(VideoGenerationJob.weakness_flag_id == weakness_flag_id, VideoGenerationJob.student_id == student_id, VideoGenerationJob.submission_id == flag.submission_id, VideoGenerationJob.status == VideoJobStatus.failed).order_by(VideoGenerationJob.created_at.desc()).limit(1))).scalar_one_or_none()
     if failed:
-        if failed.retry_count >= 3: raise BusinessRuleError("Video retry limit reached")
-        job = failed
-        job.status = VideoJobStatus.queued
-        job.error_code = None
-        job.error_message = None
-    else:
-        job = VideoGenerationJob(
-            student_id=student_id,
-            remediation_plan_id=plan.id,
-            course_id=uuid.UUID(context["course_id"]),
-            submission_id=uuid.UUID(context["submission_id"]),
-            weakness_flag_id=weakness_flag_id,
-            skill_id=uuid.UUID(context["weak_skill"]["id"]),
-            status=VideoJobStatus.queued,
-            target_duration_seconds=context["target_duration_seconds"]
-        )
+        return failed
+    job = VideoGenerationJob(
+        student_id=student_id, remediation_plan_id=plan.id,
+        course_id=uuid.UUID(context["course_id"]), submission_id=uuid.UUID(context["submission_id"]),
+        weakness_flag_id=weakness_flag_id, skill_id=uuid.UUID(context["weak_skill"]["id"]),
+        status=VideoJobStatus.queued, target_duration_seconds=context["target_duration_seconds"]
+    )
     db.add(job)
     try:
         await db.commit()

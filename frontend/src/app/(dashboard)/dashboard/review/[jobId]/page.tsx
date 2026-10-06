@@ -1,245 +1,73 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeftIcon, PlayCircleIcon, AlertTriangleIcon, SparklesIcon, FileTextIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { learningApi } from '@/utils/learningApi';
+import type { VideoGenerationJob } from '@/types/learning';
+import type { BackendRemediation } from '@/types/backend';
 import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
-import { learningApi } from '@/utils/learningApi';
-import type { VideoGenerationJob, RemediationPlan } from '@/types/learning';
-
-const friendlyStatus: Record<string, string> = {
-  queued: "Preparing your lesson…",
-  planning: "Preparing your lesson…",
-  scripting: "Creating your personalized explanation…",
-  storyboard_ready: "Creating your personalized explanation…",
-  assets_preparing: "Preparing your lesson…",
-  audio_generating: "Preparing your lesson…",
-  audio_ready: "Preparing your lesson…",
-  rendering: "Finishing your video…",
-  uploading: "Finishing your video…"
-};
-
-function PersonalizedVideoPlayer({ job, onFallback }: { job: VideoGenerationJob, onFallback: () => void }) {
-  // DEV PLACEHOLDER UI NOTE: M3.5 character asset is DEV PLACEHOLDER.
-  return (
-    <div className="flex flex-col overflow-hidden rounded-[28px] border-2 border-line bg-ink shadow-lg">
-      <div className="aspect-video w-full bg-black relative flex items-center justify-center">
-        {job.video_url ? (
-          <video 
-            src={job.video_url} 
-            poster={job.thumbnail_url || undefined}
-            controls 
-            playsInline
-            preload="metadata"
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <div className="text-white text-center p-8 flex flex-col items-center">
-            <AlertTriangleIcon className="h-12 w-12 text-warning-400 mb-4" />
-            <p className="text-xl font-bold">Video file is missing.</p>
-            <p className="mt-2 text-ink-soft">We couldn't load the video player.</p>
-          </div>
-        )}
-      </div>
-      <div className="bg-white p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-xl font-black text-ink">{job.title || 'Personalized Review'}</h3>
-          {process.env.NODE_ENV === 'development' && (
-            <span className="mt-2 inline-block rounded bg-warning-100 px-2 py-0.5 text-xs font-bold text-warning-800">
-              DEV PLACEHOLDER Character
-            </span>
-          )}
-        </div>
-        <button 
-          onClick={onFallback}
-          className="inline-flex items-center gap-2 text-sm font-bold text-brand-600 hover:text-brand-700"
-        >
-          <FileTextIcon className="h-4 w-4" />
-          Review Notes Instead
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function ReviewPage() {
-  const params = useParams();
-  const jobId = Array.isArray(params.jobId) ? params.jobId[0] : (params.jobId || '');
-  
+  const jobId = String(useParams().jobId || '');
+  const { user } = useAuth();
+  return <SavedVideoReview key={jobId + ':' + (user?.id || '')} jobId={jobId} />;
+}
+function SavedVideoReview({jobId}: {jobId: string}) {
+  const { user } = useAuth();
   const [job, setJob] = useState<VideoGenerationJob | null>(null);
+  const [plan, setPlan] = useState<BackendRemediation | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showNotes, setShowNotes] = useState(false);
-  const [plan, setPlan] = useState<RemediationPlan | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
-  const timerRef = useRef<number | null>(null);
-
-  const fetchJob = async () => {
-    try {
-      const data = await learningApi.getPersonalizedVideoJob(jobId);
-      setJob(data);
-      return data;
-    } catch (e: any) {
-      if (e.message?.includes('403') || e.message?.includes('404')) {
-        setError("You don't have access to this lesson.");
-      } else {
-        // Soft fail for temporary network issues if already polling
-        if (!job) setError("We couldn't load your review right now.");
-      }
-      return null;
-    }
-  };
-
-  const fetchFallback = async (flagId: string) => {
-    try {
-      const plans = await learningApi.getRemediationPlans();
-      const match = plans.find(p => p.weakness_flag_id === flagId);
-      if (match) setPlan(match);
-    } catch (e) {
-      console.error('Failed to load fallback plan', e);
-    }
-  };
-
+  const [mediaError, setMediaError] = useState(false);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
-    let mounted = true;
-    
+    if (!user) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      if (!mounted) return;
-      const currentJob = await fetchJob();
-      
-      if (currentJob) {
-        if (currentJob.weakness_flag_id && !plan) {
-           await fetchFallback(currentJob.weakness_flag_id);
+      try {
+        const current = await learningApi.getPersonalizedVideoJob(jobId);
+        if (!active) return;
+        setJob(current); setError(null); setMediaError(false);
+        if (current.weakness_flag_id) {
+          const plans = await learningApi.getRemediationPlans();
+          if (active) setPlan(plans.find(p => p.weakness_flag_id === current.weakness_flag_id) || null);
         }
-        if (currentJob.status === 'ready' || currentJob.status === 'failed') {
-          // Stop polling
-        } else {
-          // Continue polling
-          timerRef.current = window.setTimeout(poll, 4000);
-        }
+        if (active && current.status !== 'ready' && current.status !== 'failed') timer = setTimeout(poll, 5000);
+      } catch (e) {
+        if (!active) return;
+        const message = e instanceof Error ? e.message : 'Could not load your video.';
+        setError(message);
+        if (!message.includes('(403)') && !message.includes('(404)')) timer = setTimeout(poll, 10000);
       }
     };
-    
-    poll();
-    
-    return () => {
-      mounted = false;
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    };
-  }, [jobId]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen w-full bg-white pt-24">
-        <StateMessage 
-          kind="error" 
-          message={error} 
-          action={<ButtonLink href="/dashboard" variant="secondary">Back to Dashboard</ButtonLink>} 
-        />
-      </div>
-    );
-  }
-
-  if (!job) {
-    return (
-      <div className="min-h-screen w-full bg-white pt-24">
-        <StateMessage kind="loading" title="Loading..." />
-      </div>
-    );
-  }
-
-  const isFailed = job.status === 'failed';
-  const isReady = job.status === 'ready';
-  const isGenerating = !isReady && !isFailed;
-
-  return (
-    <div className="mx-auto max-w-4xl space-y-10 pb-20 pt-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink-muted transition-colors duration-150 hover:text-ink">
-        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> Back to Dashboard
-      </Link>
-
-      <header>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-sm font-extrabold text-brand-700">
-          <SparklesIcon className="h-4 w-4 fill-brand-500 text-brand-500" aria-hidden="true" /> Personalized Review
-        </span>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">
-          {job.title || 'Let\'s review this topic'}
-        </h1>
-        <p className="mt-2 text-lg text-ink-soft">
-          This short lesson focuses on the concept that caused difficulty in your assessment.
-        </p>
-      </header>
-
-      {isGenerating && (
-        <div className="flex flex-col items-center justify-center rounded-[28px] bg-brand-50 p-12 text-center shadow-inner">
-          <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-brand-100 shadow-sm">
-            <div className="absolute h-full w-full animate-ping rounded-full bg-brand-400 opacity-20"></div>
-            <SparklesIcon className="h-10 w-10 text-brand-600" />
-          </div>
-          <h2 className="text-2xl font-black text-ink">
-            {friendlyStatus[job.status] || "Preparing your lesson…"}
-          </h2>
-          <p className="mt-3 max-w-md text-ink-soft">
-            Elo is analyzing your results and creating a video just for you. This usually takes less than a minute.
-          </p>
-        </div>
-      )}
-
-      {isReady && !showNotes && (
-        <PersonalizedVideoPlayer job={job} onFallback={() => setShowNotes(true)} />
-      )}
-
-      {(isFailed || showNotes) && (
-        <div className="rounded-[28px] border-2 border-line bg-white p-8 sm:p-12">
-          <div className="mb-6">
-            {isFailed && (
-              <div className="mb-6 flex items-start gap-3 rounded-2xl bg-danger-50 p-4 text-danger-900">
-                <AlertTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-danger-500" />
-                <div>
-                  <h3 className="font-bold">We couldn't prepare your personalized video.</h3>
-                  <p className="mt-1 text-sm text-danger-700">However, you can still review the notes below.</p>
-                </div>
-              </div>
-            )}
-            <h2 className="text-2xl font-black text-ink">Review Notes</h2>
-          </div>
-          
-          {plan?.remedial_course_markdown ? (
-            <div className="prose prose-lg prose-brand max-w-none text-ink">
-              {/* Note: ReactMarkdown should be used here, simulating with div for MVP */}
-              <div dangerouslySetInnerHTML={{ __html: plan.remedial_course_markdown.replace(/\n/g, '<br/>') }} />
-            </div>
-          ) : (
-            <p className="text-ink-soft">No review notes available.</p>
-          )}
-        </div>
-      )}
-
-      {(isReady || showNotes) && plan && (
-        <div className="flex justify-end pt-8">
-          <button 
-            onClick={async () => {
-              try {
-                setIsStarting(true);
-                const res = await learningApi.completeRemedialStudy(plan.id);
-                if (res.retest_id) {
-                  window.location.href = `/dashboard/practice/${res.retest_id}`;
-                } else {
-                  alert(res.message);
-                }
-              } catch (e) {
-                alert('Failed to start focused practice.');
-              } finally {
-                setIsStarting(false);
-              }
-            }}
-            disabled={isStarting}
-            className="inline-flex items-center justify-center rounded-full bg-brand-500 px-8 py-3 text-base font-extrabold text-white shadow-sm transition-all hover:bg-brand-600 disabled:opacity-50"
-          >
-            {isStarting ? 'Preparing...' : 'Try Focused Practice'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
+    void poll();
+    return () => { active = false; clearTimeout(timer); };
+  }, [jobId, user?.id, retry]);
+  if (!job) return error
+    ? <StateMessage kind="error" message={error} onRetry={() => setRetry(n => n + 1)} />
+    : <StateMessage kind="loading" title="Loading your personalized review…" />;
+  return <div className="mx-auto max-w-4xl space-y-8">
+    <ButtonLink href="/dashboard" variant="secondary">Back to dashboard</ButtonLink>
+    <h1 className="text-4xl font-black text-ink">{job.title || 'Your personalized review'}</h1>
+    {error && <p role="alert">{error}</p>}
+    {job.status === 'ready' && job.video_url ? <section className="overflow-hidden rounded-2xl border-2 border-line">
+      <video src={job.video_url} poster={job.thumbnail_url || undefined} controls playsInline preload="metadata"
+        className="aspect-video w-full bg-black" onError={() => setMediaError(true)} />
+      {mediaError && <p role="alert" className="p-4">Could not play the video.
+        <button className="ml-2 underline" onClick={() => setRetry(n => n + 1)}>Refresh playback link</button>
+      </p>}
+    </section> : job.status === 'failed' ? <p role="alert">We could not prepare your video. You can still review the notes below.</p>
+      : <StateMessage kind="loading" title="Preparing your personalized video…" message="You can leave this page and return while it is being prepared." />}
+    {plan?.remedial_course_markdown && <section className="rounded-2xl border-2 border-line p-6">
+      <h2 className="text-xl font-black">{plan.remedial_course_title || 'Review notes'}</h2>
+      <p className="mt-3 whitespace-pre-wrap">{plan.remedial_course_markdown}</p>
+      <button className="mt-4 rounded-full bg-brand-500 px-6 py-3 font-bold text-white" onClick={async () => {
+        try {
+          const result = await learningApi.completeRemedialStudy(plan.id);
+          if (result.retest_id) window.location.href = `/dashboard/practice/${result.retest_id}`;
+        } catch { setError('Could not start focused practice. Please retry.'); }
+      }}>Try focused practice</button>
+    </section>}
+  </div>;
 }

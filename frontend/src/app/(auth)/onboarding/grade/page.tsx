@@ -1,5 +1,4 @@
 'use client';
-import { redirect } from 'next/navigation';
 
 import React, { useState, useEffect } from 'react';
 
@@ -17,24 +16,31 @@ const grades: Grade[] = [1, 2, 3, 4, 5];
 
 export default function ChooseGrade() { return <AuthProvider><ChooseGradeInner /></AuthProvider>; }
 function ChooseGradeInner() {
-  const { user, setGrade } = useAuth();
+  const { user, loading, setGrade } = useAuth();
   const router = useRouter();
   const [selected, setSelected] = useState<Grade | null>(user?.grade ?? null);
 
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
+    if (loading) return;
     if (!user) {
       router.replace('/login');
     } else if (user.role !== 'student') {
       router.replace(user.role === 'teacher' ? '/instructor' : '/admin');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
   const preview = selected ? courses.filter((c) => c.grade === selected) : [];
 
-  const handleContinue = () => {
-    if (!selected) return;
-    setGrade(selected);
-    router.push('/dashboard');
+  const handleContinue = async () => {
+    if (!selected || saving) return;
+    setSaving(true);
+    setError(null);
+    try { await setGrade(selected); router.push('/dashboard'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save your grade.'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -98,7 +104,8 @@ function ChooseGradeInner() {
           </AnimatePresence>
         </div>
 
-        <Button size="lg" className="mt-4 w-full max-w-xs" disabled={!selected} onClick={handleContinue}>
+        {error && <p role="alert" className="mt-4 text-red-600">{error}</p>}
+        <Button size="lg" className="mt-4 w-full max-w-xs" disabled={loading || saving || !selected} onClick={handleContinue}>
           Let’s go <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
         </Button>
       </main>

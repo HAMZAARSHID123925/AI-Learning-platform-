@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Standalone Node CommonJS diagnostic script. */
 const { Client } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 

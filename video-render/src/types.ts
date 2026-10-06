@@ -36,6 +36,11 @@ export interface SceneData {
   duration_seconds: number;
   heading?: string;
   narration: string;
+  visual_version?: 2;
+  on_screen_text?: string[];
+  character_pose?: "explain" | "point" | "welcome" | "recap";
+  transition?: "fade" | "slide";
+  diagram?: {kind: "none" | "fraction_bars" | "number_line" | "equation_steps" | "process" | "cycle" | "comparison"; labels: string[]; values: number[]; denominators: number[]};
   body_text?: string;
   bullets?: string[];
   left_panel?: ComparisonPanel;

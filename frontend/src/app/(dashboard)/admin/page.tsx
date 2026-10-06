@@ -1,4 +1,5 @@
 'use client';
+import type { BackendProfile, BackendCourseSummary } from '@/types/backend';
 
 import React from 'react';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import type { Grade } from '@/types';
 
 export default function AdminOverview() {
   const { courses, students, teachers } = useAdmin();
-  const [realUsers, setRealUsers] = React.useState<any[]>([]);
+  const [realUsers, setRealUsers] = React.useState<BackendProfile[]>([]);
 
   React.useEffect(() => {
     adminApi.listUsers({ page_size: 100 })
@@ -24,17 +25,17 @@ export default function AdminOverview() {
       .catch(() => {});
   }, []);
 
-  const studentCount = realUsers.length > 0 
-    ? realUsers.filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor')).length 
+  const studentCount = realUsers.length > 0
+    ? realUsers.filter((u: BackendProfile) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor')).length
     : students.length;
-  const teacherCount = realUsers.length > 0 
-    ? realUsers.filter((u: any) => u.roles?.includes('Instructor')).length 
+  const teacherCount = realUsers.length > 0
+    ? realUsers.filter((u: BackendProfile) => u.roles?.includes('Instructor')).length
     : teachers.length;
   const totalCourses = courses.length;
 
   const dynamicStudentsByGrade = [1, 2, 3, 4, 5].map((g) => {
     const count = realUsers.length > 0
-      ? realUsers.filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor') && (u.grade || 5) === g).length
+      ? realUsers.filter((u: BackendProfile) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor') && (u.grade || 5) === g).length
       : students.filter((s) => s.grade === g).length;
     return { grade: `Grade ${g}`, students: count };
   });

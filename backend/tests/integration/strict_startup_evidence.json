@@ -1,0 +1,26 @@
+[
+  {
+    "url": "http://127.0.0.1:8000/health/live",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:8000/health/ready",
+    "status": 200
+  },
+  {
+    "url": "http://127.0.0.1:8000/docs",
+    "status": 200
+  },
+  {
+    "url": "http://localhost:3000/login",
+    "status": 200
+  },
+  {
+    "url": "http://localhost:3000/admin",
+    "status": 200
+  },
+  {
+    "url": "http://localhost:3000/dashboard",
+    "status": 200
+  }
+]

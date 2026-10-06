@@ -3,6 +3,7 @@ export type Grade = 1 | 2 | 3 | 4 | 5;
 export type Subject = 'math' | 'science' | 'english' | 'computer';
 
 export interface User {
+  id?: string;
   name: string;
   email: string;
   role: Role;

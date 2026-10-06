@@ -1,0 +1,28 @@
+{
+  "exact_job": "4273d32e-4f3e-4993-a4dc-42ca292c7f4a",
+  "reviewed_exact_mp4_scenes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "animation_samples": [
+    "entrance at 0.25 s",
+    "transition at 19.706 s",
+    "scene 7 early vs late at 125 s"
+  ],
+  "character_visible": true,
+  "text_readable": true,
+  "topic_diagrams": true,
+  "animated_reveals": true,
+  "teacher_motion": true,
+  "transitions": true,
+  "no_severe_clipping_or_overlap_observed": true,
+  "character_type": "IMPROVED PLACEHOLDER",
+  "caption_timing": "duration-based word groups; not word timestamps",
+  "mouth_motion": "illustrative; not phoneme lip sync"
+}

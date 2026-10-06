@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from 'next/navigation';
 import { ArrowRightIcon, TrophyIcon } from 'lucide-react';
 import { ButtonLink } from '@/components/student/ButtonLink';
@@ -13,10 +14,12 @@ import { learningApi } from '@/utils/learningApi';
 
 export default function Lesson() {
   const params = useParams();
+  const { user } = useAuth();
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
   const lessonId = Array.isArray(params.lessonId) ? params.lessonId[0] : (params.lessonId || '');
+  const previewMode = Boolean(user && user.role !== 'student');
   const { updateLessonProgress, completeLesson } = useProgress();
-  const q = useAsync(() => learningApi.getLesson(courseId, lessonId), [courseId, lessonId]);
+  const q = useAsync(() => learningApi.getLesson(courseId, lessonId), [courseId, lessonId, user?.id]);
 
   if (q.loading) {
     return (
@@ -44,6 +47,8 @@ export default function Lesson() {
   if (lesson.videoUrl) {
     return (
       <VideoLessonPlayer
+        key={lesson.id}
+        previewMode={previewMode}
         course={course}
         lesson={lesson}
         index={index}
@@ -60,19 +65,19 @@ export default function Lesson() {
       subject={course.subject}
       steps={lesson.steps}
       exitTo={`/dashboard/courses/${course.id}`}
-      onProgress={(p) => p < 100 && updateLessonProgress(lesson.id, p)}
-      onComplete={(score) => completeLesson(lesson.id, score)}
+      onProgress={(p) => !previewMode && p < 100 && updateLessonProgress(lesson.id, p)}
+      onComplete={(score) => previewMode ? Promise.resolve() : completeLesson(lesson.id, score)}
       renderComplete={(score) => (
         <CompletionScreen
           subject={course.subject}
-          heading="Lesson complete!"
+          heading={previewMode ? "Lesson preview finished" : "Lesson complete!"}
           message={
             next
               ? `You finished “${lesson.title}”. Up next: ${next.title}.`
               : `That’s every lesson in ${course.title}. Time to show what you know!`
           }
           score={score}
-          xp={20 + score.correct * 10}
+          xp={previewMode ? 0 : 20 + score.correct * 10}
           actions={
             <>
               {next ? (

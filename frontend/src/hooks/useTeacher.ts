@@ -1,3 +1,4 @@
+import type { BackendProfile, BackendCourseSummary } from '@/types/backend';
 import { useMemo, useState, useEffect } from 'react';
 import { useClasses } from '@/contexts/ClassesContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,11 +19,11 @@ export function useTeacher() {
     adminApi.listUsers({ page_size: 100 })
       .then((data) => {
         if (data?.items && Array.isArray(data.items)) {
-          const learners = data.items.filter((u: any) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor'));
-          const mapped: StudentRecord[] = learners.map((u: any) => ({
+          const learners = data.items.filter((u: BackendProfile) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor'));
+          const mapped: StudentRecord[] = learners.map((u: BackendProfile) => ({
             id: u.id,
             name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
-            grade: (u.grade || 5) as any,
+            grade: (u.grade || 5),
             courseIds: catalogCourses.filter((c) => c.grade === (u.grade || 5)).map((c) => c.id),
             progress: 45,
             avgScore: 78,

@@ -13,7 +13,7 @@ export function WarmupCard({ grade }: {grade: Grade;}) {
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
-  const timer = useRef<any>(null);
+  const timer = useRef<number | undefined>(undefined);
 
   const answered = status === 'done' ? questions.length : index + (picked !== null ? 1 : 0);
   const q = questions[index];

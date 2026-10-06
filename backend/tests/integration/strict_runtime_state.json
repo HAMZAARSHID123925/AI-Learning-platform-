@@ -1,0 +1,16 @@
+{
+  "tag": "strict-6b175e6d",
+  "users": {
+    "admin": "a68bcc0b-2d0a-4b2a-b171-79b16f5f6235",
+    "student": "7ab4c054-32ba-4c2b-a49c-38e7ae6f5930",
+    "other": "1e93b8c5-f5b6-4e34-8ff0-492a264e72ef"
+  },
+  "skill": "4519529e-33d9-4a3a-959b-ae4a21888ce0",
+  "course": "61075b5d-ed79-467b-a08d-426b7fb43d61",
+  "module": "430c2d56-7a9b-4f52-be70-3b2b21fa0f99",
+  "lesson": "105cd9b9-ea29-4d8c-b51e-debbee31f875",
+  "submission": "26570f0d-ce8b-458a-983a-036cd60015eb",
+  "assessment": "325ef193-938f-44d8-9845-d36efeb50d3b",
+  "video_job": "4273d32e-4f3e-4993-a4dc-42ca292c7f4a",
+  "weakness": "d5df3b81-0967-43a1-a91b-47d7a9a04974"
+}

@@ -5,12 +5,13 @@ import { ArrowLeftIcon, PlusIcon, UploadIcon, CheckCircleIcon } from 'lucide-rea
 import Link from 'next/link';
 import { Button } from '@/components/shared/Button';
 import { adminApi } from '@/utils/adminApi';
-import type { Course } from '@/types/learning';
+import type { Course, LessonSummary } from '@/types/learning';
 import { toast } from 'sonner';
 
 export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl: string }) {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  const [skills, setSkills] = useState<{id: string; name: string}[]>([]);
 
   const loadCourse = async () => {
     try {
@@ -24,7 +25,12 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
   };
 
   useEffect(() => {
-    loadCourse();
+    let active = true;
+    void adminApi.getCourseDetail(courseId).then(data => { if (active) setCourse(data); })
+      .catch(() => toast.error('Failed to load course details'))
+      .finally(() => { if (active) setLoading(false); });
+    adminApi.listSkills().then(setSkills).catch(() => toast.error('Could not load curriculum skills'));
+    return () => { active = false; };
   }, [courseId]);
 
   const handleAddModule = async () => {
@@ -60,12 +66,12 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
     }
 
     try {
-      toast.loading('Uploading media directly...', { id: 'upload' });
-      await adminApi.directUpload(courseId, file, mediaType, lessonId);
+      toast.loading('Uploading media...', { id: 'upload' });
+      await adminApi.uploadMedia(courseId, file, mediaType, lessonId);
       toast.success('Media uploaded successfully!', { id: 'upload' });
       loadCourse();
-    } catch (err: any) {
-      toast.error(`Upload error: ${err.message}`, { id: 'upload' });
+    } catch (err: unknown) {
+      toast.error(`Upload error: ${err instanceof Error ? err.message : 'Please try again.'}`, { id: 'upload' });
     }
   };
 
@@ -81,7 +87,7 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
     }
   };
 
-  const handlePublishLesson = async (lesson: any) => {
+  const handlePublishLesson = async (lesson: LessonSummary) => {
     if (!lesson.bodyMarkdown) {
       toast.error('Lesson must have markdown content to be published');
       return;
@@ -112,10 +118,10 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
         <div>
           <h1 className="text-3xl font-black text-ink">{course.title} (Builder)</h1>
           <p className="text-ink-soft">{course.description || 'No description'}</p>
-          <p className="text-sm font-bold text-ink-muted">Status: {(course as any).status || 'draft'}</p>
+          <p className="text-sm font-bold text-ink-muted">Status: {course.status || 'draft'}</p>
         </div>
         <div className="flex items-center gap-2">
-          {(course as any).status !== 'published' && (
+          {course.status !== 'published' && (
             <Button variant="brand" onClick={async () => {
               try {
                 await adminApi.publishCourse(course.id);
@@ -158,6 +164,18 @@ export function CourseBuilder({ courseId, backUrl }: { courseId: string; backUrl
                       </Button>
                     )}
                   </div>
+                  <label className="text-sm font-bold">
+                    Assessment skills
+                    <select multiple value={l.skillIds || []} className="block w-full rounded-2xl border border-line p-2"
+                      onChange={async e => {
+                        try {
+                          await adminApi.updateLesson(l.id, { skill_ids: Array.from(e.target.selectedOptions, o => o.value) });
+                          await loadCourse();
+                        } catch { toast.error('Could not save lesson skills'); }
+                      }}>
+                      {skills.map(skill => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+                    </select>
+                  </label>
                   <div className="flex flex-wrap items-center gap-3">
                     <Button variant="ghost" onClick={() => handleEditMarkdown(l.id, l.bodyMarkdown || '')}>
                       Edit Markdown

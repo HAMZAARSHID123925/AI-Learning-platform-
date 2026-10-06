@@ -1,0 +1,34 @@
+{
+  "tag": "product-b0a516df",
+  "users": {
+    "admin": "a68bcc0b-2d0a-4b2a-b171-79b16f5f6235",
+    "student": "7ab4c054-32ba-4c2b-a49c-38e7ae6f5930",
+    "other": "1e93b8c5-f5b6-4e34-8ff0-492a264e72ef"
+  },
+  "skill": "4519529e-33d9-4a3a-959b-ae4a21888ce0",
+  "course": "b04e2f57-e219-41bb-b4fd-94ae866d515d",
+  "published": true,
+  "module": "5a9a8bcf-ec9c-4582-b0e8-efa895621f22",
+  "lesson": "7a6e25c1-c2aa-4fed-aebc-0ee6b4720b92",
+  "checkpoint": {
+    "modules": {
+      "m1": "5a9a8bcf-ec9c-4582-b0e8-efa895621f22"
+    },
+    "lessons": {
+      "m1:l1": "7a6e25c1-c2aa-4fed-aebc-0ee6b4720b92"
+    },
+    "completed": {
+      "m1:l1:notes": true,
+      "m1:l1:video": true,
+      "m1:l1:published": true,
+      "published": true
+    },
+    "courseId": "b04e2f57-e219-41bb-b4fd-94ae866d515d",
+    "thumbnailUploaded": true
+  },
+  "assessment": "f67cd256-935e-4a30-b53d-db1378c9a894",
+  "submission": "b7cff2a1-3c0a-47c5-b157-78f9b743d767",
+  "weakness": "d5df3b81-0967-43a1-a91b-47d7a9a04974",
+  "remediation": "234d4dda-1b3b-44b6-a171-9f08bfd966a6",
+  "video_job": "bfc674c9-b3d1-4eb8-b3fa-3defe81c821a"
+}

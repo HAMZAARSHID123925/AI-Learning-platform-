@@ -1,4 +1,5 @@
 'use client';
+import type { BackendProfile, BackendCourseSummary } from '@/types/backend';
 
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -10,7 +11,7 @@ import { ProgressBar } from '@/components/shared/ProgressBar';
 import { useAdmin } from '@/contexts/AdminContext';
 import { courses as catalog } from '@/data/courses';
 import { initials, performanceLabel, subjectStyles } from '@/utils/subjects';
-import type { Grade } from '@/types';
+import type { Grade, StudentRecord } from '@/types';
 
 import { adminApi } from '@/utils/adminApi';
 
@@ -18,7 +19,7 @@ const gradeFilters: (Grade | 'all')[] = ['all', 1, 2, 3, 4, 5];
 
 export default function AdminStudents() {
   const { students, addStudent } = useAdmin();
-  const [backendUsers, setBackendUsers] = useState<any[]>([]);
+  const [backendUsers, setBackendUsers] = useState<StudentRecord[]>([]);
   const [query, setQuery] = useState('');
   const [grade, setGrade] = useState<Grade | 'all'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function AdminStudents() {
     adminApi.listUsers({ page_size: 50 })
       .then((data) => {
         if (data?.items && Array.isArray(data.items)) {
-          const mapped = data.items.map((u: any) => {
+          const mapped = data.items.map((u: BackendProfile) => {
             const userGrade = (u.grade || 5) as Grade;
             const userCourses = catalog.filter((c) => c.grade === userGrade).map((c) => c.id);
             return {
@@ -43,6 +44,7 @@ export default function AdminStudents() {
               avgScore: 0,
               lastActive: 'Active today',
               weakAreas: [],
+              assessments: [],
             };
           });
           setBackendUsers(mapped);

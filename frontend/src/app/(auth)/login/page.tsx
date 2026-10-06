@@ -1,4 +1,5 @@
 'use client';
+import type { LucideIcon } from 'lucide-react';
 
 import React, { useState } from "react";
 
@@ -14,7 +15,7 @@ const roles: {
   id: Role;
   label: string;
   hint: string;
-  icon: any;
+  icon: LucideIcon;
 }[] = [{
   id: 'student',
   label: 'Student',
@@ -122,7 +123,7 @@ function LoginInner() {
                 Sign up
               </a>
             </p>
-            <p className="text-xs text-ink-muted">Use any email and a 6+ character password to explore.</p>
+            <p className="text-xs text-ink-muted">Sign in with your registered email and password.</p>
           </div>
         </div>
       </main>

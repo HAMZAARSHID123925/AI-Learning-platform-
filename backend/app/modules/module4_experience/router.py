@@ -167,6 +167,9 @@ async def complete_lesson(
     if not current_user.has_role("Student"):
         raise AuthorizationError("Only students can track progress.")
 
+    from app.modules.module5_assessment.services.access_service import require_target_access
+    await require_target_access(db, current_user, lesson_id=lesson_id, student_mode=True)
+
     progress = await progress_service.mark_lesson_complete(
         db=db,
         student_id=current_user.id,

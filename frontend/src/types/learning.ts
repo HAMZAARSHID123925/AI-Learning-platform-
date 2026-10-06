@@ -76,6 +76,7 @@ export type LearningStep = LessonStep;
 /* ---------- Courses & lessons ---------- */
 
 export interface LessonSummary {
+  skillIds?: string[];
   id: string;
   title: string;
   minutes: number;
@@ -88,6 +89,7 @@ export interface LessonSummary {
 }
 
 export interface Course {
+  status?: CourseStatus;
   id: string;
   slug?: string;
   grade: Grade;
@@ -228,7 +230,7 @@ export interface RealSubmission {
   isPassed: boolean;
   feedbackSummary: string;
   createdAt?: string;
-  answers?: any[];
+  answers?: {question_id: string;selected_option_id: string}[];
   weaknesses?: WeaknessFlag[];
 }
 
@@ -241,11 +243,14 @@ export interface WeaknessFlag {
 }
 
 export interface RemediationPlan {
+  weakness_flag_id?: string;
   id: string;
   remedial_course_markdown: string;
 }
 
 export interface VideoGenerationJob {
+  weakness_flag_id?: string;
+  error_code?: string | null;
   id: string;
   status: string;
   title: string;
@@ -261,5 +266,5 @@ export interface LegacyCourseData {
   description: string;
   image: string;
   skills: string[];
-  lessons: any[];
+  lessons: LessonSummary[];
 }

@@ -1,0 +1,535 @@
+[
+  {
+    "check": "Real login admin",
+    "pass": false,
+    "status": 422
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill available",
+    "pass": true,
+    "skill_name": "Algebra"
+  },
+  {
+    "check": "Course persisted with selected grade",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Draft excluded from real Student list",
+    "pass": true
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Frontend helper presign PUT confirm completed",
+    "pass": true,
+    "bytes": 89819
+  },
+  {
+    "check": "Builder real contract includes published lesson and notes",
+    "pass": true
+  },
+  {
+    "check": "Builder current curriculum tags preserved",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Matching Student real course list includes course",
+    "pass": true
+  },
+  {
+    "check": "Real course/module/lesson IDs navigate",
+    "pass": true
+  },
+  {
+    "check": "Signed private lesson source delivered",
+    "pass": true
+  },
+  {
+    "check": "Signed lesson media retrieval",
+    "pass": true,
+    "status": 200,
+    "content_type": "video/mp4"
+  },
+  {
+    "check": "Lesson media non-zero",
+    "pass": true,
+    "bytes": 89819
+  },
+  {
+    "check": "Unsigned lesson media denied",
+    "pass": true,
+    "status": 400
+  },
+  {
+    "check": "Lesson Range retrieval",
+    "pass": true,
+    "status": 206
+  },
+  {
+    "check": "Storage browser origin permitted",
+    "pass": false,
+    "cors_origin": null
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill available",
+    "pass": true,
+    "skill_name": "Algebra"
+  },
+  {
+    "check": "Course persisted with selected grade",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Builder real contract includes published lesson and notes",
+    "pass": true
+  },
+  {
+    "check": "Builder current curriculum tags preserved",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Matching Student real course list includes course",
+    "pass": true
+  },
+  {
+    "check": "Real course/module/lesson IDs navigate",
+    "pass": true
+  },
+  {
+    "check": "Signed private lesson source delivered",
+    "pass": true
+  },
+  {
+    "check": "Signed lesson media retrieval",
+    "pass": true,
+    "status": 200,
+    "content_type": "video/mp4"
+  },
+  {
+    "check": "Lesson media non-zero",
+    "pass": true,
+    "bytes": 89819
+  },
+  {
+    "check": "Unsigned lesson media denied",
+    "pass": true,
+    "status": 400
+  },
+  {
+    "check": "Lesson Range retrieval",
+    "pass": true,
+    "status": 206
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Wrong-grade Student query override excluded",
+    "pass": true
+  },
+  {
+    "check": "Wrong-grade completion denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Completion persisted after independent reload request",
+    "pass": true
+  },
+  {
+    "check": "Real course fully complete",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Exactly ten real MCQs",
+    "pass": true,
+    "test_id": "428a340f-18a0-4a3d-97d2-ce56ef7efca4"
+  },
+  {
+    "check": "No answer-key or rubric leakage",
+    "pass": true
+  },
+  {
+    "check": "Real deterministic grading persisted",
+    "pass": true,
+    "total_count": 10,
+    "percentage": 20
+  },
+  {
+    "check": "Intentionally weak result",
+    "pass": true
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private submission denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Actual submission weakness exists",
+    "pass": true
+  },
+  {
+    "check": "Real remediation owns weak submission",
+    "pass": true
+  },
+  {
+    "check": "One real video job created",
+    "pass": true,
+    "job_id": "6f87416c-46d9-42e4-b5f9-37ba0ed752ec"
+  },
+  {
+    "check": "Persisted real video status retrieved",
+    "pass": true,
+    "status": "queued"
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private video denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Other Student remediation document denied",
+    "pass": true,
+    "status": 404
+  },
+  {
+    "check": "Frontend to backend browser CORS",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "R2 actual browser PUT preflight",
+    "pass": false,
+    "status": 403,
+    "allow_origin": null
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Actual submission weakness exists",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Actual submission weakness exists",
+    "pass": true
+  },
+  {
+    "check": "Real remediation owns weak submission",
+    "pass": true
+  },
+  {
+    "check": "Persisted real video status retrieved",
+    "pass": true,
+    "status": "failed"
+  },
+  {
+    "check": "Owner remediation detail accessible",
+    "pass": true
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private video denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Other Student remediation document denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real video job ready",
+    "pass": true,
+    "status": "ready"
+  },
+  {
+    "check": "Signed personalized playback delivered",
+    "pass": true
+  },
+  {
+    "check": "Real personalized MP4 retrieval",
+    "pass": true,
+    "status": 200,
+    "bytes": 7846493
+  },
+  {
+    "check": "Personalized permanent private URL denied",
+    "pass": true,
+    "status": 400
+  },
+  {
+    "check": "Ready state survives independent reload request",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Actual submission weakness exists",
+    "pass": true
+  },
+  {
+    "check": "Real remediation owns weak submission",
+    "pass": true
+  },
+  {
+    "check": "Persisted real video status retrieved",
+    "pass": true,
+    "status": "ready"
+  },
+  {
+    "check": "Owner remediation detail accessible",
+    "pass": true
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private video denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Other Student remediation document denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Frontend to backend browser CORS",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "R2 actual browser PUT preflight",
+    "pass": false,
+    "status": 403,
+    "allow_origin": null
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill available",
+    "pass": true,
+    "skill_name": "Algebra"
+  },
+  {
+    "check": "Course persisted with selected grade",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Builder real contract includes published lesson and notes",
+    "pass": true
+  },
+  {
+    "check": "Builder current curriculum tags preserved",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Matching Student real course list includes course",
+    "pass": true
+  },
+  {
+    "check": "Real course/module/lesson IDs navigate",
+    "pass": true
+  },
+  {
+    "check": "Signed private lesson source delivered",
+    "pass": true
+  },
+  {
+    "check": "Signed lesson media retrieval",
+    "pass": true,
+    "status": 200,
+    "content_type": "video/mp4"
+  },
+  {
+    "check": "Lesson media non-zero",
+    "pass": true,
+    "bytes": 89819
+  },
+  {
+    "check": "Unsigned lesson media denied",
+    "pass": true,
+    "status": 400
+  },
+  {
+    "check": "Lesson Range retrieval",
+    "pass": true,
+    "status": 206
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Wrong-grade Student query override excluded",
+    "pass": true
+  },
+  {
+    "check": "Wrong-grade completion denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Completion persisted after independent reload request",
+    "pass": true
+  },
+  {
+    "check": "Real course fully complete",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Exactly ten real MCQs",
+    "pass": true,
+    "test_id": "428a340f-18a0-4a3d-97d2-ce56ef7efca4"
+  },
+  {
+    "check": "No answer-key or rubric leakage",
+    "pass": true
+  },
+  {
+    "check": "Real deterministic grading persisted",
+    "pass": true,
+    "total_count": 10,
+    "percentage": 20
+  },
+  {
+    "check": "Intentionally weak result",
+    "pass": true
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private submission denied",
+    "pass": true,
+    "status": 403
+  }
+]

@@ -1,0 +1,182 @@
+[
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill",
+    "pass": true
+  },
+  {
+    "check": "Grade and published DB course",
+    "pass": true
+  },
+  {
+    "check": "Thumbnail persisted",
+    "pass": false
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill",
+    "pass": true
+  },
+  {
+    "check": "Grade and published DB course",
+    "pass": true
+  },
+  {
+    "check": "Thumbnail persisted",
+    "pass": false
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill",
+    "pass": true
+  },
+  {
+    "check": "Grade and published DB course",
+    "pass": true
+  },
+  {
+    "check": "Thumbnail persisted",
+    "pass": true
+  },
+  {
+    "check": "Private thumbnail actually loads",
+    "pass": true
+  },
+  {
+    "check": "Lesson notes video and skill associations",
+    "pass": true
+  },
+  {
+    "check": "Admin list independent refresh contains course",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Student published grade course visibility",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real login admin",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Real curriculum skill",
+    "pass": true
+  },
+  {
+    "check": "Grade and published DB course",
+    "pass": true
+  },
+  {
+    "check": "Thumbnail persisted",
+    "pass": true
+  },
+  {
+    "check": "Private thumbnail actually loads",
+    "pass": true
+  },
+  {
+    "check": "Lesson notes video and skill associations",
+    "pass": true
+  },
+  {
+    "check": "Admin list independent refresh contains course",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Student published grade course visibility",
+    "pass": true
+  },
+  {
+    "check": "Real lesson completion reload",
+    "pass": true
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Exactly ten real MCQs",
+    "pass": true,
+    "test_id": "f67cd256-935e-4a30-b53d-db1378c9a894"
+  },
+  {
+    "check": "No answer-key or rubric leakage",
+    "pass": true
+  },
+  {
+    "check": "Real deterministic grading persisted",
+    "pass": true,
+    "total_count": 10,
+    "percentage": 0
+  },
+  {
+    "check": "Intentionally weak result",
+    "pass": true
+  },
+  {
+    "check": "Real login other",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Other Student private submission denied",
+    "pass": true,
+    "status": 403
+  },
+  {
+    "check": "Real login student",
+    "pass": true,
+    "status": 200
+  },
+  {
+    "check": "Actual submission weakness exists",
+    "pass": true
+  },
+  {
+    "check": "Real remediation owns weak submission",
+    "pass": true
+  },
+  {
+    "check": "Concurrent result mounts use same real job",
+    "pass": true
+  },
+  {
+    "check": "One real video job created",
+    "pass": false,
+    "job_id": "bfc674c9-b3d1-4eb8-b3fa-3defe81c821a"
+  }
+]

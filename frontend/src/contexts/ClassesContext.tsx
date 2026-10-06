@@ -1,4 +1,5 @@
 'use client';
+import type { BackendLiveSession } from '@/types/backend';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { liveClasses as seed } from '@/data/liveClasses';
@@ -34,7 +35,7 @@ export function ClassesProvider({ children }: {children: React.ReactNode;}) {
         if (res.ok) {
           const sessions = await res.json();
           if (Array.isArray(sessions) && sessions.length > 0) {
-            const mapped: LiveClass[] = sessions.map((s: any) => {
+            const mapped: LiveClass[] = sessions.map((s: BackendLiveSession) => {
               const sched = new Date(s.scheduled_at);
               const now = new Date();
               const diffDays = Math.round((sched.getTime() - now.getTime()) / (1000 * 3600 * 24));

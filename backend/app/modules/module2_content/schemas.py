@@ -25,6 +25,7 @@ class CreateCourseRequest(BaseModel):
     description: str | None = None
     grade: int | None = Field(default=None, ge=1, le=5)
     slug: str | None = None  # Auto-generated if not provided
+    instructor_id: uuid.UUID | None = None
 
     @field_validator("slug", mode="before")
     @classmethod
@@ -140,6 +141,7 @@ class LessonResponse(BaseModel):
     sequence_order: int
     content_version: int
     estimated_minutes: int | None
+    body_markdown: str | None = None
     video_url: str | None = None
     thumbnail_url: str | None = None
     duration_seconds: int | None = None

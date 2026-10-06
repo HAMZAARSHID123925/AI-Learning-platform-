@@ -7,6 +7,10 @@ import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Focus screens own their navigation/footer. A transformed animated parent
+  // also changes the containing block of fixed controls.
+  const focusMode = /^\/dashboard\/(?:learn\/|courses\/[^/]+\/(?:challenge|learn)(?:\/|$)|practice\/[^/]+$)/.test(pathname);
+  if (focusMode) return <ProgressProvider>{children}</ProgressProvider>;
   return (
     <ProgressProvider>
       <StudentTopNav />

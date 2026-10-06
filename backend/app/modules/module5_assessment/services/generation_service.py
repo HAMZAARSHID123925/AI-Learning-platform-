@@ -10,6 +10,8 @@ Purpose:
 from __future__ import annotations
 
 import json
+import re
+from fractions import Fraction
 import uuid
 from typing import Any
 
@@ -35,7 +37,7 @@ on the provided authoritative lesson excerpts.
 RULES:
 1. Every question must directly test concepts present in the provided context excerpts.
 2. Produce ONLY Multiple Choice Questions (MCQ). Do NOT generate short answer questions.
-3. For MCQ: Provide 4 options. Exactly ONE option must have "is_correct": true. Provide realistic distractors. Every option must have an "id" and "text".
+3. For MCQ: Provide 4 options. Exactly ONE option must have "is_correct": true. Exactly ONE option must be mathematically or semantically correct, not merely flagged correct. Equivalent forms (such as 1/2 and 4/8) cannot both be options for an equivalence question. Provide realistic distractors. Every option must have an "id" and "text".
 4. Output MUST be strictly valid JSON matching the requested schema. Do not include markdown codeblocks or commentary outside the JSON.
 """
 
@@ -66,6 +68,19 @@ def validate_generated_mcqs(data: dict, count: int, skill_names: set[str] | None
             values = [o.get(key) for o in options]
             if any(not isinstance(v, str) or not v.strip() for v in values) or len({v.strip().casefold() for v in values}) != 4:
                 raise ValueError("Option identifiers and texts must be nonempty and unique")
+
+
+        # Check the actual mathematical truth of simple fraction equivalence MCQs.
+        targets = re.findall(r"(?<!\d)(\d+)\s*/\s*(\d+)(?!\d)", prompt)
+        option_fractions = [re.fullmatch(r"\s*(\d+)\s*/\s*(\d+)\s*", o["text"]) for o in options]
+        if "equivalent" in prompt.casefold() and len(targets) == 1 and all(option_fractions):
+            numerator, denominator = map(int, targets[0])
+            if denominator == 0 or any(int(m.group(2)) == 0 for m in option_fractions):
+                raise ValueError("Fraction denominators must be nonzero")
+            target = Fraction(numerator, denominator)
+            truth = [Fraction(int(m.group(1)), int(m.group(2))) == target for m in option_fractions]
+            if sum(truth) != 1 or truth != [o["is_correct"] for o in options]:
+                raise ValueError("Fraction equivalence must have exactly one mathematically correct option")
 
 
 async def generate_lesson_assessment(

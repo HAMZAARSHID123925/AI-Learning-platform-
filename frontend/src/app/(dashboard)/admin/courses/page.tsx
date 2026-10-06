@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { PlusIcon, UserPlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
@@ -60,7 +61,7 @@ export default function AdminCourses() {
                 <s.icon className={`h-6 w-6 ${s.text}`} />
               </span>
               <div className="min-w-0">
-                <p className="truncate font-black text-ink">{c.title || courseName(c.grade, c.subject)}</p>
+                <Link href={`/admin/courses/${c.id}/builder`} className="block truncate font-black text-ink hover:text-brand-500">{c.title || courseName(c.grade, c.subject)}</Link>
                 <p className="truncate text-sm text-ink-muted">{courseName(c.grade, c.subject)}</p>
               </div>
 
@@ -94,9 +95,10 @@ export default function AdminCourses() {
                   role="switch"
                   aria-checked={published}
                   aria-label={`${courseName(c.grade, c.subject)} visible to students`}
-                  onClick={() => {
-                    toggleStatus(c.id);
-                    toast(published ? 'Moved to drafts — hidden from students' : 'Published — students can see it now');
+                  disabled={published}
+                  onClick={async () => {
+                    try { await toggleStatus(c.id); toast.success('Published — students can see it now'); }
+                    catch (error) { toast.error(error instanceof Error ? error.message : 'Could not publish course'); }
                   }}
                   className={`relative h-7 w-12 rounded-full transition-colors duration-150 ${published ? 'bg-science-500' : 'bg-line'}`}>
                   

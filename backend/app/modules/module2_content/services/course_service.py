@@ -17,7 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.module2_content.models import Course, CourseModule, CourseStatus
+from app.modules.module2_content.models import Course, CourseModule, CourseStatus, Lesson
 from app.shared.exceptions import (
     BusinessRuleError,
     DuplicateResourceError,
@@ -94,7 +94,7 @@ async def get_course(db: AsyncSession, course_id: uuid.UUID) -> Course:
     result = await db.execute(
         select(Course)
         .where(Course.id == course_id)
-        .options(selectinload(Course.modules).selectinload(CourseModule.lessons))
+        .options(selectinload(Course.modules).selectinload(CourseModule.lessons).selectinload(Lesson.lesson_skills))
     )
     course = result.scalar_one_or_none()
     if not course:

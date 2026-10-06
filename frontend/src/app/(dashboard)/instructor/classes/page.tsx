@@ -19,10 +19,10 @@ export default function TeacherClasses() {
   const allSelectableCourses = React.useMemo(() => {
     const list = [...myCourses.map((m) => m.course)];
     adminCourses.forEach((ac) => {
-      if (!list.some((c) => c.id === ac.id)) list.push(ac as any);
+      if (!list.some((c) => c.id === ac.id)) list.push({id: ac.id, title: ac.title || 'Course', grade: ac.grade, subject: ac.subject, description: '', image: '', skills: [], lessons: []});
     });
     catalogCourses.forEach((cc) => {
-      if (!list.some((c) => c.id === cc.id)) list.push(cc as any);
+      if (!list.some((c) => c.id === cc.id)) list.push(cc);
     });
     return list;
   }, [myCourses, adminCourses]);

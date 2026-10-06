@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Standalone Node CommonJS diagnostic script. */
 const fs = require('fs');
 
 async function testLessonApi() {

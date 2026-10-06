@@ -48,10 +48,29 @@ async def process_video_generation_job(event_payload: dict, db: AsyncSession) ->
     owner=uuid.uuid4().hex
     if not await redis.set(key,owner,nx=True,ex=120):return {'status':'busy'}
     async def renew():
+        from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
+        loop = asyncio.get_running_loop()
+        # Retry transient broker failures only within the last confirmed lease.
+        deadline = loop.time() + 110
+        delay = 30
         while True:
-            await asyncio.sleep(30)
-            refreshed=await redis.eval("if redis.call('get',KEYS[1]) == ARGV[1] then return redis.call('expire',KEYS[1],120) else return 0 end",1,key,owner)
-            if not refreshed:raise RuntimeError('Video worker lease lost')
+            await asyncio.sleep(delay)
+            started = loop.time()
+            remaining = deadline - started
+            if remaining <= 0:
+                raise RuntimeError('Video worker lease expired')
+            try:
+                refreshed = await asyncio.wait_for(redis.eval(
+                    "if redis.call('get',KEYS[1]) == ARGV[1] then return redis.call('expire',KEYS[1],120) else return 0 end",
+                    1, key, owner), timeout=min(10, remaining))
+            except (RedisConnectionError, RedisTimeoutError, asyncio.TimeoutError):
+                logger.warning('video_lease_renew_retry')
+                delay = min(5, max(0, deadline - loop.time()))
+                continue
+            if not refreshed:
+                raise RuntimeError('Video worker lease lost')
+            deadline = started + 110
+            delay = 30
     heartbeat=asyncio.create_task(renew())
     processing=asyncio.create_task(_process_owned_job(job_id,db))
     try:
@@ -63,7 +82,7 @@ async def process_video_generation_job(event_payload: dict, db: AsyncSession) ->
         return await processing
     finally:
         heartbeat.cancel()
-        with suppress(asyncio.CancelledError):await heartbeat
+        with suppress(asyncio.CancelledError, Exception):await heartbeat
         try:
             await redis.eval("if redis.call('get',KEYS[1]) == ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end",1,key,owner)
         except Exception as exc:
@@ -102,12 +121,18 @@ async def _process_owned_job(job_id: uuid.UUID, db: AsyncSession) -> dict:
     except Exception as exc:
         await db.rollback()
         job=await db.get(VideoGenerationJob,job_id)
+        # Services already persist the specific failure; do not replace it with
+        # just the exception type, which hides actionable rendering diagnostics.
+        detail = job.error_message if job.status == VideoJobStatus.failed and job.error_message else stage+': '+type(exc).__name__
+        import re
+        detail = re.sub(r'https?://[^\s]+', '[URL REDACTED]', detail)
+        detail = re.sub(r'(?i)Bearer\s+\S+|sk-[A-Za-z0-9_*\-]+', '[CREDENTIAL REDACTED]', detail)
         job.status=VideoJobStatus.failed
         job.error_code='VIDEO_'+stage.upper()+'_FAILED'
-        job.error_message=stage+': '+type(exc).__name__
+        job.error_message=detail[:2000]
         job.retry_count+=1
         await db.commit()
-        logger.error('video_job_failed',job_id=str(job_id),stage=stage,error_type=type(exc).__name__)
+        logger.error('video_job_failed',job_id=str(job_id),stage=stage,error_type=type(exc).__name__,error_detail=job.error_message)
         return {'status':'error','reason':job.error_code}
 
 

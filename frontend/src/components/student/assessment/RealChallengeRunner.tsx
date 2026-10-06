@@ -9,9 +9,10 @@ import { FocusTopBar } from '../lesson/FocusTopBar';
 import { OptionButton, type OptionState } from '../lesson/OptionButton';
 import { QuestionNav } from './QuestionNav';
 import { learningApi } from '@/utils/learningApi';
-import type { RealAssessment, Course } from '@/types/learning';
+import type { Course } from '@/types/learning';
+import type { BackendAssessment } from '@/types/backend';
 
-export function RealChallengeRunner({ course, assessment, onFinished }: {course: Course;assessment: RealAssessment; onFinished?: (submissionId: string) => void;}) {
+export function RealChallengeRunner({ course, assessment, onFinished }: {course: Course;assessment: BackendAssessment; onFinished?: (submissionId: string) => void;}) {
   const router = useRouter();
   const questions = assessment.questions;
   const total = questions.length;

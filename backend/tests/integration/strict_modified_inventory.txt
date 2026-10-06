@@ -1,0 +1,125 @@
+ M backend/app/modules/module1_auth/schemas.py
+ M backend/app/modules/module2_content/router.py
+ M backend/app/modules/module2_content/schemas.py
+ M backend/app/modules/module2_content/services/course_service.py
+ M backend/app/modules/module4_experience/router.py
+ M backend/app/modules/module5_assessment/services/generation_service.py
+ M backend/app/modules/module6_adaptive/services/audio_generation_service.py
+ M backend/app/modules/module6_adaptive/services/script_generation_service.py
+ M backend/app/modules/module6_adaptive/services/video_job_service.py
+ M backend/tests/certification/certify_module13.py
+ M frontend/create_test.js
+ M frontend/next.config.ts
+ M frontend/src/app/(auth)/login/page.tsx
+ M frontend/src/app/(auth)/onboarding/grade/page.tsx
+ M frontend/src/app/(auth)/signup/page.tsx
+ M frontend/src/app/(dashboard)/admin/courses/page.tsx
+ M frontend/src/app/(dashboard)/admin/page.tsx
+ M frontend/src/app/(dashboard)/admin/students/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/courses/[courseId]/challenge/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/courses/[courseId]/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/courses/[courseId]/personalized/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/courses/[courseId]/results/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/courses/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/layout.tsx
+ M frontend/src/app/(dashboard)/dashboard/learn/[courseId]/[lessonId]/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/practice/[testId]/results/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/review/[jobId]/page.tsx
+ M frontend/src/app/(dashboard)/dashboard/you/page.tsx
+ M frontend/src/app/(dashboard)/instructor/classes/page.tsx
+ M frontend/src/app/(dashboard)/instructor/page.tsx
+ M frontend/src/components/ToastProvider.tsx
+ M frontend/src/components/admin/AssignTeacherModal.tsx
+ M frontend/src/components/admin/CreateCourseModal.tsx
+ M frontend/src/components/home/WarmupCard.tsx
+ M frontend/src/components/shared/RequireRole.tsx
+ M frontend/src/components/staff/StaffLayout.tsx
+ M frontend/src/components/student/StudentTopNav.tsx
+ M frontend/src/components/student/VideoLessonPlayer.tsx
+ M frontend/src/components/student/assessment/RealChallengeRunner.tsx
+ M frontend/src/components/teacher/CourseBuilder.tsx
+ M frontend/src/components/teacher/ScheduleClassModal.tsx
+ M frontend/src/contexts/AdminContext.tsx
+ M frontend/src/contexts/AuthContext.tsx
+ M frontend/src/contexts/ClassesContext.tsx
+ M frontend/src/contexts/ProgressContext.tsx
+ M frontend/src/hooks/useAsync.ts
+ M frontend/src/hooks/useTeacher.ts
+ M frontend/src/lib/api.ts
+ M frontend/src/types/index.ts
+ M frontend/src/types/learning.ts
+ M frontend/src/utils/adminApi.ts
+ M frontend/src/utils/learningApi.ts
+ M frontend/test_api.js
+ M frontend/tsconfig.json
+ M video-render/src/Root.tsx
+ M video-render/src/render.ts
+ M video-render/src/types.ts
+ M video-render/src/validate_payload.ts
+?? backend/app/modules/module2_content/services/media_relay_service.py
+?? backend/certify_mod7.py
+?? backend/check_ai.py
+?? backend/check_db.py
+?? backend/check_env.py
+?? backend/check_gen.py
+?? backend/count_users.py
+?? backend/debug_gen.py
+?? backend/show_locks.py
+?? backend/test_module07_generate.py
+?? backend/test_openai_conn.py
+?? backend/test_openai_real_gen.py
+?? backend/test_real.py
+?? backend/test_real_gen.py
+?? backend/tests/certification/certify_module13_admin.py
+?? backend/tests/certification/test_admin_module13.py
+?? backend/tests/integration/ELARION_3_ISSUE_REPORT.md
+?? backend/tests/integration/ELARION_LATEST_E2E_REPORT.md
+?? backend/tests/integration/ELARION_RESUMED_E2E_REPORT.md
+?? backend/tests/integration/ELARION_STRICT_RUNTIME_FIX_REPORT.md
+?? backend/tests/integration/latest_flow_http_evidence.json
+?? backend/tests/integration/latest_flow_render_diagnostics.json
+?? backend/tests/integration/latest_flow_runtime.py
+?? backend/tests/integration/latest_flow_state.json
+?? backend/tests/integration/product_issues_http_evidence.json
+?? backend/tests/integration/product_issues_runtime.py
+?? backend/tests/integration/product_issues_state.json
+?? backend/tests/integration/product_provider_safety.json
+?? backend/tests/integration/product_startup_evidence.json
+?? backend/tests/integration/product_workers.py
+?? backend/tests/integration/strict_course_db_evidence.json
+?? backend/tests/integration/strict_media.py
+?? backend/tests/integration/strict_media_evidence.json
+?? backend/tests/integration/strict_modified_inventory.txt
+?? backend/tests/integration/strict_pipeline_evidence.json
+?? backend/tests/integration/strict_probe.py
+?? backend/tests/integration/strict_render_diagnostics.json
+?? backend/tests/integration/strict_retry.py
+?? backend/tests/integration/strict_runtime_state.json
+?? backend/tests/integration/strict_startup_evidence.json
+?? backend/tests/integration/strict_validation_evidence.json
+?? backend/tests/integration/strict_visual_qa.json
+?? backend/tests/integration/strict_workers.py
+?? backend/tests/integration/test_latest_flow_contract.py
+?? backend/tests/integration/test_product_contract.py
+?? frontend/src/components/student/assessment/PersonalizedVideoPanel.tsx
+?? frontend/src/components/student/assessment/RealCourseResults.tsx
+?? frontend/src/lib/signup.ts
+?? frontend/src/types/backend.ts
+?? frontend/src/utils/courseCreation.ts
+?? frontend/src/utils/personalizedVideo.ts
+?? frontend/tests/latest-flow.cjs
+?? frontend/tests/learning-contract.test.cjs
+?? frontend/tests/product-contract.test.cjs
+?? frontend/tests/product-issues.cjs
+?? patch_gen.py
+?? patch_test.py
+?? patch_test_auth.py
+?? response.json
+?? routes.txt
+?? schema.json
+?? snippet.py
+?? video-render/src/components/IllustratedTeacher.tsx
+?? video-render/src/preview-stills.ts
+?? video-render/src/scenes/EducationalScene.tsx
+?? video-render/tests/product-contract.test.ts

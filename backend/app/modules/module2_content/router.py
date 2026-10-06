@@ -42,6 +42,15 @@ from app.shared.exceptions import ValidationError
 router = APIRouter()
 
 
+async def _course_thumbnail(course) -> str | None:
+    key = getattr(course, 'thumbnail_object_key', None)
+    url = course.thumbnail_url
+    if key and not (url and '/static/uploads/' in url):
+        from app.config import get_settings
+        return await generate_presigned_url(key, expires_in=get_settings().MEDIA_SIGNED_URL_TTL_SECONDS)
+    return url
+
+
 def _is_admin(user) -> bool:
     return user.has_role("Admin")
 
@@ -71,9 +80,18 @@ async def create_course(
     Create a new course in 'draft' status.
     Requires course:create permission (Instructor or Admin).
     """
+    owner_id = current_user.id
+    if body.instructor_id and body.instructor_id != current_user.id:
+        if not _is_admin(current_user):
+            raise HTTPException(status_code=403, detail="Only Admin can assign another instructor")
+        from app.modules.module1_auth.services.user_service import get_user_by_id
+        instructor = await get_user_by_id(db, body.instructor_id)
+        if not instructor.has_role("Instructor"):
+            raise ValidationError("Selected teacher must have the Instructor role")
+        owner_id = instructor.id
     course = await course_service.create_course(
         db=db,
-        instructor_id=current_user.id,
+        instructor_id=owner_id,
         title=body.title,
         description=body.description,
         slug=body.slug,
@@ -87,7 +105,7 @@ async def create_course(
         description=course.description,
         status=course.status.value,
         grade=course.grade,
-        thumbnail_url=course.thumbnail_url,
+        thumbnail_url=await _course_thumbnail(course),
         module_count=0,
         created_at=course.created_at,
         updated_at=course.updated_at,
@@ -122,6 +140,9 @@ async def list_courses(
         instructor_id = current_user.id
     elif current_user.has_role("Student") and not _is_admin(current_user):
         status_filter = "published"
+        grade = current_user.grade
+        if grade is None:
+            return PaginatedResponse(items=[], total=0, page=page, page_size=page_size, pages=0)
 
     courses, total = await course_service.list_courses(
         db=db, params=params, instructor_id=instructor_id, status_filter=status_filter, grade=grade
@@ -136,7 +157,7 @@ async def list_courses(
             description=c.description,
             status=c.status.value,
             grade=c.grade,
-            thumbnail_url=c.thumbnail_url,
+            thumbnail_url=await _course_thumbnail(c),
             module_count=len(c.modules) if hasattr(c, "modules") and c.modules else 0,
             created_at=c.created_at,
             updated_at=c.updated_at,
@@ -180,6 +201,7 @@ async def get_course(
                 sequence_order=l.sequence_order,
                 content_version=l.content_version,
                 estimated_minutes=l.estimated_minutes,
+                body_markdown=l.body_markdown if is_staff else None,
                 video_url=l.video_url,
                 thumbnail_url=l.thumbnail_url,
                 duration_seconds=l.duration_seconds,
@@ -212,7 +234,7 @@ async def get_course(
         description=course.description,
         status=course.status.value,
         grade=course.grade,
-        thumbnail_url=course.thumbnail_url,
+        thumbnail_url=await _course_thumbnail(course),
         module_count=len(course.modules),
         modules=modules_data,
         created_at=course.created_at,
@@ -241,7 +263,7 @@ async def update_course(
     return CourseResponse(
         id=course.id, instructor_id=course.instructor_id, title=course.title,
         slug=course.slug, description=course.description, status=course.status.value,
-        grade=course.grade, thumbnail_url=course.thumbnail_url, module_count=len(course.modules),
+        grade=course.grade, thumbnail_url=await _course_thumbnail(course), module_count=len(course.modules),
         created_at=course.created_at, updated_at=course.updated_at,
     )
 
@@ -264,7 +286,7 @@ async def publish_course(
     return CourseResponse(
         id=course.id, instructor_id=course.instructor_id, title=course.title,
         slug=course.slug, description=course.description, status=course.status.value,
-        grade=course.grade, thumbnail_url=course.thumbnail_url, module_count=len(course.modules),
+        grade=course.grade, thumbnail_url=await _course_thumbnail(course), module_count=len(course.modules),
         created_at=course.created_at, updated_at=course.updated_at,
     )
 
@@ -717,3 +739,36 @@ async def direct_upload_media(
         )
 
     return {"status": "success", "url": server_url}
+
+
+@router.get("/skills", summary="List curriculum skills for lesson tagging",
+            dependencies=[Depends(require_permission("course:create"))])
+async def list_curriculum_skills(db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import select
+    from app.modules.shared_models.skill_taxonomy import SkillTaxonomy
+    skills = (await db.execute(select(SkillTaxonomy).order_by(SkillTaxonomy.name))).scalars().all()
+    return [{"id": skill.id, "name": skill.name, "description": skill.description} for skill in skills]
+
+
+@router.post("/uploads/relay", tags=["Assets"], dependencies=[Depends(require_permission("course:create"))])
+async def relay_private_upload(
+    course_id: uuid.UUID = Form(...), upload_id: str = Form(...), media_type: str = Form(...),
+    lesson_id: uuid.UUID | None = Form(None), file: UploadFile = File(...),
+    current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db),
+):
+    """Upload a previously presigned course object when browser storage CORS is unavailable.
+
+    Uses the same private key and existing confirm endpoint. No public/local-disk URL is created.
+    """
+    from app.modules.module2_content.services.media_relay_service import validate_relay, store_relay
+    course = await course_service.get_course(db, course_id)
+    if not _is_admin(current_user) and course.instructor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You cannot upload to this course")
+    if lesson_id:
+        lesson = await lesson_service.get_lesson(db, lesson_id)
+        if lesson.module.course_id != course_id:
+            raise ValidationError("Lesson does not belong to course")
+    await file.seek(0)
+    validate_relay(course_id, lesson_id, upload_id, media_type, file.content_type, file.size)
+    await store_relay(upload_id, file)
+    return {"uploaded": True, "upload_id": upload_id}
