@@ -1,4 +1,5 @@
 'use client';
+import type { LucideIcon } from 'lucide-react';
 
 import React from "react";
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import { initials } from '@/utils/subjects';
 export interface StaffNavItem {
   to: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   end?: boolean;
 }
 

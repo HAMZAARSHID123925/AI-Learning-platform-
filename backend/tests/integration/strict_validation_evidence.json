@@ -1,0 +1,17 @@
+{
+  "frontend_lint": {
+    "pass": true,
+    "errors": 0,
+    "warnings": 62
+  },
+  "frontend_typecheck": true,
+  "frontend_build": true,
+  "backend_compileall": true,
+  "renderer_typecheck": true,
+  "renderer_tests": 5,
+  "frontend_focused_tests": 17,
+  "backend_focused_tests": 33,
+  "total_focused_tests": 55,
+  "failed_tests": 0,
+  "git_diff_check": true
+}

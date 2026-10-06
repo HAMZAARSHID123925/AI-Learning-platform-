@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FocusTopBar } from './FocusTopBar';
 import { LessonFooter } from './LessonFooter';
@@ -18,7 +18,7 @@ interface LessonPlayerProps {
   steps: LessonStep[];
   exitTo: string;
   onProgress?: (percent: number) => void;
-  onComplete: (score: {correct: number;total: number;}) => void;
+  onComplete: (score: {correct: number;total: number;}) => void | Promise<void>;
   renderComplete: (score: {correct: number;total: number;}, restart: () => void) => React.ReactNode;
 }
 
@@ -27,16 +27,46 @@ export function LessonPlayer({ title, subtitle, subject, steps, exitTo, onProgre
   const { step, finished, correct, totalQuestions } = player;
   const s = subjectStyles[subject];
 
+  const [saveState, setSaveState] = useState<'pending' | 'saved' | 'error'>('pending');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   useEffect(() => {
-    if (finished) onComplete({ correct, total: totalQuestions });
+    if (!finished) return;
+    let active = true;
+    Promise.resolve().then(() => onComplete({ correct, total: totalQuestions })).then(() => {
+      if (active) setSaveState('saved');
+    }).catch((error: unknown) => {
+      if (active) {
+        setSaveError(error instanceof Error ? error.message : 'Could not save completion. Please retry.');
+        setSaveState('error');
+      }
+    });
+    return () => { active = false; };
+    // Completion is triggered by finishing/retrying, not callback identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished]);
+  }, [finished, correct, totalQuestions, retryCount]);
+
+  if (finished && saveState !== 'saved') {
+    return (
+      <div className="min-h-screen w-full bg-white">
+        <FocusTopBar exitTo={exitTo} title={title} subtitle={subtitle} progress={100} barClassName={s.solid} />
+        <main className="mx-auto max-w-2xl px-5 pt-20 text-center space-y-4">
+          {saveState === 'error' ? <>
+            <p role="alert" className="text-red-700">{saveError}</p>
+            <button className="rounded-full bg-brand-500 px-6 py-3 font-bold text-white" onClick={() => {
+              setSaveState('pending'); setSaveError(null); setRetryCount(count => count + 1);
+            }}>Retry saving completion</button>
+          </> : <p role="status">Saving your lesson completion…</p>}
+        </main>
+      </div>
+    );
+  }
 
   if (finished) {
     return (
       <div className="min-h-screen w-full bg-white">
         <FocusTopBar exitTo={exitTo} title={title} subtitle={subtitle} progress={100} barClassName={s.solid} />
-        {renderComplete({ correct, total: totalQuestions }, player.restart)}
+        {renderComplete({ correct, total: totalQuestions }, () => { setSaveState('pending'); setSaveError(null); player.restart(); })}
       </div>);
 
   }

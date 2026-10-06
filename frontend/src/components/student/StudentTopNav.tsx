@@ -1,4 +1,5 @@
 'use client';
+import type { BackendNotification } from '@/types/backend';
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -18,13 +19,11 @@ const nav = [
 export default function StudentTopNav() {
   const pathname = usePathname();
   const { lessons, xpEarned } = useProgress();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => { setMounted(true); }, []);
 
   const completedCount = Object.values(lessons).filter((l) => l.status === 'completed').length;
   const inProgressCount = Object.values(lessons).filter((l) => l.status === 'in_progress').length;
-  const dynamicStreak = mounted && completedCount > 0 ? Math.min(completedCount, 7) : 0;
-  const dynamicXp = mounted ? (completedCount * 50) + (inProgressCount * 15) + (xpEarned || 0) : 0;
+  const dynamicStreak = completedCount > 0 ? Math.min(completedCount, 7) : 0;
+  const dynamicXp = (completedCount * 50) + (inProgressCount * 15) + (xpEarned || 0);
 
   return (
     <>
@@ -94,7 +93,7 @@ export default function StudentTopNav() {
 
 function NotificationBell() {
   const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState<any[]>([]);
+  const [items, setItems] = React.useState<BackendNotification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
 
   const loadNotifications = React.useCallback(() => {
@@ -103,7 +102,7 @@ function NotificationBell() {
         .then((data) => {
           if (data?.items && Array.isArray(data.items)) {
             setItems(data.items);
-            setUnreadCount(data.items.filter((n: any) => !n.read).length);
+            setUnreadCount(data.items.filter((n: BackendNotification) => !n.read).length);
           }
         })
         .catch(() => {});

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/shared/Button';
 import { Modal } from '@/components/shared/Modal';
 import { useAdmin } from '@/contexts/AdminContext';
-import { teachers } from '@/data/admin';
+import { createCourseCurriculum, newCreationCheckpoint, type DraftModule, type DraftLesson } from '@/utils/courseCreation';
 import { adminApi } from '@/utils/adminApi';
 import { useRouter } from 'next/navigation';
 import { subjectStyles } from '@/utils/subjects';
@@ -16,25 +16,13 @@ const fieldClass = 'h-11 w-full rounded-2xl border-2 border-line bg-white px-4 t
 const subjects: Subject[] = ['math', 'science', 'english', 'computer'];
 const grades: Grade[] = [1, 2, 3, 4, 5];
 
-interface DraftLesson {
-  id: string;
-  title: string;
-  bodyMarkdown: string;
-  videoFile?: File | null;
-  videoName?: string;
-  docFile?: File | null;
-  docName?: string;
-}
-
-interface DraftModule {
-  id: string;
-  title: string;
-  description: string;
-  lessons: DraftLesson[];
-}
-
-export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () => void;}) {
-  const { createCourse } = useAdmin();
+function CreateCourseModalForm({ open, onClose }: {open: boolean;onClose: () => void;}) {
+  const { refreshCourses, teachers } = useAdmin();
+  const checkpoint = useRef(newCreationCheckpoint());
+  const submitting = useRef(false);
+  const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
+  const [skills, setSkills] = useState<{id: string; name: string}[]>([]);
+  const [skillId, setSkillId] = useState('');
   const [title, setTitle] = useState('');
   const [grade, setGrade] = useState<Grade>(5);
   const [subject, setSubject] = useState<Subject>('science');
@@ -64,30 +52,11 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
   const router = useRouter();
 
   useEffect(() => {
-    if (open) {
-      setTitle('');
-      setDescription('');
-      setGrade(5);
-      setSubject('science');
-      setTeacherId('');
-      setPublish(true);
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setModules([
-        {
-          id: 'mod-1',
-          title: 'Module 1: Introduction & Fundamentals',
-          description: 'Foundational concepts and overview',
-          lessons: [
-            { id: 'les-1', title: 'Lesson 1: Core Concepts', bodyMarkdown: 'Welcome to this lesson! Explore the foundational principles.' },
-            { id: 'les-2', title: 'Lesson 2: Guided Practice', bodyMarkdown: 'Let us practice applying the concepts learned.' },
-          ],
-        },
-      ]);
-      setActiveTab('details');
-      setError(null);
-    }
-  }, [open]);
+    let active = true;
+    adminApi.listSkills().then(data => { if (active) setSkills(data); })
+      .catch(() => { if (active) setError('Could not load curriculum skills.'); });
+    return () => { active = false; };
+  }, []);
 
   const eligible = teachers.filter((t) => t.subject === subject);
 
@@ -144,7 +113,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
     );
   };
 
-  const handleUpdateLesson = (modId: string, lesId: string, field: keyof DraftLesson, val: any) => {
+  const handleUpdateLesson = (modId: string, lesId: string, field: keyof DraftLesson, val: DraftLesson[keyof DraftLesson]) => {
     setModules(
       modules.map((m) => {
         if (m.id !== modId) return m;
@@ -176,146 +145,34 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return setError('Please enter a course title');
-    if (!description.trim()) return setError('Please provide a course description');
-    setIsSubmitting(true);
-    setSubmitStep('Creating course…');
-    setError(null);
-
+    if (submitting.current) return;
+    submitting.current = true; setIsSubmitting(true); setError(null);
     try {
-      // 1. Create Course in Backend DB
-      const baseSlug = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const slug = `${subject}-${baseSlug}-${Date.now().toString().slice(-4)}`;
-      const res = await adminApi.createCourse({
-        title: title.trim(),
-        grade,
-        description: description.trim(),
-        slug,
-      });
-
-      const newCourseId = res?.id;
-
-      if (newCourseId) {
-        // 2. Upload course thumbnail if provided
-        if (thumbnailFile) {
-          setSubmitStep('Uploading thumbnail…');
-          try {
-            await adminApi.directUpload(newCourseId, thumbnailFile, 'course_thumbnail');
-          } catch (uploadErr) {
-            console.warn('Thumbnail direct upload failed, trying presign fallback:', uploadErr);
-            try {
-              const presign = await adminApi.requestPresignedUpload(newCourseId, {
-                media_type: 'course_thumbnail',
-                filename: thumbnailFile.name,
-                content_type: thumbnailFile.type,
-                size_bytes: thumbnailFile.size,
-              });
-
-              await fetch(presign.presigned_url, {
-                method: 'PUT',
-                headers: { 'Content-Type': thumbnailFile.type },
-                body: thumbnailFile,
-              });
-
-              await adminApi.confirmUpload(newCourseId, presign.upload_id, {
-                media_type: 'course_thumbnail',
-              });
-            } catch (fallbackErr) {
-              console.warn('Thumbnail upload fallback warning:', fallbackErr);
-            }
-          }
-        }
-
-        // 3. Create all Modules and Lessons in DB
-        for (let mIdx = 0; mIdx < modules.length; mIdx++) {
-          const mod = modules[mIdx];
-          setSubmitStep(`Creating module ${mIdx + 1} of ${modules.length}…`);
-          const modRes = await adminApi.createModule(newCourseId, {
-            title: mod.title.trim() || `Module ${mIdx + 1}`,
-            sequence_order: mIdx + 1,
-            description: mod.description.trim() || undefined,
-          });
-
-          for (let lIdx = 0; lIdx < mod.lessons.length; lIdx++) {
-            const les = mod.lessons[lIdx];
-            setSubmitStep(`Creating lesson ${lIdx + 1} of ${mod.lessons.length}…`);
-            const lesRes = await adminApi.createLesson(modRes.id, {
-              title: les.title.trim() || `Lesson ${lIdx + 1}`,
-              sequence_order: lIdx + 1,
-            });
-
-            // Update body markdown and upload attached video if present
-            await adminApi.updateLesson(lesRes.id, {
-              body_markdown: les.bodyMarkdown?.trim() || `Welcome to ${les.title}! Explore core principles and key insights.`,
-            });
-
-            if (les.videoFile) {
-              setSubmitStep(`Uploading video for lesson ${lIdx + 1}…`);
-              console.log('[Upload] Lesson video:', les.videoFile.name, 'size:', les.videoFile.size, 'lesson_id:', lesRes?.id, 'course_id:', newCourseId);
-              try {
-                const uploadRes = await adminApi.directUpload(newCourseId, les.videoFile, 'lesson_video', lesRes.id);
-                console.log('[Upload] Video upload success:', uploadRes);
-              } catch (vErr: any) {
-                console.error('[Upload] Lesson video upload FAILED:', vErr);
-                toast.error(`Video upload failed for lesson ${lIdx + 1}: ${vErr.message}`);
-              }
-            } else {
-              console.log('[Upload] No video attached for lesson:', les.title);
-            }
-            if (publish) {
-              await adminApi.publishLesson(lesRes.id).catch(() => {});
-            }
-          }
-        }
-
-        // 4. Publish course if selected
-        if (publish) {
-          await adminApi.publishCourse(newCourseId).catch(() => {});
-        }
-      }
-
-      // 5. Update local context
-      createCourse({
-        title: title.trim(),
-        grade,
-        subject,
-        teacherId: teacherId || null,
-        status: publish ? 'published' : 'draft',
-      });
-
-      const totalLessons = modules.reduce((acc, m) => acc + m.lessons.length, 0);
-      toast.success(`${title.trim()} created with ${modules.length} modules and ${totalLessons} lessons!`);
-      onClose();
-
-      if (newCourseId) {
-        router.push(`/admin/courses/${newCourseId}/builder`);
-      }
-    } catch (err: any) {
-      const msg = err.message || 'Failed to create course';
-      if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('token')) {
-        toast.error('Session expired. Please sign in again as Admin.');
-        setError('Your login session has expired. Please sign in again as Admin to continue.');
-        setTimeout(() => {
-          router.push('/login');
-        }, 1500);
-      } else {
-        toast.error(msg);
-        setError(msg);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+      const courseId = await createCourseCurriculum({title,description,grade,subject,skillId,teacherId,publish,thumbnailFile,modules},checkpoint.current,setSubmitStep);
+      setCreatedCourseId(courseId);
+      await refreshCourses();
+      toast.success('Course and all lesson media saved successfully.');
+      onClose(); router.push(`/admin/courses/${courseId}/builder`);
+    } catch (cause) {
+      const savedId = checkpoint.current.courseId;
+      setCreatedCourseId(savedId || null);
+      if(savedId) await refreshCourses().catch(()=>{});
+      const message = cause instanceof Error ? cause.message : 'Could not save your course.';
+      setError(savedId ? `${message} Your draft is saved. Retry to continue, or finish it in the course builder.` : message);
+      toast.error(message);
+    } finally { submitting.current=false;setIsSubmitting(false); }
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => { if (!submitting.current) onClose(); }}
       title="Create Course & Curriculum"
       description="Add course details, upload cover thumbnails and videos, and structure curriculum modules."
       maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate>
+        <fieldset disabled={isSubmitting} className="space-y-5">
         {/* Navigation Tabs */}
         <div className="flex border-b border-line gap-2">
           <button
@@ -405,6 +262,13 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
               </select>
             </div>
 
+            <label className="block text-sm font-bold text-ink">
+              Curriculum skill *
+              <select value={skillId} onChange={e => setSkillId(e.target.value)} className={fieldClass}>
+                <option value="">Choose a skill for assessment</option>
+                {skills.map(skill => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+              </select>
+            </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-surface p-3.5">
               <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} className="h-5 w-5 accent-[#16181D]" />
               <span>
@@ -503,7 +367,7 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 text-xs font-bold text-amber-700">
-                            ⚠ No video — students will see text only
+                            ⚠ Video required before publishing
                           </span>
                         )}
                       </div>
@@ -645,11 +509,15 @@ export function CreateCourseModal({ open, onClose }: {open: boolean;onClose: () 
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? submitStep || 'Creating Course...' : 'Create Course'}
+              {isSubmitting ? submitStep || 'Creating Course...' : createdCourseId ? 'Continue saving course' : 'Create Course'}
             </Button>
           </div>
         </div>
+        </fieldset>
       </form>
     </Modal>
   );
+}
+export function CreateCourseModal(props: {open: boolean;onClose: () => void}) {
+  return props.open ? <CreateCourseModalForm {...props} /> : null;
 }

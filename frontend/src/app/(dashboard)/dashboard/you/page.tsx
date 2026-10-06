@@ -1,4 +1,5 @@
 'use client';
+import type { LucideIcon } from 'lucide-react';
 
 import React from "react";
 
@@ -16,7 +17,7 @@ import { getCourseProgress } from '@/utils/progress';
 import { subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
-const badgeIcons: Record<BadgeIcon, any> = {
+const badgeIcons: Record<BadgeIcon, LucideIcon> = {
   sigma: SigmaIcon,
   leaf: LeafIcon,
   flame: FlameIcon,

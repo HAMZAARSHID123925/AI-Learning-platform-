@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeftIcon, ArrowRightIcon, ClockIcon, LayersIcon, SparklesIcon, TrophyIcon } from 'lucide-react';
@@ -15,9 +16,11 @@ import { courseName, subjectStyles } from '@/utils/subjects';
 
 export default function CourseDetail() {
   const params = useParams();
+  const { user } = useAuth();
   const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
   const { lessons, latestAttempt } = useProgress();
-  const q = useAsync(() => learningApi.getCourse(courseId), [courseId]);
+  const savedProgress = useAsync(() => learningApi.getCourseProgressStats(courseId), [courseId, user?.id]);
+  const q = useAsync(() => learningApi.getCourse(courseId), [courseId, user?.id]);
 
   if (q.loading) return <StateMessage kind="loading" title="Loading learning path…" />;
   if (q.error || !q.data) {
@@ -28,6 +31,7 @@ export default function CourseDetail() {
   const s = subjectStyles[course.subject];
   const progress = getCourseProgress(course, lessons);
   const attempt = latestAttempt(course.id);
+  const hasSubmission = Boolean(savedProgress.data?.latest_submission_id);
   const minutes = course.lessons.reduce((n, l) => n + l.minutes, 0);
   const complete = isCourseComplete(course, lessons);
 
@@ -65,8 +69,8 @@ export default function CourseDetail() {
                     {progress.started ? 'Continue' : 'Start'}: {progress.nextLesson.title} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
                   </ButtonLink> :
 
-              <ButtonLink href={attempt ? `/dashboard/courses/${course.id}/personalized` : `/dashboard/courses/${course.id}/challenge`} size="lg">
-                    {attempt ? 'My personalized learning' : 'Take the Challenge Test'} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
+              <ButtonLink href={hasSubmission ? `/dashboard/courses/${course.id}/personalized` : `/dashboard/courses/${course.id}/challenge`} size="lg">
+                    {hasSubmission ? 'My personalized learning' : 'Take the Challenge Test'} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
                   </ButtonLink>
               }
               </div>

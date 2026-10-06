@@ -74,11 +74,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) return;
 
-    if (token.startsWith('jwt_session_')) {
-      setIsConnected(true);
-      return;
-    }
-
     const abortController = new AbortController();
     let isCancelled = false;
 

@@ -1,30 +1,26 @@
 'use client';
 import React from 'react';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { ButtonLink } from '@/components/student/ButtonLink';
 import { StateMessage } from '@/components/student/StateMessage';
-import { ChallengeRunner } from '@/components/student/assessment/ChallengeRunner';
+import { RealChallengeRunner } from '@/components/student/assessment/RealChallengeRunner';
 import { useAsync } from '@/hooks/useAsync';
 import { learningApi } from '@/utils/learningApi';
-
 export default function Challenge() {
   const params = useParams();
-  const courseId = Array.isArray(params.courseId) ? params.courseId[0] : (params.courseId || '');
-  const q = useAsync(() => learningApi.getChallenge(courseId), [courseId]);
-
-  if (q.loading) {
-    return (
-      <div className="min-h-screen w-full bg-white pt-24">
-        <StateMessage kind="loading" title="Preparing your Challenge Test…" />
-      </div>);
-
-  }
-  if (q.error || !q.data) {
-    return (
-      <div className="min-h-screen w-full bg-white px-5 pt-24">
-        <StateMessage kind="error" message={q.error?.message} onRetry={q.reload} action={<ButtonLink href={`/dashboard/courses/${courseId}`} variant="secondary">Back to course</ButtonLink>} />
-      </div>);
-
-  }
-  return <ChallengeRunner key={q.data.course.id} course={q.data.course} questions={q.data.questions} />;
+  const courseId = String(params.courseId || '');
+  const { user } = useAuth();
+  const q = useAsync(async () => {
+    const course = await learningApi.getCourse(courseId);
+    const assessment = await learningApi.getCourseAssessment(courseId);
+    if (assessment.questions.length !== 10 || assessment.questions.some(question => question.question_type !== 'mcq' || question.options?.length !== 4)) {
+      throw new Error('The final assessment must contain exactly 10 multiple-choice questions.');
+    }
+    return { course, assessment };
+  }, [courseId, user?.id]);
+  if (q.loading) return <StateMessage kind="loading" title="Preparing your final assessment…" />;
+  if (q.error || !q.data) return <StateMessage kind="error" message={q.error?.message} onRetry={q.reload}
+    action={<ButtonLink href={`/dashboard/courses/${courseId}`}>Back to course</ButtonLink>} />;
+  return <RealChallengeRunner key={q.data.assessment.id} course={q.data.course} assessment={q.data.assessment} />;
 }

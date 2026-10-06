@@ -15,7 +15,7 @@ import { courseName, initials, subjectStyles } from '@/utils/subjects';
 export default function TeacherDashboard() {
   const { teacher, myCourses, myClasses } = useTeacher();
   const [modal, setModal] = useState<null | 'schedule' | 'now'>(null);
-  const [escalations, setEscalations] = useState<any[]>([]);
+  const [escalations, setEscalations] = useState<{id: string;student_name: string;skill_name: string}[]>([]);
   const subject = subjectStyles[teacher.subject];
 
   React.useEffect(() => {

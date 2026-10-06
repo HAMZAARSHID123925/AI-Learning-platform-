@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { CheckIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/shared/Button';
@@ -10,13 +10,11 @@ import { teachers } from '@/data/admin';
 import { courseName, initials, subjectStyles } from '@/utils/subjects';
 import type { AdminCourse } from '@/types';
 
-export function AssignTeacherModal({ course, onClose }: {course: AdminCourse | null;onClose: () => void;}) {
+function AssignTeacherForm({ course, onClose }: {course: AdminCourse | null;onClose: () => void;}) {
   const { assignTeacher, courses, teachers: contextTeachers } = useAdmin();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(course?.teacherId ?? null);
 
-  useEffect(() => {
-    setSelected(course?.teacherId ?? null);
-  }, [course]);
+
 
   const activeTeachers = contextTeachers.length > 0 ? contextTeachers : teachers;
   const eligible = course ? activeTeachers.filter((t) => t.subject === course.subject) : [];
@@ -73,4 +71,7 @@ export function AssignTeacherModal({ course, onClose }: {course: AdminCourse | n
       </div>
     </Modal>);
 
+}
+export function AssignTeacherModal(props: {course: AdminCourse | null;onClose: () => void}) {
+  return props.course ? <AssignTeacherForm key={props.course.id} {...props} /> : null;
 }

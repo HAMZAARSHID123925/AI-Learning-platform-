@@ -13,6 +13,7 @@
  *   Personalized learning API→ getPersonalizedPlan, getPracticeSet, getRecommendations
  */
 import { fetchWithAuth } from '@/lib/api';
+import type { BackendAssessment, BackendSubmission, BackendWeakness, BackendRemediation, BackendCourse, BackendCourseSummary, BackendLesson, BackendEnrollment, BackendDashboard, BackendNotification, BackendLiveSession, BackendCourseProgress } from '@/types/backend';
 import { courses } from '@/data/courses';
 import { mathLessons } from '@/data/lessons/mathLessons';
 import { scienceLessons } from '@/data/lessons/scienceLessons';
@@ -37,7 +38,7 @@ import type {
   PersonalizedPlan,
   PracticeMode,
   Subject,
-  Recommendation } from
+  Recommendation, VideoGenerationJob } from
 '@/types/learning';
 
 const lessonContent = [...mathLessons, ...scienceLessons, ...englishLessons, ...computerLessons];
@@ -65,7 +66,7 @@ function findCourse(courseId: string): Course {
 
 // ADAPTERS
 
-function mapBackendCourseToFrontendCourse(b: any): Course {
+function mapBackendCourseToFrontendCourse(b: BackendCourse): Course {
   const local = courses.find((c) => c.slug === b.slug || c.id === b.slug || c.title.toLowerCase() === (b.title || '').toLowerCase());
   
   const t = (b.title || '').toLowerCase();
@@ -90,13 +91,13 @@ function mapBackendCourseToFrontendCourse(b: any): Course {
     description: b.description || local?.description || '',
     image: b.thumbnail_url || local?.image || subjectImages[subject] || subjectImages.math,
     skills: local?.skills || ['core'],
-    lessons: local?.lessons || []
+    lessons: []
   };
 }
 
-function mapBackendCourseDetailToFrontendCourse(b: any): Course {
+export function mapBackendCourseDetailToFrontendCourse(b: BackendCourse): Course {
   const c = mapBackendCourseToFrontendCourse(b);
-  c.modules = (b.modules || []).map((m: any) => ({
+  c.modules = (b.modules || []).map((m: NonNullable<BackendCourse["modules"]>[number]) => ({
     id: m.id,
     title: m.title,
     description: m.description,
@@ -106,7 +107,7 @@ function mapBackendCourseDetailToFrontendCourse(b: any): Course {
   return c;
 }
 
-function mapBackendLessonSummary(l: any): import('@/types/learning').LessonSummary {
+function mapBackendLessonSummary(l: BackendLesson): import('@/types/learning').LessonSummary {
   return {
     id: l.id,
     title: l.title,
@@ -116,37 +117,19 @@ function mapBackendLessonSummary(l: any): import('@/types/learning').LessonSumma
     videoUrl: l.video_url,
     thumbnailUrl: l.thumbnail_url,
     durationSeconds: l.duration_seconds,
+    skillIds: l.skill_ids || [],
     bodyMarkdown: l.body_markdown
   };
 }
 
-function mapBackendLessonToFrontendLesson(l: any, courseId: string): Lesson {
+function mapBackendLessonToFrontendLesson(l: BackendLesson, courseId: string): Lesson {
   const summary = mapBackendLessonSummary(l);
   const staticContent = lessonContent.find((c) => c.lessonId === l.id);
   
   // If no hardcoded steps exist (newly created dynamic lesson), generate interactive steps from lesson title & content
-  const steps: LessonStep[] = (staticContent?.steps && staticContent.steps.length > 0)
-    ? staticContent.steps
-    : [
-        {
-          kind: 'concept',
-          title: l.title || 'Core Lesson Concepts',
-          body: l.body_markdown || `Welcome to ${l.title}! In this lesson, we explore foundational concepts, practical examples, and essential skills to deepen your understanding.`
-        },
-        {
-          kind: 'question',
-          prompt: `Which of the following best represents the key principle of ${l.title}?`,
-          options: [
-            `Understanding core foundational rules and applying them carefully`,
-            `Skipping definitions and guessing the outcome`,
-            `Ignoring patterns and relationships`,
-            `Only memorizing words without practice`
-          ],
-          answer: 0,
-          explanation: `Great job! Mastering ${l.title} begins with understanding the core rules and concepts.`,
-          skill: l.title
-        }
-      ];
+  const steps: LessonStep[] = staticContent?.steps || [{
+    kind: 'concept', title: l.title, body: l.body_markdown || 'No lesson notes available.'
+  }];
 
   return {
     ...summary,
@@ -165,112 +148,51 @@ function challengeFor(courseId: string): ChallengeQuestion[] {
 
 export const learningApi = {
   async listCourses(grade: Grade): Promise<Course[]> {
-    try {
-      const res = await fetchWithAuth(`/courses?grade=${grade}&status_filter=published`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.items && data.items.length > 0) {
-          const mapped = await Promise.all(
-            data.items.map(async (b: any) => {
-              const base = mapBackendCourseToFrontendCourse(b);
-              if (base.lessons.length === 0 && b.id) {
-                try {
-                  const detailRes = await fetchWithAuth(`/courses/${b.id}`);
-                  if (detailRes.ok) {
-                    const detailData = await detailRes.json();
-                    return mapBackendCourseDetailToFrontendCourse(detailData);
-                  }
-                } catch {}
-              }
-              return base;
-            })
-          );
-          return mapped;
-        }
-      }
-    } catch {}
-    // Fallback to static mock courses
-    return courses.filter((c) => c.grade === grade);
+    const result: Course[] = [];
+    let page = 1;
+    while (true) {
+      const res = await fetchWithAuth(`/courses?grade=${grade}&status_filter=published&page_size=100&page=${page}`);
+      if (!res.ok) throw new Error('Could not load courses. Please retry.');
+      const data = await res.json();
+      const details = await Promise.all(data.items.map(async (item: BackendCourseSummary) => {
+        const detail = await fetchWithAuth(`/courses/${item.id}`);
+        if (!detail.ok) throw new Error('Could not load course details.');
+        return mapBackendCourseDetailToFrontendCourse(await detail.json());
+      }));
+      result.push(...details.filter(c => Number(c.grade) === Number(grade)));
+      if (page * 100 >= data.total || data.items.length === 0) return result;
+      page += 1;
+    }
   },
 
   async getCourse(courseId: string): Promise<Course> {
-    // 1. If courseId is already a local mock id (e.g. g5-photosynthesis, g5-fractions), return local course directly
-    const localMatch = courses.find((c) => c.id === courseId);
-    
-    // 2. If it's a UUID, try backend first
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(courseId);
-    if (isUuid) {
-      try {
-        const res = await fetchWithAuth(`/courses/${courseId}`);
-        if (res.ok) {
-          const data = await res.json();
-          return mapBackendCourseDetailToFrontendCourse(data);
-        }
-      } catch {}
-    }
-
-    // 3. Return local course or throw NotFoundError
-    if (localMatch) {
-      return localMatch;
-    }
-    throw new NotFoundError('We couldn’t find that course.');
+    const res = await fetchWithAuth(`/courses/${courseId}`);
+    if (!res.ok) throw new Error('Course unavailable or access denied.');
+    return mapBackendCourseDetailToFrontendCourse(await res.json());
   },
 
   async getLesson(courseId: string, lessonId: string): Promise<{course: Course;lesson: Lesson;index: number;}> {
     const course = await this.getCourse(courseId);
-    
-    // If lessonId is a UUID, try backend
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lessonId);
-    if (isUuid) {
-      try {
-        const res = await fetchWithAuth(`/lessons/${lessonId}`);
-        if (res.ok) {
-          const data = await res.json();
-          const lesson = mapBackendLessonToFrontendLesson(data, courseId);
-          const index = course.lessons.findIndex((l) => l.id === lessonId);
-          return { course, lesson, index: index >= 0 ? index : 0 };
-        }
-      } catch {}
-    }
-
-    // Fallback to course.lessons or local lessonContent
-    const staticSummary = course.lessons.find((l) => l.id === lessonId);
-    if (!staticSummary) {
-      throw new NotFoundError('This lesson isn’t available yet.');
-    }
-    const staticDetail = lessonContent.find((c) => c.lessonId === lessonId);
-    const lesson = mapBackendLessonToFrontendLesson(
-      {
-        ...staticSummary,
-        video_url: staticSummary.videoUrl || (staticSummary as any).video_url,
-        thumbnail_url: staticSummary.thumbnailUrl || (staticSummary as any).thumbnail_url,
-        duration_seconds: staticSummary.durationSeconds || (staticSummary as any).duration_seconds,
-        body_markdown: staticSummary.bodyMarkdown || (staticDetail?.steps?.[0]?.kind === 'concept' ? staticDetail.steps[0].body : undefined)
-      },
-      courseId
-    );
-    const index = course.lessons.findIndex((l) => l.id === lessonId);
-    return { course, lesson, index: index >= 0 ? index : 0 };
+    const index = course.lessons.findIndex(l => l.id === lessonId);
+    if (index < 0) throw new NotFoundError('Lesson does not belong to this course.');
+    await this.enrollCourse(courseId);
+    const res = await fetchWithAuth(`/lessons/${lessonId}`);
+    if (!res.ok) throw new Error('Lesson unavailable or access denied.');
+    return { course, lesson: mapBackendLessonToFrontendLesson(await res.json(), courseId), index };
   },
 
-
   async saveLessonProgress(lessonId: string, progress: LessonProgress): Promise<void> {
-    if (progress.status === 'completed') {
-      await fetchWithAuth(`/lessons/${lessonId}/complete`, {
-        method: 'POST',
-        body: JSON.stringify({ time_spent_seconds: 0 })
-      });
-    }
+    if (progress.status !== 'completed') return;
+    const res = await fetchWithAuth(`/lessons/${lessonId}/complete`, {
+      method: 'POST', body: JSON.stringify({ time_spent_seconds: 0 })
+    });
+    if (!res.ok) throw new Error('Could not save completion. Please retry.');
   },
 
   async getStudentProgress(): Promise<string[]> {
-    try {
-      const res = await fetchWithAuth(`/students/me/progress/lessons`);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
-    return [];
+    const res = await fetchWithAuth('/students/me/progress/lessons');
+    if (!res.ok) throw new Error('Could not load saved progress.');
+    return res.json();
   },
 
   getChallenge(courseId: string): Promise<{course: Course;questions: ChallengeQuestion[];}> {
@@ -316,13 +238,13 @@ export const learningApi = {
     return respond(() => buildRecommendations(courses.filter((c) => c.grade === grade), lessons, attempts, challengeSets), 450);
   },
 
-  async getTest(testId: string): Promise<any> {
+  async getTest(testId: string): Promise<BackendAssessment> {
     const res = await fetchWithAuth(`/assessments/tests/${testId}`);
     if (!res.ok) throw new Error('Failed to fetch test');
     return res.json();
   },
 
-  async submitRealAssessment(testId: string, payload: any[]): Promise<any> {
+  async submitRealAssessment(testId: string, payload: {question_id: string;selected_option_id: string}[]): Promise<BackendSubmission> {
     const res = await fetchWithAuth(`/assessments/${testId}/submit`, {
       method: 'POST',
       body: JSON.stringify({ answers: payload }),
@@ -331,41 +253,46 @@ export const learningApi = {
     return res.json();
   },
 
-  async getRealSubmission(submissionId: string): Promise<any> {
+  async getRealSubmission(submissionId: string): Promise<BackendSubmission> {
     const res = await fetchWithAuth(`/submissions/${submissionId}`);
     if (!res.ok) throw new Error('Failed to fetch submission');
     return res.json();
   },
 
-  async getStudentDashboard(): Promise<any> {
+  async getStudentDashboard(): Promise<BackendDashboard> {
     const res = await fetchWithAuth(`/students/me/dashboard`);
     if (!res.ok) throw new Error('Failed to fetch student dashboard');
     return res.json();
   },
 
-  async enrollCourse(courseId: string): Promise<any> {
+  async enrollCourse(courseId: string): Promise<BackendEnrollment> {
     const res = await fetchWithAuth(`/enrollments`, {
       method: 'POST',
       body: JSON.stringify({ course_id: courseId }),
     });
+    if (res.status === 409) {
+      const existing = await this.getMyEnrollments();
+      const match = existing.find(e => e.course_id === courseId);
+      if (match) return match;
+    }
     if (!res.ok) throw new Error('Failed to enroll in course');
     return res.json();
   },
 
-  async getMyEnrollments(): Promise<any[]> {
+  async getMyEnrollments(): Promise<BackendEnrollment[]> {
     const res = await fetchWithAuth(`/enrollments/me`);
     if (!res.ok) throw new Error('Failed to fetch enrollments');
     return res.json();
   },
 
-  async listLiveSessions(courseId?: string): Promise<any[]> {
+  async listLiveSessions(courseId?: string): Promise<BackendLiveSession[]> {
     const url = courseId ? `/live-sessions?course_id=${courseId}` : `/live-sessions`;
     const res = await fetchWithAuth(url);
     if (!res.ok) throw new Error('Failed to fetch live sessions');
     return res.json();
   },
 
-  async joinLiveSession(sessionId: string): Promise<any> {
+  async joinLiveSession(sessionId: string): Promise<{room_url: string;token: string;is_host: boolean}> {
     const res = await fetchWithAuth(`/live-sessions/${sessionId}/join`, {
       method: 'POST',
     });
@@ -373,7 +300,7 @@ export const learningApi = {
     return res.json();
   },
 
-  async endLiveSession(sessionId: string): Promise<any> {
+  async endLiveSession(sessionId: string): Promise<BackendLiveSession> {
     const res = await fetchWithAuth(`/live-sessions/${sessionId}/end`, {
       method: 'POST',
     });
@@ -381,13 +308,13 @@ export const learningApi = {
     return res.json();
   },
 
-  async getActiveWeaknesses(): Promise<any[]> {
+  async getActiveWeaknesses(): Promise<BackendWeakness[]> {
     const res = await fetchWithAuth(`/students/me/weakness-flags`);
     if (!res.ok) throw new Error('Failed to fetch weakness flags');
     return res.json();
   },
 
-  async requestPersonalizedVideo(weaknessFlagId: string): Promise<any> {
+  async requestPersonalizedVideo(weaknessFlagId: string): Promise<VideoGenerationJob> {
     const res = await fetchWithAuth(`/remediation/video-jobs`, {
       method: 'POST',
       body: JSON.stringify({ weakness_flag_id: weaknessFlagId })
@@ -396,19 +323,19 @@ export const learningApi = {
     return res.json();
   },
 
-  async getPersonalizedVideoJob(jobId: string): Promise<any> {
+  async getPersonalizedVideoJob(jobId: string): Promise<VideoGenerationJob> {
     const res = await fetchWithAuth(`/remediation/video-jobs/${jobId}`);
-    if (!res.ok) throw new Error('Failed to fetch video job');
+    if (!res.ok) throw new Error(`Failed to fetch video job (${res.status})`);
     return res.json();
   },
 
-  async getRemediationPlans(): Promise<any[]> {
+  async getRemediationPlans(): Promise<BackendRemediation[]> {
     const res = await fetchWithAuth(`/students/me/remediation-plans`);
     if (!res.ok) throw new Error('Failed to fetch remediation plans');
     return res.json();
   },
 
-  async completeRemedialStudy(planId: string): Promise<any> {
+  async completeRemedialStudy(planId: string): Promise<{retest_id: string;message?: string}> {
     const res = await fetchWithAuth(`/remediation-plans/${planId}/complete-study`, {
       method: 'POST'
     });
@@ -417,13 +344,13 @@ export const learningApi = {
   },
 
   // Module 4: Notifications & Events
-  async listNotifications(unreadOnly = false, page = 1, pageSize = 20): Promise<any> {
+  async listNotifications(unreadOnly = false, page = 1, pageSize = 20): Promise<{items: BackendNotification[];total: number;unread_count: number}> {
     const res = await fetchWithAuth(`/notifications?unread_only=${unreadOnly}&page=${page}&page_size=${pageSize}`);
     if (!res.ok) throw new Error('Failed to fetch notifications');
     return res.json();
   },
 
-  async markNotificationRead(notificationId: string): Promise<any> {
+  async markNotificationRead(notificationId: string): Promise<BackendNotification> {
     const res = await fetchWithAuth(`/notifications/${notificationId}/read`, {
       method: 'PATCH',
     });
@@ -431,7 +358,7 @@ export const learningApi = {
     return res.json();
   },
 
-  async markAllNotificationsRead(): Promise<any> {
+  async markAllNotificationsRead(): Promise<{message: string}> {
     const res = await fetchWithAuth(`/notifications/read-all`, {
       method: 'POST',
     });
@@ -439,7 +366,7 @@ export const learningApi = {
     return res.json();
   },
 
-  async unenrollCourse(courseId: string): Promise<any> {
+  async unenrollCourse(courseId: string): Promise<{message: string}> {
     const res = await fetchWithAuth(`/enrollments/${courseId}`, {
       method: 'DELETE',
     });
@@ -447,32 +374,32 @@ export const learningApi = {
     return res.json();
   },
 
-  async getCourseProgressStats(courseId: string): Promise<any> {
+  async getCourseProgressStats(courseId: string): Promise<BackendCourseProgress> {
     const res = await fetchWithAuth(`/courses/${courseId}/progress`);
     if (!res.ok) throw new Error('Failed to fetch course progress');
     return res.json();
   },
 
-  async getLearningPath(): Promise<any[]> {
+  async getLearningPath(): Promise<unknown[]> {
     const res = await fetchWithAuth(`/students/me/learning-path`);
     if (!res.ok) throw new Error('Failed to fetch learning path');
     return res.json();
   },
 
   // Module 5: Assessments & In-Lesson Quizzes
-  async getCourseAssessment(courseId: string): Promise<any> {
+  async getCourseAssessment(courseId: string): Promise<BackendAssessment> {
     const res = await fetchWithAuth(`/courses/${courseId}/assessment`);
     if (!res.ok) throw new Error('Failed to fetch course assessment');
     return res.json();
   },
 
-  async getLessonAssessment(lessonId: string): Promise<any> {
+  async getLessonAssessment(lessonId: string): Promise<BackendAssessment> {
     const res = await fetchWithAuth(`/lessons/${lessonId}/assessment`);
     if (!res.ok) throw new Error('Failed to fetch lesson assessment');
     return res.json();
   },
 
-  async generateAssessment(lessonId: string, questionCount = 5): Promise<any> {
+  async generateAssessment(lessonId: string, questionCount = 5): Promise<BackendAssessment> {
     const res = await fetchWithAuth(`/assessments/generate`, {
       method: 'POST',
       body: JSON.stringify({ lesson_id: lessonId, question_count: questionCount }),
@@ -482,7 +409,7 @@ export const learningApi = {
   },
 
   // Module 1: Password & Sessions
-  async forgotPassword(email: string): Promise<any> {
+  async forgotPassword(email: string): Promise<{message: string}> {
     const res = await fetchWithAuth(`/auth/forgot-password`, {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -491,7 +418,7 @@ export const learningApi = {
     return res.json();
   },
 
-  async resetPassword(token: string, newPassword: string): Promise<any> {
+  async resetPassword(token: string, newPassword: string): Promise<{message: string}> {
     const res = await fetchWithAuth(`/auth/reset-password`, {
       method: 'POST',
       body: JSON.stringify({ token, new_password: newPassword }),
@@ -500,13 +427,13 @@ export const learningApi = {
     return res.json();
   },
 
-  async getActiveSessions(): Promise<any[]> {
+  async getActiveSessions(): Promise<unknown[]> {
     const res = await fetchWithAuth(`/auth/sessions`);
     if (!res.ok) throw new Error('Failed to fetch active sessions');
     return res.json();
   },
 
-  async revokeOtherSessions(): Promise<any> {
+  async revokeOtherSessions(): Promise<{message: string}> {
     const res = await fetchWithAuth(`/auth/sessions/revoke-others`, {
       method: 'POST',
     });
@@ -515,7 +442,7 @@ export const learningApi = {
   },
 
   // Module 4: Staff student dashboard inspection
-  async getStudentDashboardForStaff(studentId: string): Promise<any> {
+  async getStudentDashboardForStaff(studentId: string): Promise<BackendDashboard> {
     const res = await fetchWithAuth(`/students/${studentId}/dashboard`);
     if (!res.ok) throw new Error('Failed to fetch student dashboard');
     return res.json();

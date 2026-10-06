@@ -1,0 +1,51 @@
+{
+  "tests": [
+    {
+      "id": "325ef193-938f-44d8-9845-d36efeb50d3b",
+      "question_count": 10
+    }
+  ],
+  "submissions": [
+    {
+      "id": "26570f0d-ce8b-458a-983a-036cd60015eb",
+      "status": "graded",
+      "test_id": "325ef193-938f-44d8-9845-d36efeb50d3b"
+    }
+  ],
+  "skill_scores": [
+    {
+      "score": "0.0000",
+      "max_score": "1.0000",
+      "grader_type": "deterministic"
+    }
+  ],
+  "weaknesses": [
+    {
+      "id": "d5df3b81-0967-43a1-a91b-47d7a9a04974",
+      "status": "active"
+    }
+  ],
+  "job_count": 1,
+  "jobs": [
+    {
+      "id": "4273d32e-4f3e-4993-a4dc-42ca292c7f4a",
+      "status": "ready",
+      "error_code": null,
+      "error_message": null,
+      "retry_count": 2,
+      "scene_count": 8,
+      "diagram_kinds": [
+        "none",
+        "fraction_bars",
+        "fraction_bars",
+        "number_line",
+        "comparison",
+        "equation_steps",
+        "fraction_bars",
+        "none"
+      ],
+      "audio_count": 8,
+      "private_video": true
+    }
+  ]
+}

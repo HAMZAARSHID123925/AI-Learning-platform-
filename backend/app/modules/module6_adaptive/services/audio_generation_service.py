@@ -76,7 +76,7 @@ class SceneAudioClip:
     format: str              # "mp3"
     duration_seconds: float  # MEASURED real duration
     planned_duration_seconds: float
-    render_duration_seconds: float   # max(planned, audio + padding)
+    render_duration_seconds: float   # measured audio plus bounded padding
     text_hash: str
     tts_provider: str
     tts_voice_id: str
@@ -120,14 +120,14 @@ def reconcile_scene_timing(
     Determine the render duration for a scene.
 
     Rule:
-        render_duration = max(planned, audio + padding)
+        render_duration = audio + bounded padding
 
     This ensures:
         - Audio never gets cut off
         - Visual hold/padding is added after narration ends
-        - Planned duration is honoured if longer than audio
+        - Planned duration is advisory; it never introduces a long silent hold
     """
-    return round(max(planned_seconds, audio_seconds + padding_seconds), 3)
+    return round(audio_seconds + min(1.0, max(0.5, padding_seconds)), 3)
 
 
 def validate_total_duration(

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/shared/Button';
@@ -22,7 +22,7 @@ interface ScheduleClassModalProps {
 const fieldClass =
 'h-12 w-full rounded-2xl border-2 border-line bg-white px-4 text-base text-ink outline-none transition-colors duration-150 focus:border-ink aria-[invalid=true]:border-danger-500';
 
-export function ScheduleClassModal({ open, onClose, courses, teacherName, defaultCourseId, defaultMode = 'schedule' }: ScheduleClassModalProps) {
+function ScheduleClassForm({ open, onClose, courses, teacherName, defaultCourseId, defaultMode = 'schedule' }: ScheduleClassModalProps) {
   const { addClass } = useClasses();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [mode, setMode] = useState<'schedule' | 'now'>(defaultMode);
@@ -32,18 +32,7 @@ export function ScheduleClassModal({ open, onClose, courses, teacherName, defaul
   const [courseId, setCourseId] = useState(defaultCourseId ?? courses[0]?.id ?? '');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      setMode(defaultMode);
-      setTitle('');
-      setDate(today);
-      setTime('10:00');
-      setCourseId(defaultCourseId ?? courses[0]?.id ?? '');
-      setError(null);
-    }
-    // Reset only when the modal opens
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,4 +124,7 @@ export function ScheduleClassModal({ open, onClose, courses, teacherName, defaul
       </form>
     </Modal>);
 
+}
+export function ScheduleClassModal(props: ScheduleClassModalProps) {
+  return props.open ? <ScheduleClassForm {...props} /> : null;
 }

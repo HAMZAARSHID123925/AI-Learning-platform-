@@ -4,18 +4,19 @@ import React, { useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from "framer-motion";
-import { EyeIcon, EyeOffIcon, GraduationCapIcon, Loader2Icon, PresentationIcon, ShieldCheckIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, GraduationCapIcon, Loader2Icon, PresentationIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react";
 import { Button } from '@/components/shared/Button';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { subjectImages } from '@/data/illustrations';
+import { passwordError } from '@/lib/signup';
 import { Role } from '@/types';
 
 const roles: {
   id: Role;
   label: string;
   hint: string;
-  icon: any;
+  icon: LucideIcon;
 }[] = [
   {
     id: 'student',
@@ -61,19 +62,18 @@ function SignupInner() {
     role?: string;
   }>({});
   const [loading, setLoading] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || accountCreated) return;
     const next: typeof errors = {};
 
     if (!name.trim()) next.name = 'Please enter your full name';
-    if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Enter a valid email address';
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address';
     if (!role) next.role = 'Please select whether you are a Student, Teacher, or Admin';
-    if (password.length < 10) {
-      next.password = 'Password must be at least 10 characters long';
-    } else if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=[\]{}|;:,.<>/?`~]/.test(password)) {
-      next.password = 'Must contain uppercase, lowercase, number, and a special character (e.g. !@#$)';
-    }
+    const passwordIssue = passwordError(password);
+    if (passwordIssue) next.password = passwordIssue;
 
     setErrors(next);
     if (Object.keys(next).length || !role) return;
@@ -87,6 +87,7 @@ function SignupInner() {
       const res = await signUp({ name, email, password, role: chosenRole });
       if (!res.success) {
         setLoading(false);
+        setAccountCreated(Boolean(res.accountCreated));
         setErrors({
           email: res.error || 'Failed to register account with database',
         });
@@ -144,6 +145,7 @@ function SignupInner() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
+                  maxLength={128}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 10 characters (e.g. Pass1234!)"
@@ -160,6 +162,7 @@ function SignupInner() {
                   {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                 </button>
               </div>
+              <p className="mt-1.5 text-xs text-ink-muted">10–128 characters, uppercase and lowercase letters, a number, and a symbol such as ! or @.</p>
               {errors.password && <p id="password-error" className="mt-1.5 text-sm font-semibold text-danger-700">{errors.password}</p>}
             </div>
 
@@ -189,7 +192,7 @@ function SignupInner() {
               {errors.role && <p className="mt-1.5 text-sm font-semibold text-danger-700">{errors.role}</p>}
             </fieldset>
 
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+            <Button type="submit" size="lg" className="w-full" disabled={loading || accountCreated}>
               {loading ? <Loader2Icon className="h-5 w-5 animate-spin" aria-label="Creating account" /> : 'Create account'}
             </Button>
           </form>

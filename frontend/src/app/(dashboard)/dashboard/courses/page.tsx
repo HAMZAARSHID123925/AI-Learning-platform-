@@ -15,7 +15,7 @@ export default function Courses() {
   const { user, setGrade } = useAuth();
   const grade = (user?.grade ?? 5) as Grade;
   const { lessons } = useProgress();
-  const q = useAsync(() => learningApi.listCourses(grade), [grade]);
+  const q = useAsync(() => learningApi.listCourses(grade), [grade, user?.id]);
 
   const rows = useMemo(
     () => (q.data ?? []).map((c) => ({ course: c, progress: getCourseProgress(c, lessons) })),
@@ -32,7 +32,8 @@ export default function Courses() {
       <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-4xl font-black tracking-tight text-ink sm:text-5xl">Explore Grade {grade}</h1>
-          {q.data && (
+          {q.data?.length === 0 && <StateMessage kind="empty" title="No published courses for your grade yet" />}
+      {q.data && (
             <p className="mt-2 text-lg text-ink-soft">
               {rows.length} learning paths · <span className="font-extrabold text-ink">{done} of {total}</span> lessons done
             </p>
@@ -45,7 +46,7 @@ export default function Courses() {
               <button
                 key={g}
                 type="button"
-                onClick={() => setGrade(g)}
+                onClick={() => { void setGrade(g).catch(() => window.alert('Could not save your grade. Please retry.')); }}
                 className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
                   isSelected
                     ? 'bg-ink text-white shadow-xs'
@@ -62,6 +63,7 @@ export default function Courses() {
       {q.loading && <StateMessage kind="loading" title="Loading your learning paths…" />}
       {q.error && <StateMessage kind="error" message={q.error.message} onRetry={q.reload} />}
 
+      {q.data?.length === 0 && <StateMessage kind="empty" title="No published courses for your grade yet" />}
       {q.data && (
         <div className="space-y-14">
           {subjectOrder.map((subject) => {

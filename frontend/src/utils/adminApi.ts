@@ -1,16 +1,50 @@
 import { fetchWithAuth } from '@/lib/api';
-import type { Course, Lesson } from '@/types/learning';
+import type { Course } from '@/types/learning';
+import { mapBackendCourseDetailToFrontendCourse } from './learningApi';
 
 async function getErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
     const data = await res.json();
-    return data.detail || data.message || fallback;
+    return typeof data.detail === 'string' ? data.detail : data.message || (Array.isArray(data.detail) ? data.detail.map((item: {msg: string}) => item.msg).join(' ') : fallback);
   } catch {
     return fallback;
   }
 }
 
+const pendingUploads = new WeakMap<File,Map<string,{presign:{presigned_url:string;upload_id:string};uploaded:boolean}>>();
 export const adminApi = {
+  async listSkills(): Promise<{id: string; name: string}[]> {
+    const res = await fetchWithAuth('/skills');
+    if (!res.ok) throw new Error('Could not load curriculum skills.');
+    return res.json();
+  },
+  async uploadMedia(courseId: string, file: File, mediaType: string, lessonId?: string) {
+    const target=courseId+':'+mediaType+':'+(lessonId || '');
+    let pending=pendingUploads.get(file);if(!pending){pending=new Map();pendingUploads.set(file,pending);}
+    let entry=pending.get(target);
+    if(!entry){entry={presign:await this.requestPresignedUpload(courseId,{
+      lesson_id:lessonId,media_type:mediaType,filename:file.name,content_type:file.type,size_bytes:file.size,
+    }),uploaded:false};pending.set(target,entry);}
+    const presign=entry.presign;
+    let uploaded = entry.uploaded;
+    if(!uploaded) try {
+      const response = await fetch(presign.presigned_url, {
+        method: 'PUT', headers: { 'Content-Type': file.type }, body: file,
+      });
+      uploaded = response.ok;
+    } catch { /* The authenticated relay handles browser-to-storage CORS failures. */ }
+    if (!uploaded) {
+      const form = new FormData();
+      form.set('file', file); form.set('course_id', courseId); form.set('upload_id', presign.upload_id);
+      form.set('media_type', mediaType); if (lessonId) form.set('lesson_id', lessonId);
+      const response = await fetchWithAuth('/uploads/relay', {method: 'POST', body: form});
+      if (!response.ok) throw new Error(await getErrorMessage(response, 'Storage upload failed. Your draft is saved; please retry.'));
+    }
+    entry.uploaded=true;
+    const confirmed=await this.confirmUpload(courseId,presign.upload_id,{lesson_id:lessonId,media_type:mediaType});
+    pending.delete(target);
+    return confirmed;
+  },
   async listCourses(params?: { grade?: number; status_filter?: string; page?: number; page_size?: number }) {
     const q = new URLSearchParams();
     if (params?.grade) q.set('grade', String(params.grade));
@@ -23,7 +57,7 @@ export const adminApi = {
     return res.json();
   },
 
-  async createCourse(data: { title: string; description?: string; grade: number; slug?: string }) {
+  async createCourse(data: { title: string; description?: string; grade: number; slug?: string; instructor_id?: string }) {
     const res = await fetchWithAuth('/courses', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -35,7 +69,8 @@ export const adminApi = {
   async getCourseDetail(courseId: string): Promise<Course> {
     const res = await fetchWithAuth(`/courses/${courseId}`);
     if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch course details'));
-    return res.json();
+    const data = await res.json();
+    return { ...mapBackendCourseDetailToFrontendCourse(data), status: data.status };
   },
 
   async updateCourse(courseId: string, data: { title?: string; description?: string; grade?: number; thumbnail_url?: string }) {
@@ -82,7 +117,7 @@ export const adminApi = {
   },
 
   // Lesson CRUD
-  async createLesson(moduleId: string, data: { title: string; sequence_order: number; slug?: string }) {
+  async createLesson(moduleId: string, data: { title: string; sequence_order: number; slug?: string; skill_ids?: string[] }) {
     const res = await fetchWithAuth(`/modules/${moduleId}/lessons`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -91,7 +126,7 @@ export const adminApi = {
     return res.json();
   },
 
-  async updateLesson(lessonId: string, data: { title?: string; body_markdown?: string; sequence_order?: number; estimated_minutes?: number }) {
+  async updateLesson(lessonId: string, data: { title?: string; body_markdown?: string; sequence_order?: number; estimated_minutes?: number; skill_ids?: string[] }) {
     const res = await fetchWithAuth(`/lessons/${lessonId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

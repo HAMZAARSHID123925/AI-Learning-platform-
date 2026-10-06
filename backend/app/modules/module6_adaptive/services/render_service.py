@@ -330,6 +330,23 @@ def invoke_remotion_render(input_path: str, output_path: str) -> RenderResult:
 # Main render service
 # ---------------------------------------------------------------------------
 
+async def await_render_completion(input_path: str, output_path: str) -> RenderResult:
+    """Keep render files alive until the executor actually stops on cancellation."""
+    future = asyncio.get_running_loop().run_in_executor(
+        None, invoke_remotion_render, input_path, output_path
+    )
+    try:
+        return await asyncio.shield(future)
+    except asyncio.CancelledError:
+        # Task cancellation cannot stop the subprocess thread. Wait before
+        # removing its files, then propagate cancellation without uploading.
+        try:
+            await asyncio.shield(future)
+        except Exception:
+            pass
+        raise
+
+
 async def render_video(
     job_id: uuid.UUID,
     db: AsyncSession,
@@ -400,12 +417,7 @@ async def render_video(
         )
 
         # ── Invoke Remotion renderer ───────────────────────────────────────
-        render_result = await asyncio.get_event_loop().run_in_executor(
-            None,
-            invoke_remotion_render,
-            input_path,
-            output_path,
-        )
+        render_result = await await_render_completion(input_path, output_path)
 
         if not render_result.success:
             job.status = VideoJobStatus.failed

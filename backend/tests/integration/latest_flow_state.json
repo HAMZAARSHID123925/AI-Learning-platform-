@@ -1,0 +1,26 @@
+{
+  "tag": "latest-f849-038eece5",
+  "users": {
+    "admin": "a68bcc0b-2d0a-4b2a-b171-79b16f5f6235",
+    "student": "7ab4c054-32ba-4c2b-a49c-38e7ae6f5930",
+    "other": "1e93b8c5-f5b6-4e34-8ff0-492a264e72ef"
+  },
+  "skill": "4519529e-33d9-4a3a-959b-ae4a21888ce0",
+  "course": "8c3e64a2-6da0-4e68-a584-bae239af54f2",
+  "module": "5df79e9b-da83-4a88-a3a7-9f73a7dae4bd",
+  "lesson": "8294b069-4f72-4179-9fa2-56d88bec0131",
+  "uploaded": true,
+  "published": true,
+  "external_blockers": [
+    "Browser security policy rejected access to the local application tab; actual UI verification is not certified.",
+    "R2 browser PUT preflight remains 403; available bucket credentials cannot administer CORS."
+  ],
+  "assessment": "428a340f-18a0-4a3d-97d2-ce56ef7efca4",
+  "submission": "50524de3-f4a8-4047-b122-ce1111e080d0",
+  "weakness": "d5df3b81-0967-43a1-a91b-47d7a9a04974",
+  "remediation": "234d4dda-1b3b-44b6-a171-9f08bfd966a6",
+  "video_job": "6f87416c-46d9-42e4-b5f9-37ba0ed752ec",
+  "video_status": "ready",
+  "video_duration_seconds": 150,
+  "measured_video_duration_seconds": 150.016
+}

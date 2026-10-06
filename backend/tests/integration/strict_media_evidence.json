@@ -1,0 +1,51 @@
+{
+  "job_id": "4273d32e-4f3e-4993-a4dc-42ca292c7f4a",
+  "mp4_local": "C:\\Users\\ali\\AppData\\Local\\Temp\\elarion-latest-flow\\strict-personalized.mp4",
+  "sha256": "3ec651b16b89bbf44c71f3d4be2fd1851610d8df0cfd654cadb151824c1d5a31",
+  "bytes": 10846883,
+  "duration": "147.968000",
+  "streams": [
+    {
+      "codec_name": "h264",
+      "codec_type": "video",
+      "width": 1920,
+      "height": 1080,
+      "r_frame_rate": "30/1",
+      "duration": "147.966667"
+    },
+    {
+      "codec_name": "aac",
+      "codec_type": "audio",
+      "sample_rate": "48000",
+      "channels": 2,
+      "r_frame_rate": "0/0",
+      "duration": "147.968000"
+    }
+  ],
+  "full_decode_pass": true,
+  "audio_levels": [
+    "mean_volume: -23.1 dB",
+    "max_volume: -4.5 dB"
+  ],
+  "is_mock": false,
+  "frame_times": [
+    8,
+    27.556,
+    45.672,
+    63.236,
+    79.792,
+    98.604,
+    117.608,
+    135.07600000000002
+  ],
+  "scene_diagrams": [
+    "none",
+    "fraction_bars",
+    "fraction_bars",
+    "number_line",
+    "comparison",
+    "equation_steps",
+    "fraction_bars",
+    "none"
+  ]
+}

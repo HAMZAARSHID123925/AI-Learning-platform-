@@ -66,6 +66,27 @@ export function validatePayload(payload: RenderPayload): ValidationError[] {
     }
   }
 
+  const ids = (payload.scenes ?? []).map(s => s.scene_id);
+  if (new Set(ids).size !== ids.length) errors.push({field:"scenes",message:"Duplicate scene IDs"});
+  for (const scene of payload.scenes ?? []) {
+    const clips = payload.audio_manifest?.scenes?.filter(c => c.scene_id === scene.scene_id) || [];
+    const slots = payload.asset_manifest?.scene_slots?.filter(s => s.scene_id === scene.scene_id) || [];
+    if (clips.length !== 1 || !clips[0]?.audio_url || clips[0]?.status !== "ready") errors.push({field:scene.scene_id,message:"Exactly one ready audio source required"});
+    if (slots.length !== 1) errors.push({field:scene.scene_id,message:"Exactly one asset slot required"});
+    if (clips[0] && (!Number.isFinite(clips[0].duration_seconds) || clips[0].duration_seconds <= 0 || clips[0].render_duration_seconds < clips[0].duration_seconds || clips[0].render_duration_seconds - clips[0].duration_seconds > 1.01)) errors.push({field:scene.scene_id,message:"Scene timing must follow measured audio with at most one second padding"});
+    if (scene.visual_version === 2) {
+      const d = scene.diagram;
+      const text=scene.on_screen_text;
+      if (!text || text.length<1 || text.length>3 || text.some(t => typeof t!=="string" || !t.trim() || t.length>80)) errors.push({field:scene.scene_id,message:"Invalid key points"});
+      if (!d || !["none","fraction_bars","number_line","equation_steps","process","cycle","comparison"].includes(d.kind) || !Array.isArray(d.labels) || !Array.isArray(d.values) || !Array.isArray(d.denominators)) {errors.push({field:scene.scene_id,message:"Invalid diagram"});continue;}
+      if (d.labels.some(t=>typeof t!=="string" || !t.trim() || t.length>48) || d.values.some(v=>!Number.isFinite(v))) errors.push({field:scene.scene_id,message:"Invalid diagram data"});
+      if (d.kind==="fraction_bars" && (d.labels.length<1 || d.labels.length>3 || d.values.length!==d.labels.length || d.denominators.length!==d.labels.length || d.denominators.some((n,i)=>!Number.isInteger(n)||n<1||n>12||!Number.isInteger(d.values[i])||d.values[i]<0||d.values[i]>n))) errors.push({field:scene.scene_id,message:"Invalid fraction quantities"});
+      if (d.kind==="number_line" && (d.labels.length<1 || d.labels.length>4 || d.values.length!==d.labels.length || d.denominators.length || d.values.some(v=>v<0||v>1))) errors.push({field:scene.scene_id,message:"Invalid number line"});
+      if (d.kind==="none" && (d.labels.length || d.values.length || d.denominators.length)) errors.push({field:scene.scene_id,message:"Unexpected empty diagram data"});
+      if (["equation_steps","process","cycle","comparison"].includes(d.kind) && (d.labels.length<2 || d.labels.length>4 || d.values.length || d.denominators.length)) errors.push({field:scene.scene_id,message:"Invalid diagram steps"});
+    }
+  }
+
   // ── Audio clip validation ────────────────────────────────────────────────
   const sceneIds = new Set((payload.scenes ?? []).map((s) => s.scene_id));
   for (const clip of payload.audio_manifest?.scenes ?? []) {
