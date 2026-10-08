@@ -6,7 +6,8 @@ export interface BackendAssessment {
 }
 export interface BackendSubmission {
   id: string; test_id: string; student_id: string; status: string; total_count: number; correct_percentage: number | null;
-  skill_scores: {id: string; skill_id: string; skill_name: string | null; score: number; max_score: number}[];
+  attempt_number?: number; submitted_at?: string; graded_at?: string;
+  skill_scores: {id: string; skill_id: string; skill_name: string | null; score: number; max_score: number; grader_type?: string; llm_feedback?: string | null}[];
 }
 export interface BackendWeakness {id: string; skill_id: string; submission_id: string; status: string; score_at_flag: number; threshold: number;}
 export interface BackendRemediation {source_submission_id?: string | null;id: string; weakness_flag_id: string; status: string; remedial_course_title: string | null; remedial_course_markdown: string | null;}

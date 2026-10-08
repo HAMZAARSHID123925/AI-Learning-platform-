@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const signOut = useCallback(async () => {
     try { await fetchWithAuth('/auth/logout', { method: 'POST' }); }
+    catch { /* Ignore network disconnects on logout */ }
     finally { clearAuthSession(); setUser(null); }
   }, []);
   const value = useMemo(() => ({ user, loading, signIn, signUp, setGrade, signOut }), [user, loading, signIn, signUp, setGrade, signOut]);

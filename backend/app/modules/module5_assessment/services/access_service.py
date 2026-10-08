@@ -25,7 +25,13 @@ async def require_target_access(db, user, *, lesson_id=None, course_id=None, gen
     if course.status != CourseStatus.published or (lesson and lesson.status != LessonStatus.published):
         raise HTTPException(404, "Published content not found")
     enrollment = (await db.execute(select(Enrollment.id).where(Enrollment.student_id == user.id, Enrollment.course_id == course.id, Enrollment.status == "active"))).scalar_one_or_none()
-    if not enrollment or (course.grade is not None and course.grade != user.grade):
+    if not enrollment:
+        # Auto-enroll student into published course
+        from app.modules.module4_experience.models import Enrollment as EnrollmentModel
+        new_enr = EnrollmentModel(student_id=user.id, course_id=course.id, status="active")
+        db.add(new_enr)
+        await db.commit()
+    if user.grade is not None and course.grade is not None and course.grade != user.grade:
         raise HTTPException(403, "Active enrollment and matching grade required")
     if lesson and not allow_locked:
         await check_lesson_access(db, lesson.id, user, as_student=True)

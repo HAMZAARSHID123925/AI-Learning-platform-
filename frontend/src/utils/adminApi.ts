@@ -23,9 +23,17 @@ export const adminApi = {
     const target=courseId+':'+mediaType+':'+(lessonId || '');
     let pending=pendingUploads.get(file);if(!pending){pending=new Map();pendingUploads.set(file,pending);}
     let entry=pending.get(target);
-    if(!entry){entry={presign:await this.requestPresignedUpload(courseId,{
-      lesson_id:lessonId,media_type:mediaType,filename:file.name,content_type:file.type,size_bytes:file.size,
-    }),uploaded:false};pending.set(target,entry);}
+    if(!entry){
+      try {
+        entry={presign:await this.requestPresignedUpload(courseId,{
+          lesson_id:lessonId,media_type:mediaType,filename:file.name,content_type:file.type,size_bytes:file.size,
+        }),uploaded:false};
+        pending.set(target,entry);
+      } catch {
+        // If presign fails, directly upload to backend disk
+        return await this.directUpload(courseId, file, mediaType, lessonId);
+      }
+    }
     const presign=entry.presign;
     let uploaded = entry.uploaded;
     if(!uploaded) try {
@@ -35,11 +43,21 @@ export const adminApi = {
       uploaded = response.ok;
     } catch { /* The authenticated relay handles browser-to-storage CORS failures. */ }
     if (!uploaded) {
-      const form = new FormData();
-      form.set('file', file); form.set('course_id', courseId); form.set('upload_id', presign.upload_id);
-      form.set('media_type', mediaType); if (lessonId) form.set('lesson_id', lessonId);
-      const response = await fetchWithAuth('/uploads/relay', {method: 'POST', body: form});
-      if (!response.ok) throw new Error(await getErrorMessage(response, 'Storage upload failed. Your draft is saved; please retry.'));
+      try {
+        const form = new FormData();
+        form.set('file', file); form.set('course_id', courseId); form.set('upload_id', presign.upload_id);
+        form.set('media_type', mediaType); if (lessonId) form.set('lesson_id', lessonId);
+        const response = await fetchWithAuth('/uploads/relay', {method: 'POST', body: form});
+        if (response.ok) {
+          uploaded = true;
+        }
+      } catch { /* Fallback to directUpload */ }
+    }
+    if (!uploaded) {
+      // Fallback: Upload directly to backend uploads folder on disk
+      const directRes = await this.directUpload(courseId, file, mediaType, lessonId);
+      pending.delete(target);
+      return directRes;
     }
     entry.uploaded=true;
     const confirmed=await this.confirmUpload(courseId,presign.upload_id,{lesson_id:lessonId,media_type:mediaType});
