@@ -103,10 +103,10 @@ export default function Profile() {
             </div>
           </div>
         </div>
-        <Button variant="secondary" size="sm" onClick={() => {
-        signOut();
-        router.push('/login');
-      }} className="self-start sm:self-center">
+        <Button variant="secondary" size="sm" onClick={async () => {
+          await signOut();
+          router.push('/login');
+        }} className="self-start sm:self-center">
           <LogOutIcon className="h-4 w-4" aria-hidden="true" /> Sign out
         </Button>
       </header>
