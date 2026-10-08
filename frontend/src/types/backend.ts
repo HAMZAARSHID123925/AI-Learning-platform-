@@ -29,3 +29,9 @@ export interface BackendDashboard {
 }
 export interface BackendNotification {id: string;title: string;body: string;read: boolean;created_at: string;}
 export interface BackendLiveSession {id: string;course_id: string;instructor_id: string;instructor_name?: string;current_participants?: number;title: string;scheduled_at: string;duration_minutes: number;status: string;room_url: string | null;}
+
+export interface BackendCourseCard {
+  id: string; slug: string; title: string; description: string | null;
+  grade: Grade | null; thumbnail_url: string | null;
+  lessons: {id: string; minutes: number; completed: boolean}[];
+}

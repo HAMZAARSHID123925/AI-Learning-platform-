@@ -13,7 +13,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, literal, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -257,3 +257,57 @@ async def get_module(db: AsyncSession, module_id: uuid.UUID) -> CourseModule:
     if not module:
         raise ResourceNotFoundError("CourseModule", str(module_id))
     return module
+
+
+async def list_course_cards(
+    db: AsyncSession, params: PaginationParams, *,
+    instructor_id: uuid.UUID | None = None, status_filter: str | None = None,
+    grade: int | None = None, student_id: uuid.UUID | None = None,
+    staff_viewer_id: uuid.UUID | None = None, is_admin: bool = False,
+) -> tuple[list[dict], int]:
+    """Three bounded SELECTs; no ORM entities or relationship graph loading.
+
+    Ordered lesson references are necessary for card segments and transient
+    frontend progress. No lesson content, skills, assets or module bodies leave
+    this path. Completion joins are scoped to the authenticated viewer.
+    """
+    from app.modules.module2_content.models import LessonStatus
+    from app.modules.module4_experience.models import StudentProgress
+
+    filters = []
+    if instructor_id is not None:
+        filters.append(Course.instructor_id == instructor_id)
+    if status_filter is not None:
+        filters.append(Course.status == status_filter)
+    if grade is not None:
+        filters.append(Course.grade == grade)
+    total = (await db.execute(select(func.count(Course.id)).where(*filters))).scalar_one()
+    rows = (await db.execute(
+        select(Course.id, Course.slug, Course.title, Course.description, Course.grade,
+               Course.thumbnail_url, Course.thumbnail_object_key)
+        .where(*filters).order_by(Course.created_at.desc(), Course.id)
+        .offset(params.offset).limit(params.limit)
+    )).mappings().all()
+    cards = [dict(row, lessons=[]) for row in rows]
+    if not cards:
+        return cards, total
+
+    by_id = {card['id']: card for card in cards}
+    completed = func.coalesce(StudentProgress.completed, False) if student_id else literal(False)
+    query = (select(CourseModule.course_id, Lesson.id, Lesson.estimated_minutes, completed.label('completed'))
+             .select_from(CourseModule).join(Lesson, Lesson.module_id == CourseModule.id)
+             .where(CourseModule.course_id.in_(by_id)))
+    if student_id:
+        query = query.outerjoin(StudentProgress,
+            (StudentProgress.lesson_id == Lesson.id) & (StudentProgress.student_id == student_id))
+    if not is_admin:
+        if staff_viewer_id:
+            query = query.join(Course, Course.id == CourseModule.course_id).where(
+                or_(Lesson.status == LessonStatus.published, Course.instructor_id == staff_viewer_id))
+        else:
+            query = query.where(Lesson.status == LessonStatus.published)
+    query = query.order_by(CourseModule.sequence_order, CourseModule.id, Lesson.sequence_order, Lesson.id)
+    for row in (await db.execute(query)).mappings():
+        by_id[row['course_id']]['lessons'].append({
+            'id': row['id'], 'minutes': row['estimated_minutes'] or 5, 'completed': bool(row['completed'])})
+    return cards, total

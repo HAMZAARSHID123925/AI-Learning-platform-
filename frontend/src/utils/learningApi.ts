@@ -13,7 +13,7 @@
  *   Personalized learning API→ getPersonalizedPlan, getPracticeSet, getRecommendations
  */
 import { fetchWithAuth } from '@/lib/api';
-import type { BackendAssessment, BackendSubmission, BackendWeakness, BackendRemediation, BackendCourse, BackendCourseSummary, BackendLesson, BackendEnrollment, BackendDashboard, BackendNotification, BackendLiveSession, BackendCourseProgress } from '@/types/backend';
+import type { BackendAssessment, BackendSubmission, BackendWeakness, BackendRemediation, BackendCourse, BackendCourseSummary, BackendCourseCard, BackendLesson, BackendEnrollment, BackendDashboard, BackendNotification, BackendLiveSession, BackendCourseProgress } from '@/types/backend';
 import { courses } from '@/data/courses';
 import { mathLessons } from '@/data/lessons/mathLessons';
 import { scienceLessons } from '@/data/lessons/scienceLessons';
@@ -31,6 +31,7 @@ import type {
   AssessmentAttempt,
   ChallengeQuestion,
   Course,
+  CourseCardData,
   LearningAnalysis,
   Lesson,
   LessonProgress,
@@ -66,7 +67,7 @@ function findCourse(courseId: string): Course {
 
 // ADAPTERS
 
-function mapBackendCourseToFrontendCourse(b: BackendCourse): Course {
+function mapBackendCourseToFrontendCourse(b: Pick<BackendCourseCard, 'id' | 'slug' | 'title' | 'grade' | 'description' | 'thumbnail_url'> | BackendCourse): Course {
   const local = courses.find((c) => c.slug === b.slug || c.id === b.slug || c.title.toLowerCase() === (b.title || '').toLowerCase());
   
   const t = (b.title || '').toLowerCase();
@@ -147,6 +148,23 @@ function challengeFor(courseId: string): ChallengeQuestion[] {
 }
 
 export const learningApi = {
+  async listCourseCards(grade: Grade): Promise<CourseCardData[]> {
+    const result: CourseCardData[] = [];
+    let page = 1;
+    while (true) {
+      const res = await fetchWithAuth(`/courses/cards?grade=${grade}&status_filter=published&page_size=100&page=${page}`);
+      if (!res.ok) throw new Error('Could not load courses. Please retry.');
+      const data: {items: BackendCourseCard[]; total: number} = await res.json();
+      result.push(...data.items.filter(item => Number(item.grade) === Number(grade)).map(item => {
+        const mapped = mapBackendCourseToFrontendCourse(item);
+        return {id: mapped.id, slug: mapped.slug, title: mapped.title, description: mapped.description,
+          grade: mapped.grade, subject: mapped.subject, image: mapped.image, lessons: item.lessons};
+      }));
+      if (page * 100 >= data.total || data.items.length === 0) return result;
+      page += 1;
+    }
+  },
+
   async listCourses(grade: Grade): Promise<Course[]> {
     const result: Course[] = [];
     let page = 1;

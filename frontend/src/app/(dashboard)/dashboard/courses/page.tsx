@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useAsync } from '@/hooks/useAsync';
 import { learningApi } from '@/utils/learningApi';
-import { getCourseProgress } from '@/utils/progress';
+import { getCourseCardProgress } from '@/utils/progress';
 import { subjectOrder, subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
@@ -15,10 +15,10 @@ export default function Courses() {
   const { user, setGrade } = useAuth();
   const grade = (user?.grade ?? 5) as Grade;
   const { lessons } = useProgress();
-  const q = useAsync(() => learningApi.listCourses(grade), [grade, user?.id]);
+  const q = useAsync(() => learningApi.listCourseCards(grade), [grade, user?.id]);
 
   const rows = useMemo(
-    () => (q.data ?? []).map((c) => ({ course: c, progress: getCourseProgress(c, lessons) })),
+    () => (q.data ?? []).map((c) => ({ course: c, progress: getCourseCardProgress(c, lessons) })),
     [q.data, lessons]
   );
   const done = rows.reduce((n, r) => n + r.progress.completed, 0);

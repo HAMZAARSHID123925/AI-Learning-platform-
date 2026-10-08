@@ -271,3 +271,8 @@ export interface LegacyCourseData {
   skills: string[];
   lessons: LessonSummary[];
 }
+
+/** A card read model, deliberately separate from the full course syllabus. */
+export type CourseCardData = Pick<Course, 'id' | 'slug' | 'grade' | 'subject' | 'title' | 'description' | 'image'> & {
+  lessons: {id: string; minutes: number; completed: boolean}[];
+};
