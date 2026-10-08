@@ -183,6 +183,7 @@ async def test_invalid_diagram_does_not_hide_aggregate_narration_error(monkeypat
 
 @pytest.mark.asyncio
 async def test_cancelled_render_stops_owned_process_before_releasing_files(monkeypatch,tmp_path):
+    monkeypatch.setattr(renders,"renderer_command",lambda:["node","tsx","render.ts"])
     from pathlib import Path
     input_path=tmp_path/'input.json';input_path.write_text(json.dumps({'audio_manifest':{'scenes':[{'render_duration_seconds':180}]}}))
     started=threading.Event();stopped=threading.Event()
@@ -291,3 +292,14 @@ async def test_durable_dispatch_recovers_orphaned_active_job_but_preserves_live_
     await jobs.dispatch_pending_video_jobs(db)
     assert [c.args[1].id for c in enqueue.await_args_list]==[queued.id,orphan.id]
     assert orphan.status==VideoJobStatus.audio_ready and live.status==VideoJobStatus.rendering
+
+@pytest.mark.asyncio
+async def test_missing_durable_narration_never_invokes_renderer(monkeypatch):
+    j,db=job_fixture()
+    renderer=AsyncMock(side_effect=AssertionError("Cannot render missing narration"))
+    monkeypatch.setattr(renders,"object_exists",AsyncMock(return_value=False))
+    monkeypatch.setattr(renders,"await_render_completion",renderer)
+    with pytest.raises(VideoPipelineError,match="narration object is missing"):
+        await renders.render_video(j.id,db)
+    renderer.assert_not_awaited()
+    assert j.status==VideoJobStatus.failed and j.asset_manifest_json

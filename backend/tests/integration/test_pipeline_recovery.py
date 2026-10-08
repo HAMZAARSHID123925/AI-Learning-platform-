@@ -106,6 +106,7 @@ async def test_two_courses_sharing_a_skill_keep_independent_weaknesses():
 def test_real_render_budget_scales_with_measured_audio_and_stays_bounded(monkeypatch,tmp_path):
     import json
     from app.modules.module6_adaptive.services import render_service as service
+    monkeypatch.setattr(service,"renderer_command",lambda:["node","tsx","render.ts"])
     from unittest.mock import Mock
     payload=tmp_path/"input.json"
     payload.write_text(json.dumps({"audio_manifest":{"scenes":[{"render_duration_seconds":200}]}}))
@@ -118,6 +119,7 @@ def test_real_render_budget_scales_with_measured_audio_and_stays_bounded(monkeyp
 def test_render_timeout_terminates_own_process_tree_before_retry(monkeypatch,tmp_path):
     import json,subprocess
     from app.modules.module6_adaptive.services import render_service as service
+    monkeypatch.setattr(service,"renderer_command",lambda:["node","tsx","render.ts"])
     from unittest.mock import Mock
     payload=tmp_path/"input.json"
     payload.write_text(json.dumps({"audio_manifest":{"scenes":[{"render_duration_seconds":180}]}}))

@@ -2,11 +2,11 @@
 import asyncio,re
 class VideoPipelineError(RuntimeError):
     def __init__(self,code,message): self.code=code;super().__init__(message)
-def safe_error(exc):
+def safe_error(exc, limit=1600):
     value=str(exc)
     value=re.sub(r"https?://\S+|(?:postgres(?:ql)?|redis)://\S+", "[URL REDACTED]",value)
     value=re.sub(r"(?i)Bearer\s+\S+|sk-[A-Za-z0-9_*\-]+|(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^\s,;]+","[CREDENTIAL REDACTED]",value)
-    return value[:1600]
+    return value if limit is None else value[:limit]
 def is_transient(exc):
     if exc.__cause__ is not None and exc.__cause__ is not exc:
         return is_transient(exc.__cause__)
