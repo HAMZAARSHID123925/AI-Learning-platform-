@@ -58,6 +58,15 @@ def get_redis_client() -> Any:
         raise RuntimeError("Redis connection pool unavailable in production. Cannot use MockRedis.")
     raise RuntimeError("Redis connection pool unavailable")
 
+async def get_auth_redis() -> AsyncGenerator[Any, None]:
+    """Fail-closed auth client; revocation EXISTS proves connectivity.
+
+    Never use the development mock for security decisions. Explicit readiness
+    checks and non-auth Redis dependencies keep their existing PING behavior.
+    """
+    yield get_redis_client()
+
+
 async def get_redis() -> AsyncGenerator[Any, None]:
     settings = get_settings()
     pool = _get_pool()
