@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=Path(__file__).resolve().parents[1] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # Ignore unknown env vars (CI may inject extras)
@@ -115,6 +115,11 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = "elarion-assets"
     S3_REGION: str = "us-east-1"
     MEDIA_SIGNED_URL_TTL_SECONDS: int = 900
+    # Optional deployment paths; otherwise resolve executables from worker PATH.
+    VIDEO_NODE_BINARY: str | None = None
+    FFMPEG_BINARY: str | None = None
+    FFPROBE_BINARY: str | None = None
+
     MAX_VIDEO_SIZE_BYTES: int = 500 * 1024 * 1024  # 500 MB
     MAX_IMAGE_SIZE_BYTES: int = 5 * 1024 * 1024    # 5 MB
 

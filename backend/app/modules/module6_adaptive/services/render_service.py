@@ -40,6 +40,7 @@ import time
 import json
 import os
 import subprocess
+import shutil
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -91,6 +92,7 @@ class RenderResult:
     is_mock_audio: bool
     character_version: str
     error: Optional[str] = None
+    error_code: Optional[str] = None
 
 
 @dataclass
@@ -104,6 +106,34 @@ class FFProbeResult:
     has_audio_stream: bool
     file_size_bytes: int
     errors: list[str]
+
+
+def resolve_executable(name: str, variable: str) -> str:
+    """Resolve deployment-configured executables without a shell or cwd dependency."""
+    configured = os.environ.get(variable) or getattr(get_settings(), variable, None)
+    resolved = shutil.which(configured or name)
+    if not resolved:
+        raise VideoPipelineError("VIDEO_RENDER_ENV_FAILED", f"Required executable unavailable: {name} ({variable})")
+    return str(Path(resolved).resolve())
+
+
+def renderer_failure_code(message: str) -> str:
+    message = message.lower()
+    if "timeout" in message or "timed out" in message:
+        return "VIDEO_RENDER_TIMEOUT"
+    if any(term in message for term in ("chromium unavailable", "browser executable", "failed to launch", "chrome-headless-shell", "cannot find module")):
+        return "VIDEO_RENDER_ENV_FAILED"
+    return "VIDEO_RENDER_FAILED"
+
+
+def renderer_command() -> list[str]:
+    node = resolve_executable("node", "VIDEO_NODE_BINARY")
+    executor = VIDEO_RENDER_DIR / "node_modules" / "tsx" / "dist" / "cli.mjs"
+    if not executor.is_file() or not RENDER_SCRIPT.is_file():
+        raise VideoPipelineError("VIDEO_RENDER_ENV_FAILED", "Renderer dependencies unavailable; install video-render lockfile dependencies")
+    resolve_executable("ffprobe", "FFPROBE_BINARY")
+    resolve_executable("ffmpeg", "FFMPEG_BINARY")
+    return [node, str(executor), str(RENDER_SCRIPT)]
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +168,7 @@ def validate_mp4_with_ffprobe(output_path: str, expected_duration: float) -> FFP
     try:
         probe_result = subprocess.run(
             [
-                "ffprobe", "-v", "quiet",
+                resolve_executable("ffprobe", "FFPROBE_BINARY"), "-v", "quiet",
                 "-print_format", "json",
                 "-show_format", "-show_streams",
                 output_path,
@@ -146,7 +176,7 @@ def validate_mp4_with_ffprobe(output_path: str, expected_duration: float) -> FFP
             capture_output=True, text=True, timeout=30
         )
         if probe_result.returncode != 0:
-            errors.append(f"ffprobe failed: {probe_result.stderr[:200]}")
+            errors.append("ffprobe failed: " + safe_error(probe_result.stderr)[:200])
             return FFProbeResult(**result_defaults, file_size_bytes=file_size)
 
         info = json.loads(probe_result.stdout)
@@ -198,6 +228,15 @@ def validate_mp4_with_ffprobe(output_path: str, expected_duration: float) -> FFP
 
         if duration <= 0:
             errors.append(f"Duration is zero or negative: {duration}")
+
+        if not errors:
+            decode = subprocess.run(
+                [resolve_executable("ffmpeg", "FFMPEG_BINARY"), "-v", "error", "-xerror", "-i", output_path,
+                 "-map", "0:v:0", "-map", "0:a:0", "-f", "null", "-"],
+                capture_output=True, text=True, timeout=60,
+            )
+            if decode.returncode != 0:
+                errors.append("MP4 decode failed: " + safe_error(decode.stderr)[:200])
 
         return FFProbeResult(
             valid=len(errors) == 0,
@@ -271,10 +310,10 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
     """
     node_env = {**os.environ, "NODE_ENV": "production"}
 
-    # Try tsx first (faster, no tsconfig overhead), then ts-node
-    executors = [
-        ["npm", "run", "render", "--", input_path, output_path]
-    ]
+    try:
+        executors = [renderer_command() + [str(Path(input_path).resolve()), str(Path(output_path).resolve())]]
+    except VideoPipelineError as exc:
+        return RenderResult(False, output_path, 0, 0, 0, 0, 0, 0, True, "unknown", str(exc), exc.code)
 
     # Longer real narration produces more frames; the fixed ten-minute budget
     # timed out valid course videos. Bound the budget using measured clip timing.
@@ -287,7 +326,7 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
         try:
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                cwd=str(VIDEO_RENDER_DIR), env=node_env, shell=os.name == 'nt',
+                cwd=str(VIDEO_RENDER_DIR), env=node_env, shell=False, encoding="utf-8", errors="replace",
                 start_new_session=os.name != 'nt',
             )
             stop_monitor = threading.Event()
@@ -318,6 +357,8 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
             if cancel_event is not None and cancel_event.is_set():
                 raise RuntimeError("Render cancelled after ownership loss")
 
+            logger.info("video_renderer_exited", executor=Path(cmd[0]).name, exit_code=proc.returncode,
+                        stderr_summary=safe_error(stderr, limit=None)[-1200:])
             # Parse stdout JSON result
             stdout_lines = stdout.strip().splitlines()
             result_line = next(
@@ -338,10 +379,11 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
                     is_mock_audio=result_data.get("is_mock_audio", True),
                     character_version=result_data.get("character_version", "unknown"),
                     error=safe_error(result_data.get("error") or "") or None,
+                    error_code=result_data.get("error_code") or (renderer_failure_code(result_data.get("error") or "") if not result_data.get("success") else None),
                 )
 
             if proc.returncode != 0:
-                last_error = safe_error((stderr or stdout)[:500])
+                last_error = safe_error(stderr or stdout)[:500]
                 continue
 
         except subprocess.TimeoutExpired:
@@ -358,7 +400,8 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
         success=False, output_path=output_path, duration_seconds=0.0,
         total_frames=0, width=0, height=0, fps=0, file_size_bytes=0,
         is_mock_audio=True, character_version="unknown",
-        error=last_error or "All render executors failed"
+        error=last_error or "All render executors failed",
+        error_code="VIDEO_RENDER_TIMEOUT" if last_error and last_error.startswith("Render timeout") else "VIDEO_RENDER_FAILED"
     )
 
 
@@ -412,6 +455,9 @@ async def render_video(job_id: uuid.UUID, db: AsyncSession) -> None:
             for c in clips)):
         raise VideoPipelineError("VIDEO_RENDER_FAILED", "Invalid scene audio mapping")
     expected_duration = sum(c["render_duration_seconds"] for c in clips)
+    if not job.asset_manifest_json:
+        job.asset_manifest_json = build_asset_manifest(job.id, job.scene_json).to_dict()
+        await db.commit()
     fingerprint = render_fingerprint(job)
     started = time.monotonic()
     stage = "render"
@@ -443,24 +489,27 @@ async def render_video(job_id: uuid.UUID, db: AsyncSession) -> None:
                 Path(input_path).write_text(json.dumps(payload),encoding="utf-8")
                 result = await await_render_completion(input_path,output_path)
                 if not result.success:
-                    raise VideoPipelineError("VIDEO_RENDER_FAILED", safe_error(result.error or "Renderer failed"))
-            probe = validate_mp4_with_ffprobe(output_path,expected_duration)
+                    raise VideoPipelineError(getattr(result, "error_code", None) or "VIDEO_RENDER_FAILED", safe_error(result.error or "Renderer failed"))
+            probe = await asyncio.to_thread(validate_mp4_with_ffprobe, output_path, expected_duration)
             if not probe.valid:
-                raise VideoPipelineError("VIDEO_RENDER_FAILED", "MP4 validation: " + safe_error("; ".join(probe.errors)))
+                raise VideoPipelineError("VIDEO_RENDER_ENV_FAILED" if any("Required executable unavailable" in e for e in probe.errors) else "VIDEO_RENDER_FAILED", "MP4 validation: " + safe_error("; ".join(probe.errors)))
             if video_bytes is None:
                 if probe.file_size_bytes > 64 * 1024 * 1024:
                     raise VideoPipelineError("VIDEO_RENDER_FAILED", "Rendered MP4 exceeds 64 MiB checkpoint limit")
                 video_bytes = Path(output_path).read_bytes()
                 job.render_checkpoint_bytes = video_bytes
                 job.render_manifest_json = {"fingerprint":fingerprint, "sha256":hashlib.sha256(video_bytes).hexdigest(),
-                    "size":len(video_bytes), "duration_seconds":probe.duration_seconds}
+                    "size":len(video_bytes), "duration_seconds":probe.duration_seconds,
+                    "render_seconds":round(time.monotonic()-started,3)}
                 await db.commit()
             stage = "upload"
+            upload_started = time.monotonic()
             job.status = VideoJobStatus.uploading
             await db.commit()
             key = f"{settings.TTS_AUDIO_OBJECT_PREFIX}/{job.id}/final/video.mp4"
             video_key, _ = await asyncio.wait_for(retry_transient(
                 lambda: upload_verified_bytes(video_bytes,key,"video/mp4")), timeout=UPLOAD_TIMEOUT_SECONDS)
+            job.render_manifest_json = {**job.render_manifest_json, "upload_seconds":round(time.monotonic()-upload_started,3)}
             job.video_object_key = video_key
             job.video_url = None  # API signs the saved private key on demand.
             from datetime import datetime, timezone

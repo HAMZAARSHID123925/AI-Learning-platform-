@@ -103,7 +103,7 @@ async def _process_owned_job(job_id: uuid.UUID, db: AsyncSession) -> dict:
     if job.status==VideoJobStatus.ready:return {'status':'skipped','reason':'Already ready'}
     if job.status==VideoJobStatus.failed:return {'status':'skipped','reason':'Explicit retry required'}
     from structlog.contextvars import bind_contextvars, reset_contextvars
-    context_tokens=bind_contextvars(job_id=str(job.id),student_id=str(job.student_id),remediation_id=str(job.remediation_plan_id),attempt=job.retry_count+1)
+    context_tokens=bind_contextvars(job_id=str(job.id),student_id=str(job.student_id),remediation_id=str(job.remediation_plan_id),attempt=job.retry_count+1,course_id=str(job.course_id),submission_id=str(job.submission_id),worker_id=CONSUMER_NAME)
     stage='plan'
     started=time.monotonic()
     try:

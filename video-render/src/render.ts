@@ -38,6 +38,8 @@ const __dirname = path.dirname(__filename);
 import { RenderPayload, RenderResult, DEFAULT_VIDEO_CONFIG } from "./types";
 import { validatePayload } from "./validate_payload";
 
+const browserExecutable = process.env.REMOTION_CHROMIUM_EXECUTABLE_PATH || null;
+
 const RENDER_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 async function main(): Promise<void> {
@@ -98,6 +100,7 @@ async function main(): Promise<void> {
   try {
     const comps = await getCompositions(bundleLocation, {
       inputProps: { payload },
+      browserExecutable,
     });
     const base = comps.find((c) => c.id === "ElarionLesson");
     if (!base) {
@@ -123,6 +126,7 @@ async function main(): Promise<void> {
       concurrency: 2, // Bound headless pages for the supported 8 GB local runtime.
       outputLocation: outputPath,
       inputProps: { payload },
+      browserExecutable,
       timeoutInMilliseconds: RENDER_TIMEOUT_MS,
       onProgress: ({ progress }) => {
         process.stderr.write(`render_progress:${Math.round(progress * 100)}\n`);

@@ -29,6 +29,11 @@ from app.modules.module6_adaptive.services.render_service import (
 )
 
 # ---------------------------------------------------------------------------
+# Executable discovery is tested separately; these tests inject subprocess results.
+@pytest.fixture(autouse=True)
+def mock_probe_executables(monkeypatch):
+    monkeypatch.setattr("app.modules.module6_adaptive.services.render_service.resolve_executable", lambda name, variable: name)
+
 # 1. Payload Building
 # ---------------------------------------------------------------------------
 
