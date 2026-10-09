@@ -9,7 +9,7 @@ import { saveAuthSession, clearAuthSession, getStoredAccessToken } from '@/lib/a
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password?: string, role?: Role) => Promise<boolean>;
+  signIn: (email: string, password?: string, role?: Role) => Promise<User | null>;
   signUp: (account: { name: string; email: string; password: string; role: Role }) => Promise<{ success: boolean; error?: string; accountCreated?: boolean }>;
   setGrade: (grade: Grade) => Promise<void>;
   signOut: () => Promise<void>;
@@ -44,31 +44,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
-  const signIn = useCallback(async (email: string, password?: string, role?: Role) => {
-    if (!password) return false;
+  const signIn = useCallback(async (email: string, password?: string, role?: Role): Promise<User | null> => {
+    if (!password) return null;
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-      if (!res.ok) return false;
+      if (!res.ok) return null;
       const data = await res.json();
-      if (!data.access_token) return false;
+      if (!data.access_token) return null;
       saveAuthSession(data.access_token);
       const me = await fetchWithAuth('/users/me');
-      if (!me.ok) { clearAuthSession(); return false; }
+      if (!me.ok) { clearAuthSession(); return null; }
       const identity = backendUser(await me.json());
-      if (role && identity.role !== role) { clearAuthSession(); return false; }
+      if (role && identity.role !== role) { clearAuthSession(); return null; }
       setUser(identity);
-      return true;
-    } catch { clearAuthSession(); setUser(null); return false; }
+      return identity;
+    } catch { clearAuthSession(); setUser(null); return null; }
   }, []);
   const signUp = useCallback(async (account: { name: string; email: string; password: string; role: Role }) => {
     try {
       const registration = await registerAccount(account);
-      if (!registration.success) return registration;
-      const success = await signIn(account.email, account.password);
-      return { success, accountCreated: true, error: success ? undefined : 'Your account was created. Please sign in; email verification may be required.' };
+      if (!registration.success) return { success: false, error: registration.error };
+      const signedUser = await signIn(account.email, account.password);
+      return { success: Boolean(signedUser), accountCreated: true, error: signedUser ? undefined : 'Your account was created. Please sign in; email verification may be required.' };
     } catch { return { success: false, error: 'Cannot reach authentication server.' }; }
   }, [signIn]);
   const setGrade = useCallback(async (grade: Grade) => {
