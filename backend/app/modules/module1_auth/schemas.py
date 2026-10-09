@@ -207,6 +207,18 @@ class AssignRoleRequest(BaseModel):
     role_name: str = Field(pattern="^(Student|Instructor|Admin)$")
 
 
+class CreateTeacherRequest(BaseModel):
+    """POST /api/v1/admin/teachers — Admin provisions a teacher directly"""
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: EmailStr
+    password: str = Field(min_length=10, max_length=128)
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    subject: str = Field(default="math", pattern="^(math|science|english|computer)$")
+
+
+
 # =============================================================================
 # Role & Permission Schemas
 # =============================================================================

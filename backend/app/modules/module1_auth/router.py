@@ -24,6 +24,7 @@ from app.database import get_db
 from app.modules.module1_auth.schemas import (
     AdminUpdateUserRequest,
     AssignRoleRequest,
+    CreateTeacherRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RefreshTokenResponse,
@@ -548,3 +549,109 @@ async def revoke_role(
     """Admin: revoke a role from a user."""
     await user_service.revoke_role(db=db, user_id=user_id, role_name=role_name, actor_id=current_user.id)
     return {"message": f"Role '{role_name}' revoked successfully."}
+
+
+@router.post(
+    "/admin/teachers",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Directly create and provision a teacher account (Admin only)",
+    tags=["Users"],
+    dependencies=[Depends(require_any_role("Admin"))],
+)
+async def admin_create_teacher(
+    body: CreateTeacherRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Admin: Directly create and provision a new Teacher/Instructor account.
+    Instantly verifies the account and assigns the Instructor role.
+    """
+    import asyncio
+    from app.modules.module1_auth.models import User, Role, UserRole, UserStatus, AuditLog
+    from app.shared.auth import hash_password
+    from app.shared.exceptions import DuplicateResourceError, ResourceNotFoundError
+
+    email = body.email.lower().strip()
+    existing_res = await db.execute(select(User).where(User.email == email))
+    existing_user = existing_res.scalar_one_or_none()
+
+    role_res = await db.execute(select(Role).where(Role.name == "Instructor"))
+    instructor_role = role_res.scalar_one_or_none()
+    if not instructor_role:
+        raise ResourceNotFoundError("Role", "Instructor")
+
+    password_hash = await asyncio.to_thread(hash_password, body.password)
+
+    if existing_user:
+        # User already exists in DB: Update their name, password and promote/ensure Instructor role
+        existing_user.first_name = body.first_name.strip()
+        existing_user.last_name = body.last_name.strip()
+        existing_user.password_hash = password_hash
+        existing_user.status = UserStatus.active
+        existing_user.email_verified = True
+
+        # Check if already has Instructor role
+        has_role = await db.execute(
+            select(UserRole).where(UserRole.user_id == existing_user.id, UserRole.role_id == instructor_role.id)
+        )
+        if not has_role.scalar_one_or_none():
+            db.add(UserRole(user_id=existing_user.id, role_id=instructor_role.id))
+
+        db.add(
+            AuditLog(
+                actor_id=current_user.id,
+                action="teacher.updated_and_assigned",
+                target_type="User",
+                target_id=existing_user.id,
+                metadata={"email": email, "subject": body.subject},
+            )
+        )
+        await db.commit()
+        target_user = existing_user
+    else:
+        # Create brand new user
+        new_user = User(
+            email=email,
+            password_hash=password_hash,
+            first_name=body.first_name.strip(),
+            last_name=body.last_name.strip(),
+            status=UserStatus.active,
+            email_verified=True,
+        )
+        db.add(new_user)
+        await db.flush()
+
+        db.add(UserRole(user_id=new_user.id, role_id=instructor_role.id))
+
+        db.add(
+            AuditLog(
+                actor_id=current_user.id,
+                action="teacher.provisioned",
+                target_type="User",
+                target_id=new_user.id,
+                metadata={"email": email, "subject": body.subject},
+            )
+        )
+        await db.commit()
+        target_user = new_user
+
+    return UserResponse(
+        id=target_user.id,
+        email=target_user.email,
+        first_name=target_user.first_name,
+        last_name=target_user.last_name,
+        grade=target_user.grade,
+        status=target_user.status.value,
+        email_verified=target_user.email_verified,
+        parental_consent=target_user.parental_consent,
+        roles=["Instructor"],
+        permissions=[],
+        last_login_at=target_user.last_login_at,
+        created_at=target_user.created_at,
+        updated_at=target_user.updated_at,
+    )
+
+
+

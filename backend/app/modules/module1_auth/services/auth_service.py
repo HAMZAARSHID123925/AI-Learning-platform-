@@ -86,14 +86,22 @@ async def _check_rate_limit(
     Returns: None if within limit
     Raises: RateLimitExceededError if limit exceeded
     """
-    count = await redis.incr(key)
-    if count == 1:
-        # First attempt — set the expiry window
-        await redis.expire(key, window_seconds)
+    try:
+        count = await redis.incr(key)
+        if count == 1:
+            # First attempt — set the expiry window
+            await redis.expire(key, window_seconds)
 
-    if count > max_attempts:
-        ttl = await redis.ttl(key)
-        raise RateLimitExceededError(action="login", retry_after=max(ttl, 0))
+        if count > max_attempts:
+            ttl = await redis.ttl(key)
+            raise RateLimitExceededError(action="login", retry_after=max(ttl, 0))
+    except RateLimitExceededError:
+        raise
+    except Exception as e:
+        if settings.is_production:
+            raise
+        logger.warning("rate_limit_redis_failed_development_fallback", error=str(e))
+
 
 
 # =============================================================================

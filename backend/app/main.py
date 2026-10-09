@@ -170,11 +170,18 @@ def create_app() -> FastAPI:
         )
 
     async def handle_global_error(request: Request, exc: Exception):
-        logger.error("unhandled_global_error", error_type=type(exc).__name__)
+        logger.error("unhandled_global_error", error_type=type(exc).__name__, error=str(exc))
+        origin = request.headers.get("origin")
+        headers = {}
+        if origin and (origin in settings.cors_origins_list or "*" in settings.cors_origins_list):
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Credentials"] = "true"
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"code": "INTERNAL_SERVER_ERROR", "message": "An internal error occurred."},
+            content={"code": "INTERNAL_SERVER_ERROR", "message": f"An error occurred: {type(exc).__name__}"},
+            headers=headers,
         )
+
 
     # Register each domain exception type
     for exc_cls in (InvalidCredentialsError, TokenExpiredError, TokenInvalidError, TokenRevokedError):
