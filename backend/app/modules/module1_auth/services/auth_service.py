@@ -225,8 +225,9 @@ async def register_user(
     db.add(user)
     await db.flush()  # Flush to get user.id without committing
 
-    target_role_name = "Instructor" if role in ("teacher", "instructor", "Instructor") else "Admin" if role in ("admin", "Admin") else "Student"
-    assigned_role = await db.execute(select(Role).where(Role.name == target_role_name))
+    # Security requirement: Public self-registration is strictly restricted to Student role.
+    # Privileged roles (Instructor, Admin) must be provisioned via admin endpoints.
+    assigned_role = await db.execute(select(Role).where(Role.name == "Student"))
     assigned_role = assigned_role.scalar_one_or_none()
     if assigned_role:
         db.add(UserRole(user_id=user.id, role_id=assigned_role.id))
