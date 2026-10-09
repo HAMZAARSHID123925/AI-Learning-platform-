@@ -22,11 +22,14 @@ from app.shared.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+_UNLOADED_GATE = object()
+
+
 async def check_lesson_access(
     db: AsyncSession,
     lesson_id: uuid.UUID,
     user,
-    *, as_student: bool = False,
+    *, as_student: bool = False, loaded_state=_UNLOADED_GATE,
 ) -> None:
     """
     FastAPI dependency / service function: check if a student can access a lesson.
@@ -43,13 +46,20 @@ async def check_lesson_access(
     if not as_student and (user.has_role("Instructor") or user.has_role("Admin")):
         return
 
-    result = await db.execute(
-        select(LearningPathState).where(
-            LearningPathState.student_id == user.id,
-            LearningPathState.lesson_id == lesson_id,
+    # Detail reads can supply their fresh, viewer-scoped DB join. Other callers
+    # retain the original authoritative lookup; no cached/client state is used.
+    if loaded_state is _UNLOADED_GATE:
+        result = await db.execute(
+            select(LearningPathState).where(
+                LearningPathState.student_id == user.id,
+                LearningPathState.lesson_id == lesson_id,
+            )
         )
-    )
-    state = result.scalar_one_or_none()
+        state = result.scalar_one_or_none()
+    else:
+        state = loaded_state
+        if state is not None and (state.student_id != user.id or state.lesson_id != lesson_id):
+            raise ValueError("Lesson access state must match the viewer and lesson")
 
     if state and state.state == PathState.locked:
         raise LessonLockedError(reason=state.locked_reason or "")
@@ -134,78 +144,55 @@ async def get_course_progress(
     student_id: uuid.UUID,
     course_id: uuid.UUID,
 ) -> dict:
-    """
-    Calculate course completion percentage for a student.
+    """Fresh viewer-scoped counts and latest final assessment in one SQL read.
 
-    Returns: {
-        total_lessons: int,
-        completed_lessons: int,
-        percentage: float (0.0 to 100.0),
-        locked_lessons: int
-    }
+    Completion/total count only published lessons. Locks deliberately include
+    unpublished lessons, matching the original contract. Unique student/lesson
+    constraints make the joins one-to-one, preventing count multiplication.
     """
+    from sqlalchemy import and_, case, true
     from app.modules.module2_content.models import CourseModule, Lesson, LessonStatus
     from app.modules.module5_assessment.models import Test, Submission, SubmissionStatus
-    from sqlalchemy.orm import selectinload
 
-    # Count total published lessons in course
-    total_result = await db.execute(
-        select(func.count(Lesson.id))
-        .join(CourseModule, Lesson.module_id == CourseModule.id)
-        .where(
-            CourseModule.course_id == course_id,
-            Lesson.status == LessonStatus.published,
+    published = Lesson.status == LessonStatus.published
+    counts = (
+        select(
+            func.count(case((published, Lesson.id))).label("total"),
+            func.count(case((and_(published, StudentProgress.completed == True),
+                             StudentProgress.id))).label("completed"),
+            func.count(case((LearningPathState.state == PathState.locked,
+                             LearningPathState.id))).label("locked"),
         )
+        .select_from(Lesson).join(CourseModule, Lesson.module_id == CourseModule.id)
+        .outerjoin(StudentProgress, and_(StudentProgress.lesson_id == Lesson.id,
+                                        StudentProgress.student_id == student_id))
+        .outerjoin(LearningPathState, and_(LearningPathState.lesson_id == Lesson.id,
+                                          LearningPathState.student_id == student_id))
+        .where(CourseModule.course_id == course_id).subquery()
     )
-    total = total_result.scalar_one()
-
-    if total == 0:
-        return {"total_lessons": 0, "completed_lessons": 0, "percentage": 0.0, "locked_lessons": 0}
-
-    # Count completed lessons
-    completed_result = await db.execute(
-        select(func.count(StudentProgress.id))
-        .join(Lesson, StudentProgress.lesson_id == Lesson.id)
-        .join(CourseModule, Lesson.module_id == CourseModule.id)
-        .where(
-            StudentProgress.student_id == student_id,
-            CourseModule.course_id == course_id,
-            StudentProgress.completed == True,
-            Lesson.status == LessonStatus.published,
-        )
-    )
-    completed = completed_result.scalar_one()
-
-    # Count locked lessons
-    locked_result = await db.execute(
-        select(func.count(LearningPathState.id))
-        .join(Lesson, LearningPathState.lesson_id == Lesson.id)
-        .join(CourseModule, Lesson.module_id == CourseModule.id)
-        .where(
-            LearningPathState.student_id == student_id,
-            CourseModule.course_id == course_id,
-            LearningPathState.state == PathState.locked,
-        )
-    )
-    locked = locked_result.scalar_one()
-
-    percentage = round((completed / total) * 100, 1) if total > 0 else 0.0
-
-    # A newer final generated by staff must not hide this student's saved result.
-    submission = (await db.execute(
-        select(Submission).join(Test, Submission.test_id == Test.id)
+    latest = (
+        select(Submission.id.label("submission_id"), Submission.status.label("submission_status"))
+        .join(Test, Submission.test_id == Test.id)
         .where(Test.course_id == course_id, Test.is_focused_retest == False,
                Submission.student_id == student_id)
-        .order_by(Submission.submitted_at.desc(), Submission.id.desc()).limit(1)
-    )).scalar_one_or_none()
-    latest_submission_id = submission.id if submission else None
-    assessment_status = ("completed" if submission.status == SubmissionStatus.graded else "in_progress") if submission else "not_started"
-
+        .order_by(Submission.submitted_at.desc(), Submission.id.desc()).limit(1).subquery()
+    )
+    row = (await db.execute(
+        select(counts, latest).select_from(counts).outerjoin(latest, true())
+    )).mappings().one()
+    total = row["total"]
+    if total == 0:
+        # Preserve the original four-field zero-lesson response, even if there
+        # are unpublished locks or saved submissions for this course.
+        return {"total_lessons": 0, "completed_lessons": 0, "percentage": 0.0, "locked_lessons": 0}
+    submission_id = row["submission_id"]
     return {
         "total_lessons": total,
-        "completed_lessons": completed,
-        "percentage": percentage,
-        "locked_lessons": locked,
-        "assessment_status": assessment_status,
-        "latest_submission_id": latest_submission_id,
+        "completed_lessons": row["completed"],
+        "percentage": round((row["completed"] / total) * 100, 1),
+        "locked_lessons": row["locked"],
+        "assessment_status": (
+            "completed" if row["submission_status"] == SubmissionStatus.graded else "in_progress"
+        ) if submission_id is not None else "not_started",
+        "latest_submission_id": submission_id,
     }

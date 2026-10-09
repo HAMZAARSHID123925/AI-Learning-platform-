@@ -1,4 +1,4 @@
-import type { Course, CourseProgress, LessonProgress } from '@/types/learning';
+import type { Course, CourseCardData, CourseProgress, LessonProgress } from '@/types/learning';
 
 export type LessonNodeState = 'completed' | 'current' | 'locked';
 
@@ -28,4 +28,16 @@ export function getLessonState(course: Course, index: number, lessons: Record<st
 
 export function isCourseComplete(course: Course, lessons: Record<string, LessonProgress>): boolean {
   return course.lessons.length > 0 && course.lessons.every((l) => lessons[l.id]?.status === 'completed');
+}
+/** Overlay transient lesson activity on authoritative completion from the card API. */
+export function getCourseCardProgress(course: CourseCardData, lessons: Record<string, LessonProgress>) {
+  const isComplete = (id: string, saved: boolean) => saved || lessons[id]?.status === 'completed';
+  const total = course.lessons.length;
+  const completed = course.lessons.filter(l => isComplete(l.id, l.completed)).length;
+  const nextIndex = course.lessons.findIndex(l => !isComplete(l.id, l.completed));
+  const nextLesson = nextIndex >= 0 ? course.lessons[nextIndex] : null;
+  const nextLessonProgress = nextLesson ? lessons[nextLesson.id]?.progress ?? 0 : 100;
+  return {completed, total, percent: total ? Math.round(completed / total * 100) : 0,
+    nextLesson, nextLessonNumber: nextIndex >= 0 ? nextIndex + 1 : total,
+    nextLessonProgress, started: completed > 0 || nextLessonProgress > 0};
 }

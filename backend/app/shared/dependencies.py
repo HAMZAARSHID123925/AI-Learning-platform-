@@ -34,7 +34,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, load_only
 
 from app.config import get_settings
 from app.database import get_db
@@ -43,17 +43,42 @@ from app.shared.exceptions import (
     AccountSuspendedError,
     PermissionDeniedError,
     TokenRevokedError,
+    TokenInvalidError,
+    TokenExpiredError,
 )
-from app.shared.redis_client import get_redis
+from app.shared.redis_client import get_auth_redis
 
 # HTTPBearer extracts the "Bearer <token>" from Authorization header
 _bearer_scheme = HTTPBearer(auto_error=True)
 
 
+async def _load_auth_user(db: AsyncSession, user_id: UUID):
+    """One authoritative query per request; retain the existing User interface.
+
+    Profile fields are needed by /users/me. Password hashes and RBAC
+    descriptions are excluded. Explicit joined loading overrides only this
+    query, leaving ORM defaults and login/write service queries unchanged.
+    """
+    from app.modules.module1_auth.models import Permission, Role, RolePermission, User, UserRole
+    result = await db.execute(
+        select(User).where(User.id == user_id).options(
+            load_only(User.id, User.email, User.first_name, User.last_name,
+                      User.status, User.grade, User.email_verified, User.parental_consent,
+                      User.last_login_at, User.created_at, User.updated_at, raiseload=True),
+            joinedload(User.user_roles)
+            .joinedload(UserRole.role).load_only(Role.id, Role.name, raiseload=True)
+            .joinedload(Role.role_permissions)
+            .joinedload(RolePermission.permission).load_only(Permission.id, Permission.code, raiseload=True),
+        )
+    )
+    # A joined collection produces multiple rows; deduplicate the principal.
+    return result.unique().scalar_one_or_none()
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
+    redis: Redis = Depends(get_auth_redis),
 ):
     """
     FastAPI dependency: Authenticate the current request.
@@ -73,8 +98,6 @@ async def get_current_user(
         401: Token invalid/expired/revoked
         403: Account suspended
     """
-    from app.modules.module1_auth.models import Role, RolePermission, User, UserRole
-
     settings = get_settings()
     token = credentials.credentials
 
@@ -89,19 +112,7 @@ async def get_current_user(
         if is_blacklisted:
             raise TokenRevokedError()
 
-    # Load user with roles and permissions (eager loading)
-    user_id = UUID(payload["sub"])
-    result = await db.execute(
-        select(User)
-        .where(User.id == user_id)
-        .options(
-            selectinload(User.user_roles)
-            .selectinload(UserRole.role)
-            .selectinload(Role.role_permissions)
-            .selectinload(RolePermission.permission)
-        )
-    )
-    user = result.scalar_one_or_none()
+    user = await _load_auth_user(db, UUID(payload["sub"]))
 
     if user is None:
         from app.shared.exceptions import TokenInvalidError
@@ -121,7 +132,7 @@ _bearer_scheme_optional = HTTPBearer(auto_error=False)
 async def get_optional_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme_optional),
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
+    redis: Redis = Depends(get_auth_redis),
 ):
     """
     FastAPI dependency: Optionally authenticate the current request.
@@ -131,36 +142,23 @@ async def get_optional_current_user(
     if credentials is None or not credentials.credentials:
         return None
 
+    # Catch only credential parsing errors. Redis/DB errors outside this
+    # boundary must never turn an authenticated request into anonymous access.
     try:
-        from app.modules.module1_auth.models import Role, RolePermission, User, UserRole
-
-        settings = get_settings()
-        token = credentials.credentials
-        payload = decode_access_token(token)
-
-        jti = payload.get("jti")
-        if jti:
-            blacklist_key = f"{settings.REDIS_KEY_PREFIX}:blacklist:jwt:{jti}"
-            if await redis.exists(blacklist_key):
-                return None
-
+        payload = decode_access_token(credentials.credentials)
         user_id = UUID(payload["sub"])
-        result = await db.execute(
-            select(User)
-            .where(User.id == user_id)
-            .options(
-                selectinload(User.user_roles)
-                .selectinload(UserRole.role)
-                .selectinload(Role.role_permissions)
-                .selectinload(RolePermission.permission)
-            )
-        )
-        user = result.scalar_one_or_none()
-        if user and user.status.value != "suspended":
-            return user
+    except (TokenInvalidError, TokenExpiredError, ValueError, KeyError, TypeError):
         return None
-    except Exception:
+
+    settings = get_settings()
+    jti = payload.get("jti")
+    if jti and await redis.exists(f"{settings.REDIS_KEY_PREFIX}:blacklist:jwt:{jti}"):
         return None
+    user = await _load_auth_user(db, user_id)
+    if user and user.status.value != "suspended":
+        return user
+    return None
+
 
 
 def require_permission(permission_code: str):

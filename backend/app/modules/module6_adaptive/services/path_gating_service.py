@@ -67,6 +67,8 @@ async def lock_lessons_for_weakness(
         locked_count += result.rowcount
 
     await db.commit()
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(student_id)
     logger.info("lessons_locked_for_weakness", student_id=str(student_id), skill_id=str(skill_id), count=locked_count)
     return locked_count
 
@@ -116,5 +118,7 @@ async def unlock_lessons_if_clear(
             unlocked_count += 1
 
     await db.commit()
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(student_id)
     logger.info("lessons_unlocked", student_id=str(student_id), skill_id=str(skill_id), count=unlocked_count)
     return unlocked_count

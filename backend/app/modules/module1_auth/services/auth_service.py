@@ -86,14 +86,22 @@ async def _check_rate_limit(
     Returns: None if within limit
     Raises: RateLimitExceededError if limit exceeded
     """
-    count = await redis.incr(key)
-    if count == 1:
-        # First attempt — set the expiry window
-        await redis.expire(key, window_seconds)
+    try:
+        count = await redis.incr(key)
+        if count == 1:
+            # First attempt — set the expiry window
+            await redis.expire(key, window_seconds)
 
-    if count > max_attempts:
-        ttl = await redis.ttl(key)
-        raise RateLimitExceededError(action="login", retry_after=max(ttl, 0))
+        if count > max_attempts:
+            ttl = await redis.ttl(key)
+            raise RateLimitExceededError(action="login", retry_after=max(ttl, 0))
+    except RateLimitExceededError:
+        raise
+    except Exception as e:
+        if settings.is_production:
+            raise
+        logger.warning("rate_limit_redis_failed_development_fallback", error=str(e))
+
 
 
 # =============================================================================
@@ -225,8 +233,9 @@ async def register_user(
     db.add(user)
     await db.flush()  # Flush to get user.id without committing
 
-    target_role_name = "Instructor" if role in ("teacher", "instructor", "Instructor") else "Admin" if role in ("admin", "Admin") else "Student"
-    assigned_role = await db.execute(select(Role).where(Role.name == target_role_name))
+    # Security requirement: Public self-registration is strictly restricted to Student role.
+    # Privileged roles (Instructor, Admin) must be provisioned via admin endpoints.
+    assigned_role = await db.execute(select(Role).where(Role.name == "Student"))
     assigned_role = assigned_role.scalar_one_or_none()
     if assigned_role:
         db.add(UserRole(user_id=user.id, role_id=assigned_role.id))

@@ -69,10 +69,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     };
   }, [showToast]);
 
-  // Real-time SSE Stream listener (auto-connects if token exists)
+  // Real-time SSE Stream listener (auto-connects if token exists and not unauthenticated)
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) return;
+
+    // Do not call student events stream if on auth pages or unauthenticated
+    if (typeof window !== 'undefined' && (window.location.pathname.startsWith('/login') || window.location.pathname.startsWith('/signup') || window.location.pathname.startsWith('/admin'))) {
+      return;
+    }
 
     const abortController = new AbortController();
     let isCancelled = false;
@@ -90,6 +95,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           setIsConnected(false);
           return;
         }
+
 
         setIsConnected(true);
         const reader = response.body.getReader();

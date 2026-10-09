@@ -62,9 +62,6 @@ export default function CourseDetail() {
               <ButtonLink
                 href={`/dashboard/learn/${course.id}/${progress.nextLesson.id}`}
                 size="lg"
-                onClick={() => {
-                  void learningApi.enrollCourse(course.id).catch(() => {});
-                }}
               >
                     {progress.started ? 'Continue' : 'Start'}: {progress.nextLesson.title} <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
                   </ButtonLink> :

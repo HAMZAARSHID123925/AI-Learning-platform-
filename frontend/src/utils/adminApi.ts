@@ -248,6 +248,16 @@ export const adminApi = {
     return res.json();
   },
 
+  async createTeacher(data: { email: string; password: string; first_name: string; last_name: string; subject: string }) {
+    const res = await fetchWithAuth('/admin/teachers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create teacher'));
+    return res.json();
+  },
+
+
   async revokeRole(userId: string, roleName: string) {
     const res = await fetchWithAuth(`/users/${userId}/roles/${roleName}`, {
       method: 'DELETE',

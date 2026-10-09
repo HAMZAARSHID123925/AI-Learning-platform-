@@ -11,6 +11,8 @@ interface AdminContextValue {
   coursesError: string | null;
   students: StudentRecord[];
   teachers: Teacher[];
+  refreshTeachers: () => Promise<void>;
+  createTeacher: (data: { email: string; password: string; first_name: string; last_name: string; subject: Subject; assignedGrade?: Grade }) => Promise<void>;
   courseTitle: (c: AdminCourse) => string;
   createCourse: (c: Omit<AdminCourse, 'id' | 'enrolled' | 'avgProgress'>) => void;
   assignTeacher: (courseId: string, teacherId: string | null) => void;
@@ -44,6 +46,51 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
   }, []);
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+
+  const refreshTeachers = useCallback(async () => {
+    try {
+      const data = await adminApi.listUsers({ page_size: 100 });
+      if (data?.items && Array.isArray(data.items)) {
+        const rawUsers = data.items;
+        const teacherUsers = rawUsers.filter((u: BackendProfile) => u.roles?.includes('Instructor'));
+        const defaultSubjects: Record<number, Subject> = { 0: 'math', 1: 'computer', 2: 'science', 3: 'english' };
+        const mappedTeachers: Teacher[] = teacherUsers.map((t: BackendProfile, idx: number) => ({
+          id: t.id,
+          name: `${t.first_name || ''} ${t.last_name || ''}`.trim() || t.email,
+          subject: defaultSubjects[idx % 4] || 'math',
+          assignedCourseIds: [],
+          students: 0,
+        }));
+        setTeachers(mappedTeachers);
+      }
+    } catch {}
+  }, []);
+
+  const assignTeacher = useCallback((courseId: string, teacherId: string | null) => {
+    setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, teacherId } : c));
+  }, []);
+
+  const createTeacher = useCallback(async (data: { email: string; password: string; first_name: string; last_name: string; subject: Subject; assignedGrade?: Grade }) => {
+    const newTeacher = await adminApi.createTeacher({
+      email: data.email,
+      password: data.password,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      subject: data.subject,
+    });
+    await refreshTeachers();
+
+    // If a class grade was assigned, assign the matching course to this teacher
+    if (data.assignedGrade && newTeacher?.id) {
+      const targetCourse = courses.find((c) => c.grade === data.assignedGrade && c.subject === data.subject) ||
+                           courses.find((c) => c.grade === data.assignedGrade);
+      if (targetCourse) {
+        assignTeacher(targetCourse.id, newTeacher.id);
+      }
+    }
+  }, [courses, assignTeacher, refreshTeachers]);
+
+
 
   // Load real registered backend users and courses
   useEffect(() => {
@@ -97,10 +144,6 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
   }, []);
 
 
-  const assignTeacher = useCallback((courseId: string, teacherId: string | null) => {
-    setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, teacherId } : c));
-  }, []);
-
   const toggleStatus = useCallback(async (courseId: string) => {
     const detail = await adminApi.getCourseDetail(courseId);
     if (detail.status === 'published') return;
@@ -118,8 +161,8 @@ function AdminIdentityProvider({ children }: {children: React.ReactNode;}) {
   }, []);
 
   const value = useMemo(
-    () => ({ courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError }),
-    [courses, students, teachers, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError]
+    () => ({ courses, students, teachers, refreshTeachers, createTeacher, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError }),
+    [courses, students, teachers, refreshTeachers, createTeacher, courseTitle, createCourse, assignTeacher, toggleStatus, addStudent, refreshCourses, coursesError]
   );
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }

@@ -205,6 +205,8 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
         db.add(TestGradedOutbox(submission_id=submission.id,payload=event_arguments))
         await db.commit()
         await db.refresh(submission)
+        from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+        await invalidate_dashboard_cache(submission.student_id)
 
         logger.info(
             "submission_graded_successfully",
@@ -228,4 +230,6 @@ async def grade_submission(submission_id: uuid.UUID, db: AsyncSession) -> Submis
         if failed_sub:
             failed_sub.status = SubmissionStatus.error
             await db.commit()
+            from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+            await invalidate_dashboard_cache(failed_sub.student_id)
         raise

@@ -112,7 +112,7 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     from app.database import get_db
     from app.main import create_app
-    from app.shared.redis_client import get_redis
+    from app.shared.redis_client import get_redis, get_auth_redis
     from app.config import get_settings
     import redis.asyncio as aioredis
 
@@ -138,6 +138,7 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield test_redis
 
     app.dependency_overrides[get_redis] = _override_get_redis
+    app.dependency_overrides[get_auth_redis] = _override_get_redis
 
     await test_redis.flushdb()
 

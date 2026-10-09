@@ -125,6 +125,35 @@ async def get_lesson(db: AsyncSession, lesson_id: uuid.UUID) -> Lesson:
     return lesson
 
 
+async def get_lesson_detail(db: AsyncSession, lesson_id: uuid.UUID, viewer_id: uuid.UUID):
+    """Read a lesson and fresh viewer access state in two bounded SELECTs.
+
+    Skills share the lesson SELECT. Assets stay separate to avoid multiplying
+    attachments by skills. The scoped gate and owner joins are one-to-one;
+    the route applies the existing policy before signing any media.
+    """
+    from sqlalchemy import and_
+    from sqlalchemy.orm import joinedload, selectinload, raiseload
+    from app.modules.module2_content.models import Course, CourseModule
+    from app.modules.module4_experience.models import LearningPathState
+    result = await db.execute(
+        select(Lesson, LearningPathState, Course.instructor_id)
+        .outerjoin(CourseModule, CourseModule.id == Lesson.module_id)
+        .outerjoin(Course, Course.id == CourseModule.course_id)
+        .outerjoin(LearningPathState, and_(
+            LearningPathState.lesson_id == Lesson.id,
+            LearningPathState.student_id == viewer_id,
+        ))
+        .where(Lesson.id == lesson_id).options(
+            raiseload("*"), joinedload(Lesson.lesson_skills), selectinload(Lesson.assets),
+        )
+    )
+    row = result.unique().one_or_none()
+    if row is None:
+        raise ResourceNotFoundError("Lesson", str(lesson_id))
+    return row
+
+
 async def update_lesson(
     db: AsyncSession,
     lesson_id: uuid.UUID,

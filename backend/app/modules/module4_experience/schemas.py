@@ -69,9 +69,30 @@ class ActiveRemediationSummary(BaseModel):
     instructor_escalated: bool
 
 
+class DashboardLessonReference(BaseModel):
+    id: uuid.UUID
+    title: str
+    sequence_order: int
+    minutes: int
+    completed: bool
+    locked: bool
+
+
+class DashboardCourseCard(BaseModel):
+    id: uuid.UUID
+    slug: str
+    title: str
+    description: str | None = None
+    grade: int | None = None
+    thumbnail_url: str | None = None
+    thumbnail_object_key: str | None = Field(default=None, exclude=True)
+    lessons: list[DashboardLessonReference] = Field(default_factory=list)
+
+
 class StudentDashboardResponse(BaseModel):
     student_id: uuid.UUID
     student_name: str
+    course_cards: list[DashboardCourseCard] = Field(default_factory=list)
     enrolled_courses: list[CourseProgressSummary]
     overall_completion_percentage: float = Field(ge=0.0, le=100.0)
     next_recommended_lesson: NextRecommendedLesson | None = None

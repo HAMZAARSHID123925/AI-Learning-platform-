@@ -3,21 +3,31 @@
 import React, { useState } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AssignTeacherModal } from '@/components/admin/AssignTeacherModal';
+import { InviteTeacherModal } from '@/components/admin/InviteTeacherModal';
+import { Button } from '@/components/shared/Button';
 import { teachers as seedTeachers } from '@/data/admin';
 import { initials, subjectStyles } from '@/utils/subjects';
 import type { AdminCourse, Subject } from '@/types';
+import { UserPlusIcon } from 'lucide-react';
 
 export default function AdminTeachers() {
   const { courses, students, teachers: contextTeachers } = useAdmin();
   const [assigning, setAssigning] = useState<AdminCourse | null>(null);
+  const [inviting, setInviting] = useState(false);
 
   const activeTeachers = contextTeachers.length > 0 ? contextTeachers : seedTeachers;
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-4xl font-black tracking-tight text-ink">Teachers</h1>
-        <p className="mt-1 text-lg text-ink-soft">Each teacher only sees the courses assigned to them.</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-ink">Teachers</h1>
+          <p className="mt-1 text-lg text-ink-soft">Each teacher only sees the courses assigned to them.</p>
+        </div>
+        <Button onClick={() => setInviting(true)} className="gap-2 shrink-0">
+          <UserPlusIcon className="h-4 w-4" />
+          Add Teacher
+        </Button>
       </header>
 
       <ul className="space-y-3">
@@ -80,6 +90,7 @@ export default function AdminTeachers() {
       </ul>
 
       <AssignTeacherModal course={assigning} onClose={() => setAssigning(null)} />
-    </div>);
-
+      <InviteTeacherModal open={inviting} onClose={() => setInviting(false)} />
+    </div>
+  );
 }

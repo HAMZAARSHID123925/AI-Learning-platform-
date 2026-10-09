@@ -4,39 +4,12 @@ import React, { useState } from "react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from "framer-motion";
-import { EyeIcon, EyeOffIcon, GraduationCapIcon, Loader2Icon, PresentationIcon, ShieldCheckIcon, type LucideIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2Icon } from "lucide-react";
 import { Button } from '@/components/shared/Button';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { subjectImages } from '@/data/illustrations';
 import { passwordError } from '@/lib/signup';
-import { Role } from '@/types';
-
-const roles: {
-  id: Role;
-  label: string;
-  hint: string;
-  icon: LucideIcon;
-}[] = [
-  {
-    id: 'student',
-    label: 'Student',
-    hint: 'Learn & play',
-    icon: GraduationCapIcon
-  },
-  {
-    id: 'teacher',
-    label: 'Teacher',
-    hint: 'Run my classes',
-    icon: PresentationIcon
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    hint: 'Manage school',
-    icon: ShieldCheckIcon
-  }
-];
 
 export default function Signup() {
   return (
@@ -53,13 +26,11 @@ function SignupInner() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
-    role?: string;
   }>({});
   const [loading, setLoading] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
@@ -71,20 +42,19 @@ function SignupInner() {
 
     if (!name.trim()) next.name = 'Please enter your full name';
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address';
-    if (!role) next.role = 'Please select whether you are a Student, Teacher, or Admin';
     const passwordIssue = passwordError(password);
     if (passwordIssue) next.password = passwordIssue;
 
     setErrors(next);
-    if (Object.keys(next).length || !role) return;
+    if (Object.keys(next).length) return;
 
     setLoading(true);
-    const chosenRole = role;
     (async () => {
       try {
         localStorage.removeItem('elarion-progress-v2');
       } catch {}
-      const res = await signUp({ name, email, password, role: chosenRole });
+      // Public signup is strictly registered as student
+      const res = await signUp({ name, email, password, role: 'student' });
       if (!res.success) {
         setLoading(false);
         setAccountCreated(Boolean(res.accountCreated));
@@ -93,7 +63,7 @@ function SignupInner() {
         });
         return;
       }
-      router.push(chosenRole === 'student' ? '/onboarding/grade' : chosenRole === 'teacher' ? '/instructor' : '/admin');
+      router.push('/onboarding/grade');
     })();
   };
 
@@ -166,34 +136,8 @@ function SignupInner() {
               {errors.password && <p id="password-error" className="mt-1.5 text-sm font-semibold text-danger-700">{errors.password}</p>}
             </div>
 
-            <fieldset>
-              <legend className="mb-2 text-sm font-bold text-ink">I am a…</legend>
-              <div role="radiogroup" className="grid grid-cols-3 gap-3">
-                {roles.map((r) => {
-                  const active = r.id === role;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setRole(r.id)}
-                      className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-4 transition-[border-color,background-color,transform] duration-150 active:scale-[0.97] ${
-                        active ? 'border-ink bg-surface' : 'border-line bg-white hover:border-ink/30'
-                      }`}
-                    >
-                      <r.icon className={`h-6 w-6 ${active ? 'text-ink' : 'text-ink-muted'}`} aria-hidden="true" />
-                      <span className="text-sm font-extrabold text-ink">{r.label}</span>
-                      <span className="text-xs text-ink-muted">{r.hint}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {errors.role && <p className="mt-1.5 text-sm font-semibold text-danger-700">{errors.role}</p>}
-            </fieldset>
-
             <Button type="submit" size="lg" className="w-full" disabled={loading || accountCreated}>
-              {loading ? <Loader2Icon className="h-5 w-5 animate-spin" aria-label="Creating account" /> : 'Create account'}
+              {loading ? <Loader2Icon className="h-5 w-5 animate-spin" aria-label="Creating account" /> : 'Create student account'}
             </Button>
           </form>
 
@@ -204,7 +148,7 @@ function SignupInner() {
                 Sign in
               </Link>
             </p>
-            <p className="text-xs text-ink-muted">Free access to interactive lessons, challenges, and AI tutor.</p>
+            <p className="text-xs text-ink-muted">Faculty and staff accounts are provisioned by your school administrator.</p>
           </div>
         </div>
       </main>
@@ -220,19 +164,9 @@ function SignupInner() {
               key={s}
               src={subjectImages[s]}
               alt=""
-              initial={{
-                opacity: 0,
-                y: 12
-              }}
-              animate={{
-                opacity: 1,
-                y: 0
-              }}
-              transition={{
-                duration: 0.3,
-                delay: 0.05 * i,
-                ease: [0.23, 1, 0.32, 1]
-              }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.05 * i, ease: [0.23, 1, 0.32, 1] }}
               className={`aspect-[4/3] w-full rounded-3xl object-cover shadow-lift ${i % 2 ? 'translate-y-6' : ''}`}
             />
           ))}

@@ -61,6 +61,23 @@ class CourseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CourseCardLessonResponse(BaseModel):
+    """Only fields used by card segments, minutes and in-session progress."""
+    id: uuid.UUID
+    minutes: int
+    completed: bool
+
+
+class CourseCardResponse(BaseModel):
+    id: uuid.UUID
+    slug: str
+    title: str
+    description: str | None
+    grade: int | None
+    thumbnail_url: str | None
+    lessons: list[CourseCardLessonResponse]
+
+
 # =============================================================================
 # Course Module Schemas
 # =============================================================================

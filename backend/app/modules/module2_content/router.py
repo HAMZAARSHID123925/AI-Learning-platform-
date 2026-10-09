@@ -18,6 +18,7 @@ from app.database import get_db
 from app.modules.module2_content.schemas import (
     AssetResponse,
     CourseDetailResponse,
+    CourseCardResponse,
     CourseResponse,
     CreateCourseRequest,
     CreateLessonRequest,
@@ -168,6 +169,42 @@ async def list_courses(
 
 
 @router.get(
+    "/courses/cards", response_model=PaginatedResponse[CourseCardResponse],
+    summary="List course cards without loading the syllabus", tags=["Courses"],
+)
+async def list_course_cards(
+    current_user=Depends(get_optional_current_user), db: AsyncSession = Depends(get_db),
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    status_filter: str | None = Query(default=None, pattern="^(draft|published|archived)$"),
+    grade: int | None = Query(default=None, ge=1, le=5),
+):
+    # Match /courses visibility, role precedence and authoritative student grade.
+    params = PaginationParams(page=page, page_size=page_size)
+    instructor_id = None
+    if current_user is None:
+        status_filter = "published"
+    elif current_user.has_role("Instructor") and not _is_admin(current_user):
+        instructor_id = current_user.id
+    elif current_user.has_role("Student") and not _is_admin(current_user):
+        status_filter = "published"
+        grade = current_user.grade
+        if grade is None:
+            return PaginatedResponse.create(items=[], total=0, params=params)
+    cards, total = await course_service.list_course_cards(
+        db, params, instructor_id=instructor_id, status_filter=status_filter, grade=grade,
+        student_id=current_user.id if current_user and current_user.has_role("Student") else None,
+        staff_viewer_id=current_user.id if current_user and _is_instructor_or_admin(current_user) else None,
+        is_admin=bool(current_user and _is_admin(current_user)),
+    )
+    from types import SimpleNamespace
+    items = [CourseCardResponse(
+        id=c['id'], slug=c['slug'], title=c['title'], description=c['description'], grade=c['grade'],
+        thumbnail_url=await _course_thumbnail(SimpleNamespace(**c)), lessons=c['lessons'],
+    ) for c in cards]
+    return PaginatedResponse.create(items=items, total=total, params=params)
+
+
+@router.get(
     "/courses/{course_id}",
     response_model=CourseDetailResponse,
     summary="Get course detail with full syllabus",
@@ -178,7 +215,9 @@ async def get_course(
     current_user=Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await course_service.get_course(db, course_id)
+    course = await course_service.get_course_detail(
+        db, course_id, include_bodies=bool(current_user and _is_instructor_or_admin(current_user)),
+    )
 
     if course.status.value != "published":
         from app.shared.exceptions import PermissionDeniedError
@@ -386,7 +425,7 @@ async def get_lesson(
     Get a lesson. Students are blocked from locked lessons (403 LESSON_LOCKED).
     This check is enforced by check_lesson_access called within the service.
     """
-    lesson = await lesson_service.get_lesson(db, lesson_id)
+    lesson, access_state, instructor_id = await lesson_service.get_lesson_detail(db, lesson_id, current_user.id)
 
     # Lesson gating: enforced for Student role
     if current_user.has_role("Student") and not _is_admin(current_user):
@@ -395,19 +434,10 @@ async def get_lesson(
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access unpublished lesson")
         from app.modules.module4_experience.services.progress_service import check_lesson_access
-        await check_lesson_access(db=db, lesson_id=lesson_id, user=current_user)
+        await check_lesson_access(db=db, lesson_id=lesson_id, user=current_user, loaded_state=access_state)
 
     # Ownership check: Unassigned teacher denied
     if current_user.has_role("Instructor") and not _is_admin(current_user):
-        # We need to get the course instructor
-        from app.modules.module2_content.models import CourseModule, Course
-        from sqlalchemy import select
-        result = await db.execute(
-            select(Course.instructor_id)
-            .join(CourseModule, CourseModule.course_id == Course.id)
-            .where(CourseModule.id == lesson.module_id)
-        )
-        instructor_id = result.scalar()
         if instructor_id != current_user.id:
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not own this lesson's course")

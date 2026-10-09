@@ -6,63 +6,44 @@ import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AlertCircleIcon, ArrowRightIcon } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
-import { teachers as seedTeachers } from '@/data/admin';
-import { adminApi } from '@/utils/adminApi';
 import { courseName, subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
 export default function AdminOverview() {
   const { courses, students, teachers } = useAdmin();
-  const [realUsers, setRealUsers] = React.useState<BackendProfile[]>([]);
 
-  React.useEffect(() => {
-    adminApi.listUsers({ page_size: 100 })
-      .then((data) => {
-        if (data?.items && Array.isArray(data.items)) {
-          setRealUsers(data.items);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const studentCount = realUsers.length > 0
-    ? realUsers.filter((u: BackendProfile) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor')).length
-    : students.length;
-  const teacherCount = realUsers.length > 0
-    ? realUsers.filter((u: BackendProfile) => u.roles?.includes('Instructor')).length
-    : teachers.length;
+  // Deduplicated authoritative metrics from AdminContext
+  const studentCount = students.length;
+  const teacherCount = teachers.length;
   const totalCourses = courses.length;
 
   const dynamicStudentsByGrade = [1, 2, 3, 4, 5].map((g) => {
-    const count = realUsers.length > 0
-      ? realUsers.filter((u: BackendProfile) => !u.roles?.includes('Admin') && !u.roles?.includes('Instructor') && (u.grade || 5) === g).length
-      : students.filter((s) => s.grade === g).length;
+    const count = students.filter((s) => s.grade === g).length;
     return { grade: `Grade ${g}`, students: count };
   });
 
   const dynamicWeeklyActiveUsers = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => ({
     day,
-    users: studentCount > 0 ? studentCount : 1,
+    users: studentCount,
   }));
 
   const dynamicStats = [
     { label: 'Total students', value: String(studentCount), change: 'Registered learners' },
     { label: 'Total teachers', value: String(teacherCount), change: 'Faculty staff' },
     { label: 'Total courses', value: String(totalCourses), change: `${courses.filter((c) => c.status === 'published').length} published` },
-    { label: 'Active today', value: String(studentCount > 0 ? studentCount : 1), change: 'Online learners' },
+    { label: 'Active today', value: String(studentCount), change: 'Online learners' },
   ];
 
   const [primary, ...rest] = dynamicStats;
   const topCourses = [...courses].sort((a, b) => b.enrolled - a.enrolled).slice(0, 5);
   const unassigned = courses.filter((c) => !c.teacherId);
-  const teacherName = (id: string | null) => teachers.find((t) => t.id === id)?.name ?? seedTeachers.find((t) => t.id === id)?.name ?? 'Unassigned';
-
+  const teacherName = (id: string | null) => teachers.find((t) => t.id === id)?.name ?? 'Unassigned';
 
   return (
     <div className="space-y-10">
       <header>
         <h1 className="text-4xl font-black tracking-tight text-ink">School overview</h1>
-        <p className="mt-1 text-lg text-ink-soft">How ELARION is doing across every grade.</p>
+        <p className="mt-1 text-lg text-ink-soft">Real-time school performance across every grade.</p>
       </header>
 
       <section aria-label="Platform totals" className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -71,24 +52,24 @@ export default function AdminOverview() {
           <p className="mt-2 text-5xl font-black">{primary.value}</p>
           <p className="mt-1 text-sm font-bold text-science-100">{primary.change}</p>
         </div>
-        {rest.map((s) =>
-        <div key={s.label} className="rounded-[28px] bg-surface p-6">
+        {rest.map((s) => (
+          <div key={s.label} className="rounded-[28px] bg-surface p-6">
             <p className="text-sm font-extrabold text-ink-soft">{s.label}</p>
             <p className="mt-2 text-3xl font-black text-ink">{s.value}</p>
             <p className="mt-1 text-sm text-ink-muted">{s.change}</p>
           </div>
-        )}
+        ))}
       </section>
 
-      {unassigned.length > 0 &&
-      <Link href="/admin/courses" className="flex items-center gap-3 rounded-2xl bg-math-50 p-4 text-math-700 transition-colors duration-150 hover:bg-math-100">
+      {unassigned.length > 0 && (
+        <Link href="/admin/courses" className="flex items-center gap-3 rounded-2xl bg-math-50 p-4 text-math-700 transition-colors duration-150 hover:bg-math-100">
           <AlertCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span className="flex-1 font-bold">
             {unassigned.length} course{unassigned.length > 1 ? 's' : ''} still need{unassigned.length > 1 ? '' : 's'} a teacher
           </span>
           <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
         </Link>
-      }
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <section aria-labelledby="grade-title" className="rounded-[28px] border-2 border-line p-6">
@@ -104,7 +85,6 @@ export default function AdminOverview() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-
         </section>
 
         <section aria-labelledby="active-title" className="rounded-[28px] border-2 border-line p-6">
@@ -121,7 +101,6 @@ export default function AdminOverview() {
             </ResponsiveContainer>
           </div>
         </section>
-
       </div>
 
       <section aria-labelledby="courses-title">
@@ -145,11 +124,11 @@ export default function AdminOverview() {
                   <p className="text-xl font-black text-ink">{c.enrolled}</p>
                   <p className="text-xs font-bold text-ink-muted">students enrolled</p>
                 </div>
-              </li>);
-
+              </li>
+            );
           })}
         </ul>
       </section>
-    </div>);
-
+    </div>
+  );
 }

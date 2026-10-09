@@ -1,5 +1,4 @@
 'use client';
-import type { BackendDashboard } from '@/types/backend';
 
 import React from 'react';
 import Link from 'next/link';
@@ -16,26 +15,28 @@ import { useAsync } from '@/hooks/useAsync';
 import { subjectImages } from '@/data/illustrations';
 import { profileStats } from '@/data/profile';
 import { getCourseProgress } from '@/utils/progress';
-import { learningApi } from '@/utils/learningApi';
+import { learningApi, mapDashboardCourses } from '@/utils/learningApi';
 import { subjectStyles } from '@/utils/subjects';
 import type { Grade } from '@/types';
 
 export default function Home() {
   const { user } = useAuth();
   const { lessons } = useProgress();
-  const [backendDashboard, setBackendDashboard] = React.useState<BackendDashboard | null>(null);
   const grade = (user?.grade ?? 5) as Grade;
   const name = user?.name ?? 'Learner';
-  const courseQuery = useAsync(() => learningApi.listCourses(grade), [grade, user?.id]);
-  React.useEffect(() => {
-    if (!user) return;
-    let active = true;
-    learningApi.getStudentDashboard().then(data => { if (active) setBackendDashboard(data); }).catch(() => {});
-    return () => { active = false; };
-  }, [user?.id]);
-  const activeCourses = courseQuery.data || [];
+  const dashboardQuery = useAsync(async () => user ? learningApi.getStudentDashboard() : null, [grade, user?.id]);
+  const backendDashboard = dashboardQuery.data;
+  const activeCourses = backendDashboard ? mapDashboardCourses(backendDashboard, grade) : [];
+  // Preserve transient lesson activity while using saved completion from the
+  // dashboard when ProgressContext is still loading or a course was revisited.
+  const savedLessons = {...lessons};
+  for (const card of backendDashboard?.course_cards ?? []) {
+    for (const lesson of card.lessons) {
+      if (lesson.completed) savedLessons[lesson.id] = {status:'completed', progress:100};
+    }
+  }
   const current = activeCourses[0];
-  const currentProgress = current ? getCourseProgress(current, lessons) : null;
+  const currentProgress = current ? getCourseProgress(current, savedLessons) : null;
   const others = activeCourses.slice(1);
 
 
@@ -57,9 +58,9 @@ export default function Home() {
         </p>
       </header>
 
-      {courseQuery.loading && <StateMessage kind="loading" title="Loading your courses…" />}
-      {courseQuery.error && <StateMessage kind="error" message={courseQuery.error.message} onRetry={courseQuery.reload} />}
-      {courseQuery.data?.length === 0 && <StateMessage kind="empty" title="No published courses for your grade yet" />}
+      {dashboardQuery.loading && <StateMessage kind="loading" title="Loading your courses…" />}
+      {dashboardQuery.error && <StateMessage kind="error" message={dashboardQuery.error.message} onRetry={dashboardQuery.reload} />}
+      {backendDashboard && activeCourses.length === 0 && <StateMessage kind="empty" title="No published courses for your grade yet" />}
       <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
         {current && currentProgress && (
           <ContinueCard course={current} progress={currentProgress} />
@@ -83,7 +84,7 @@ export default function Home() {
           {others.map((c) => {
             const subj = (c.subject || 'math') as import('@/types/learning').Subject;
             const s = subjectStyles[subj] || subjectStyles.math;
-            const prog = getCourseProgress(c, lessons);
+            const prog = getCourseProgress(c, savedLessons);
             return (
               <li key={c.id} className="w-64 shrink-0 snap-start sm:w-auto">
                 <Link

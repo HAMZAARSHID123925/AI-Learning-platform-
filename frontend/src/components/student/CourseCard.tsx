@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRightIcon, CheckIcon, ClockIcon, LayersIcon } from 'lucide-react';
 import { subjectStyles } from '@/utils/subjects';
-import type { Course, CourseProgress } from '@/types/learning';
+import type { Course, CourseCardData, CourseProgress } from '@/types/learning';
 
 interface CourseCardProps {
-  course: Course;
-  progress: CourseProgress;
+  course: Course | CourseCardData;
+  progress: Pick<CourseProgress, 'completed' | 'total' | 'percent' | 'started'>;
   featured?: boolean;
 }
 

@@ -136,17 +136,13 @@ async def test_get_course_progress_calculation():
 
     mock_db = AsyncMock()
 
-    # Total lessons = 10, completed = 5, locked = 2
-    res_total = MagicMock()
-    res_total.scalar_one.return_value = 10
-
-    res_completed = MagicMock()
-    res_completed.scalar_one.return_value = 5
-
-    res_locked = MagicMock()
-    res_locked.scalar_one.return_value = 2
-
-    mock_db.execute.side_effect = [res_total, res_completed, res_locked]
+    # Fixture parity/bounding is covered in test_course_progress_read.py.
+    result = MagicMock()
+    result.mappings.return_value.one.return_value = {
+        "total": 10, "completed": 5, "locked": 2,
+        "submission_id": None, "submission_status": None,
+    }
+    mock_db.execute.return_value = result
 
     progress = await get_course_progress(mock_db, student_id, course_id)
 
@@ -154,3 +150,5 @@ async def test_get_course_progress_calculation():
     assert progress["completed_lessons"] == 5
     assert progress["locked_lessons"] == 2
     assert progress["percentage"] == 50.0
+    assert progress["assessment_status"] == "not_started"
+    assert progress["latest_submission_id"] is None
