@@ -102,6 +102,34 @@ async def get_course(db: AsyncSession, course_id: uuid.UUID) -> Course:
     return course
 
 
+async def get_course_detail(db: AsyncSession, course_id: uuid.UUID, *, include_bodies: bool = False) -> Course:
+    """Read the syllabus in one bounded join, without asset or taxonomy graphs.
+
+    CRUD keeps its original loader. Only the detail route uses this projection;
+    student bodies and internal lesson object keys are not fetched.
+    """
+    from sqlalchemy.orm import joinedload, raiseload
+    from app.modules.module2_content.models import LessonSkill
+    columns = [Lesson.id, Lesson.module_id, Lesson.title, Lesson.slug, Lesson.status,
+               Lesson.sequence_order, Lesson.content_version, Lesson.estimated_minutes,
+               Lesson.video_url, Lesson.thumbnail_url, Lesson.duration_seconds,
+               Lesson.published_at, Lesson.created_at, Lesson.updated_at]
+    if include_bodies:
+        columns.append(Lesson.body_markdown)
+    syllabus = joinedload(Course.modules).joinedload(CourseModule.lessons)
+    result = await db.execute(
+        select(Course).where(Course.id == course_id).options(
+            raiseload("*"),
+            syllabus.load_only(*columns, raiseload=True),
+            syllabus.joinedload(Lesson.lesson_skills).load_only(LessonSkill.lesson_id, LessonSkill.skill_id),
+        )
+    )
+    course = result.unique().scalar_one_or_none()
+    if course is None:
+        raise ResourceNotFoundError("Course", str(course_id))
+    return course
+
+
 async def list_courses(
     db: AsyncSession,
     params: PaginationParams,

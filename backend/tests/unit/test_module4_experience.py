@@ -146,7 +146,10 @@ async def test_get_course_progress_calculation():
     res_locked = MagicMock()
     res_locked.scalar_one.return_value = 2
 
-    mock_db.execute.side_effect = [res_total, res_completed, res_locked]
+    # The current progress contract also loads the latest saved submission.
+    res_submission = MagicMock()
+    res_submission.scalar_one_or_none.return_value = None
+    mock_db.execute.side_effect = [res_total, res_completed, res_locked, res_submission]
 
     progress = await get_course_progress(mock_db, student_id, course_id)
 
@@ -154,3 +157,5 @@ async def test_get_course_progress_calculation():
     assert progress["completed_lessons"] == 5
     assert progress["locked_lessons"] == 2
     assert progress["percentage"] == 50.0
+    assert progress["assessment_status"] == "not_started"
+    assert progress["latest_submission_id"] is None

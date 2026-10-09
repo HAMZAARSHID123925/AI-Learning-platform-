@@ -215,7 +215,9 @@ async def get_course(
     current_user=Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    course = await course_service.get_course(db, course_id)
+    course = await course_service.get_course_detail(
+        db, course_id, include_bodies=bool(current_user and _is_instructor_or_admin(current_user)),
+    )
 
     if course.status.value != "published":
         from app.shared.exceptions import PermissionDeniedError
@@ -423,7 +425,7 @@ async def get_lesson(
     Get a lesson. Students are blocked from locked lessons (403 LESSON_LOCKED).
     This check is enforced by check_lesson_access called within the service.
     """
-    lesson = await lesson_service.get_lesson(db, lesson_id)
+    lesson, access_state, instructor_id = await lesson_service.get_lesson_detail(db, lesson_id, current_user.id)
 
     # Lesson gating: enforced for Student role
     if current_user.has_role("Student") and not _is_admin(current_user):
@@ -432,19 +434,10 @@ async def get_lesson(
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot access unpublished lesson")
         from app.modules.module4_experience.services.progress_service import check_lesson_access
-        await check_lesson_access(db=db, lesson_id=lesson_id, user=current_user)
+        await check_lesson_access(db=db, lesson_id=lesson_id, user=current_user, loaded_state=access_state)
 
     # Ownership check: Unassigned teacher denied
     if current_user.has_role("Instructor") and not _is_admin(current_user):
-        # We need to get the course instructor
-        from app.modules.module2_content.models import CourseModule, Course
-        from sqlalchemy import select
-        result = await db.execute(
-            select(Course.instructor_id)
-            .join(CourseModule, CourseModule.course_id == Course.id)
-            .where(CourseModule.id == lesson.module_id)
-        )
-        instructor_id = result.scalar()
         if instructor_id != current_user.id:
             from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not own this lesson's course")

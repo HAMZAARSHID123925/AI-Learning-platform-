@@ -22,11 +22,14 @@ from app.shared.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+_UNLOADED_GATE = object()
+
+
 async def check_lesson_access(
     db: AsyncSession,
     lesson_id: uuid.UUID,
     user,
-    *, as_student: bool = False,
+    *, as_student: bool = False, loaded_state=_UNLOADED_GATE,
 ) -> None:
     """
     FastAPI dependency / service function: check if a student can access a lesson.
@@ -43,13 +46,20 @@ async def check_lesson_access(
     if not as_student and (user.has_role("Instructor") or user.has_role("Admin")):
         return
 
-    result = await db.execute(
-        select(LearningPathState).where(
-            LearningPathState.student_id == user.id,
-            LearningPathState.lesson_id == lesson_id,
+    # Detail reads can supply their fresh, viewer-scoped DB join. Other callers
+    # retain the original authoritative lookup; no cached/client state is used.
+    if loaded_state is _UNLOADED_GATE:
+        result = await db.execute(
+            select(LearningPathState).where(
+                LearningPathState.student_id == user.id,
+                LearningPathState.lesson_id == lesson_id,
+            )
         )
-    )
-    state = result.scalar_one_or_none()
+        state = result.scalar_one_or_none()
+    else:
+        state = loaded_state
+        if state is not None and (state.student_id != user.id or state.lesson_id != lesson_id):
+            raise ValueError("Lesson access state must match the viewer and lesson")
 
     if state and state.state == PathState.locked:
         raise LessonLockedError(reason=state.locked_reason or "")
