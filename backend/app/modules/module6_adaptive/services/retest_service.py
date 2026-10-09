@@ -32,6 +32,8 @@ async def complete_remedial_study_and_trigger_retest(db, student_id: uuid.UUID, 
         plan.instructor_escalated = True
         plan.status = PlanStatus.escalated
         await db.commit()
+        from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+        await invalidate_dashboard_cache(student_id)
         return plan, None
     flag = plan.weakness_flag
     submission = await db.get(Submission, flag.submission_id)
@@ -49,4 +51,6 @@ async def complete_remedial_study_and_trigger_retest(db, student_id: uuid.UUID, 
     plan.study_completed_at = datetime.now(timezone.utc)
     plan.retest_attempt_count += 1
     await db.commit()
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(student_id)
     return plan, retest

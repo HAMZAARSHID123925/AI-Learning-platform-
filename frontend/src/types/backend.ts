@@ -22,6 +22,7 @@ export interface BackendCourse extends BackendCourseSummary {
 export interface BackendEnrollment {id: string;course_id: string;student_id: string;status: string;}
 export interface BackendCourseProgress {course_id: string;course_title: string;course_slug: string;total_lessons: number;completed_lessons: number;percentage: number;assessment_status: string;latest_submission_id: string | null;}
 export interface BackendDashboard {
+ course_cards: (Omit<BackendCourseCard, "lessons"> & {lessons: {id: string;title: string;sequence_order: number;minutes: number;completed: boolean;locked: boolean}[]})[];
  student_id: string; student_name: string; streak_days?: number; enrolled_courses: BackendCourseProgress[];overall_completion_percentage: number;
  next_recommended_lesson: {lesson_id: string;course_id: string;lesson_title: string;course_title: string} | null;
  skill_mastery_radar: {skill_id: string;skill_name: string;score: number;status: string}[];

@@ -5,7 +5,7 @@ Module: app/modules/module4_experience/services/dashboard_service.py
 Purpose:
     Aggregated Student Dashboard engine with Redis caching.
     Synthesizes data across Module 2 (Curriculum & Lessons), Module 5 (Assessments),
-    and Module 6 (Adaptive Remediation) into an ultra-fast (<50ms) single dashboard payload.
+    and Module 6 (Adaptive Remediation) using bounded summary reads and a display cache.
 """
 
 from __future__ import annotations
@@ -13,11 +13,11 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from types import SimpleNamespace
+from collections import defaultdict
 
 from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.modules.module1_auth.models import User
@@ -31,6 +31,7 @@ from app.modules.module4_experience.models import (
 )
 from app.modules.module4_experience.schemas import (
     ActiveRemediationSummary,
+    DashboardCourseCard,
     CourseProgressSummary,
     NextRecommendedLesson,
     SkillMasteryItem,
@@ -50,7 +51,7 @@ DASHBOARD_CACHE_TTL = 300  # 5 minutes
 
 def get_dashboard_cache_key(student_id: uuid.UUID) -> str:
     settings = get_settings()
-    return f"{settings.REDIS_KEY_PREFIX}:cache:dashboard:v2:{student_id}"
+    return f"{settings.REDIS_KEY_PREFIX}:cache:dashboard:v3:{student_id}"
 
 
 async def invalidate_dashboard_cache(student_id: uuid.UUID) -> None:
@@ -61,7 +62,7 @@ async def invalidate_dashboard_cache(student_id: uuid.UUID) -> None:
     try:
         redis = get_redis_client()
         key = get_dashboard_cache_key(student_id)
-        await redis.delete(key)
+        await redis.eval("redis.call('INCR', KEYS[2]); return redis.call('DEL', KEYS[1])", 2, key, key + ":revision")
         logger.info("invalidated_dashboard_cache", student_id=str(student_id))
     except Exception as exc:
         logger.warning("failed_to_invalidate_dashboard_cache", error=str(exc), student_id=str(student_id))
@@ -80,26 +81,32 @@ async def get_aggregated_student_dashboard(
     cache_key = get_dashboard_cache_key(student_id)
     use_cache = use_cache and instructor_id is None
 
-    # 1. Attempt Redis Cache Retrieval
-    if use_cache:
-        try:
-            redis = get_redis_client()
-            cached_data = await redis.get(cache_key)
-            if cached_data:
-                logger.info("dashboard_cache_hit", student_id=str(student_id))
-                return StudentDashboardResponse.model_validate_json(cached_data)
-        except Exception as exc:
-            logger.warning("dashboard_cache_read_error", error=str(exc))
-
-    # 2. Fetch Student User
-    user = await db.get(User, student_id)
+    # Always scope display cache to authoritative identity/grade. Auth and
+    # lesson access remain outside this cache. Staff views never share it.
+    user = (await db.execute(select(User.first_name, User.last_name, User.grade).where(User.id == student_id))).first()
     if not user:
         raise ResourceNotFoundError("User", student_id)
     student_name = f"{user.first_name} {user.last_name}".strip()
+    revision = "0"
+    if use_cache:
+        try:
+            redis = get_redis_client()
+            current_revision, cached_data = await redis.mget(cache_key + ":revision", cache_key)
+            revision = current_revision.decode() if isinstance(current_revision, bytes) else str(current_revision or "0")
+            if cached_data:
+                envelope = json.loads(cached_data)
+                if envelope["revision"] == revision and envelope["grade"] == user.grade:
+                    dashboard = StudentDashboardResponse.model_validate(envelope["payload"])
+                    if dashboard.student_id == student_id:
+                        # Profile display must not remain stale after a profile update.
+                        dashboard.student_name = student_name
+                        return await _prepare_dashboard_media(dashboard)
+        except Exception as exc:
+            logger.warning("dashboard_cache_read_error", error_type=type(exc).__name__)
 
     # 3. Course Progress Aggregation (Only Active Enrollments for this Student)
     courses_query = (
-        select(Course)
+        select(Course.id, Course.title, Course.slug)
         .join(Enrollment, Enrollment.course_id == Course.id)
         .where(
             Enrollment.student_id == student_id,
@@ -111,7 +118,7 @@ async def get_aggregated_student_dashboard(
     if instructor_id is not None:
         courses_query = courses_query.where(Course.instructor_id == instructor_id)
     courses_res = await db.execute(courses_query)
-    courses = courses_res.scalars().all()
+    courses = courses_res.all()
 
     if instructor_id is not None and not courses:
         raise AuthorizationError("Student is not enrolled in an assigned course.")
@@ -124,55 +131,45 @@ async def get_aggregated_student_dashboard(
     total_system_completed = 0
     next_lesson: NextRecommendedLesson | None = None
 
+    # Three set-based reads, independent of course count. No ORM graphs.
+    course_ids = [c.id for c in courses]
+    lesson_rows = (await db.execute(
+        select(CourseModule.course_id, CourseModule.title.label("module_title"),
+               Lesson.id, Lesson.title, Lesson.slug, Lesson.sequence_order, Lesson.estimated_minutes,
+               StudentProgress.completed, LearningPathState.state)
+        .join(Lesson, Lesson.module_id == CourseModule.id)
+        .outerjoin(StudentProgress, (StudentProgress.lesson_id == Lesson.id) & (StudentProgress.student_id == student_id))
+        .outerjoin(LearningPathState, (LearningPathState.lesson_id == Lesson.id) & (LearningPathState.student_id == student_id))
+        .where(CourseModule.course_id.in_(course_ids), Lesson.status == LessonStatus.published)
+        .order_by(CourseModule.sequence_order, Lesson.sequence_order)
+    )).all()
+    by_course = defaultdict(list)
+    for row in lesson_rows:
+        by_course[row.course_id].append(row)
+    published_lessons = select(Lesson.id).join(CourseModule).where(
+        CourseModule.course_id == Course.id, Lesson.status == LessonStatus.published).correlate(Course)
+    ranked_latest = (select(Course.id.label("course_id"), Submission.id, Submission.status,
+        func.row_number().over(partition_by=Course.id, order_by=Submission.submitted_at.desc()).label("rank"))
+        .select_from(Course).join(Test, or_(Test.course_id == Course.id, Test.lesson_id.in_(published_lessons)))
+        .join(Submission, Submission.test_id == Test.id)
+        .where(Course.id.in_(course_ids), Submission.student_id == student_id)).subquery()
+    latest_by_course = {r.course_id: r for r in (await db.execute(
+        select(ranked_latest).where(ranked_latest.c.rank == 1))).all()}
     for c in courses:
-        # Total published lessons in this course
-        l_query = (
-            select(Lesson)
-            .join(CourseModule, Lesson.module_id == CourseModule.id)
-            .where(CourseModule.course_id == c.id, Lesson.status == LessonStatus.published)
-            .order_by(CourseModule.sequence_order.asc(), Lesson.sequence_order.asc())
-            .options(selectinload(Lesson.module))
-        )
-        l_res = await db.execute(l_query)
-        course_lessons = l_res.scalars().all()
-        total_c_lessons = len(course_lessons)
-
-        if total_c_lessons == 0:
+        rows = by_course[c.id]
+        course_lessons = [SimpleNamespace(id=r.id, title=r.title, slug=r.slug,
+            sequence_order=r.sequence_order, estimated_minutes=r.estimated_minutes,
+            module=SimpleNamespace(title=r.module_title)) for r in rows]
+        total_c_lessons = len(rows)
+        if not total_c_lessons:
             continue
-
         total_system_lessons += total_c_lessons
-
-        # Get completion map
-        prog_query = (
-            select(StudentProgress.lesson_id)
-            .where(
-                StudentProgress.student_id == student_id,
-                StudentProgress.completed == True,
-                StudentProgress.lesson_id.in_([l.id for l in course_lessons])
-            )
-        )
-        prog_res = await db.execute(prog_query)
-        completed_ids = set(prog_res.scalars().all())
+        completed_ids = {r.id for r in rows if r.completed}
+        locked_ids = {r.id for r in rows if r.state == PathState.locked}
         completed_c_count = len(completed_ids)
-        total_system_completed += completed_c_count
-
-        # Get locked map
-        lock_query = (
-            select(LearningPathState.lesson_id)
-            .where(
-                LearningPathState.student_id == student_id,
-                LearningPathState.state == PathState.locked,
-                LearningPathState.lesson_id.in_([l.id for l in course_lessons])
-            )
-        )
-        lock_res = await db.execute(lock_query)
-        locked_ids = set(lock_res.scalars().all())
         locked_c_count = len(locked_ids)
-
-        latest = (await db.execute(select(Submission).join(Test, Submission.test_id == Test.id).where(
-            Submission.student_id == student_id,
-            or_(Test.course_id == c.id, Test.lesson_id.in_([l.id for l in course_lessons]))
-        ).order_by(Submission.submitted_at.desc()).limit(1))).scalar_one_or_none()
+        total_system_completed += completed_c_count
+        latest = latest_by_course.get(c.id)
         pct = round((completed_c_count / total_c_lessons) * 100.0, 1)
         enrolled_courses.append(
             CourseProgressSummary(
@@ -236,9 +233,9 @@ async def get_aggregated_student_dashboard(
     skill_scores = {row[0]: float(row[1]) for row in scores_res.all() if row[1] is not None}
 
     curriculum_skills = select(LessonSkill.skill_id).where(LessonSkill.lesson_id.in_(scoped_lessons))
-    skills_query = select(SkillTaxonomy).where(or_(SkillTaxonomy.id.in_(curriculum_skills), SkillTaxonomy.id.in_(list(skill_scores)))).order_by(SkillTaxonomy.name)
+    skills_query = select(SkillTaxonomy.id, SkillTaxonomy.name).where(or_(SkillTaxonomy.id.in_(curriculum_skills), SkillTaxonomy.id.in_(list(skill_scores)))).order_by(SkillTaxonomy.name)
     skills_res = await db.execute(skills_query)
-    all_skills = skills_res.scalars().all()
+    all_skills = skills_res.all()
 
     skill_mastery_radar: list[SkillMasteryItem] = []
     for sk in all_skills:
@@ -262,29 +259,23 @@ async def get_aggregated_student_dashboard(
         )
 
     # 5. Active Remediation Plans
-    rem_query = (
-        select(RemediationPlan)
-        .where(RemediationPlan.student_id == student_id, RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated]))
-        .options(selectinload(RemediationPlan.weakness_flag))
-    )
+    rem_query = (select(RemediationPlan.id, RemediationPlan.remedial_course_title,
+        RemediationPlan.study_completed, RemediationPlan.retest_attempt_count,
+        RemediationPlan.instructor_escalated, WeaknessFlag.skill_id, SkillTaxonomy.name.label("skill_name"))
+        .outerjoin(WeaknessFlag, WeaknessFlag.id == RemediationPlan.weakness_flag_id)
+        .outerjoin(SkillTaxonomy, SkillTaxonomy.id == WeaknessFlag.skill_id)
+        .where(RemediationPlan.student_id == student_id,
+               RemediationPlan.status.in_([PlanStatus.active, PlanStatus.escalated])))
     if instructor_id is not None:
-        rem_query = rem_query.join(WeaknessFlag).where(WeaknessFlag.submission_id.in_(scoped_submissions))
-    rem_res = await db.execute(rem_query)
-    active_plans = rem_res.scalars().all()
-
+        rem_query = rem_query.where(WeaknessFlag.submission_id.in_(scoped_submissions))
+    active_plans = (await db.execute(rem_query)).all()
     active_remediations: list[ActiveRemediationSummary] = []
     for p in active_plans:
-        flag = p.weakness_flag
-        sk_name = "Target Skill"
-        if flag:
-            sk_obj = await db.get(SkillTaxonomy, flag.skill_id)
-            if sk_obj:
-                sk_name = sk_obj.name
-
+        sk_name = p.skill_name or "Target Skill"
         active_remediations.append(
             ActiveRemediationSummary(
                 remediation_plan_id=p.id,
-                skill_id=flag.skill_id if flag else uuid.uuid4(),
+                skill_id=p.skill_id if p.skill_id else uuid.uuid4(),
                 skill_name=sk_name,
                 title=p.remedial_course_title or f"Remediation: {sk_name}",
                 study_completed=p.study_completed,
@@ -304,10 +295,36 @@ async def get_aggregated_student_dashboard(
         notif_res = await db.execute(notif_query)
         unread_count = notif_res.scalar_one() or 0
 
+    # Grade catalog preserves the existing Dashboard page's published-course
+    # semantics separately from enrolled progress, including zero-lesson cards.
+    cards = []
+    if instructor_id is None:
+        catalog = (await db.execute(select(Course.id, Course.slug, Course.title, Course.description,
+            Course.grade, Course.thumbnail_url, Course.thumbnail_object_key)
+            .where(Course.grade == (user.grade or 5), Course.status == CourseStatus.published)
+            .order_by(Course.created_at.desc(), Course.id))).mappings().all()
+        cards = [DashboardCourseCard(**r) for r in catalog]
+        card_by_id = {c.id: c for c in cards}
+        if cards:
+            refs = (await db.execute(select(CourseModule.course_id, Lesson.id, Lesson.title,
+                Lesson.sequence_order, Lesson.estimated_minutes,
+                StudentProgress.completed, LearningPathState.state)
+                .join(Lesson, Lesson.module_id == CourseModule.id)
+                .outerjoin(StudentProgress, (StudentProgress.lesson_id == Lesson.id) & (StudentProgress.student_id == student_id))
+                .outerjoin(LearningPathState, (LearningPathState.lesson_id == Lesson.id) & (LearningPathState.student_id == student_id))
+                .where(CourseModule.course_id.in_(card_by_id), Lesson.status == LessonStatus.published)
+                .order_by(CourseModule.sequence_order, CourseModule.id, Lesson.sequence_order, Lesson.id))).all()
+            from app.modules.module4_experience.schemas import DashboardLessonReference
+            for r in refs:
+                card_by_id[r.course_id].lessons.append(DashboardLessonReference(id=r.id, title=r.title,
+                    sequence_order=r.sequence_order, minutes=r.estimated_minutes or 5,
+                    completed=bool(r.completed), locked=r.state == PathState.locked))
+
     now = datetime.now(timezone.utc)
     dashboard = StudentDashboardResponse(
         student_id=student_id,
         student_name=student_name,
+        course_cards=cards,
         enrolled_courses=enrolled_courses,
         overall_completion_percentage=overall_pct,
         next_recommended_lesson=next_lesson,
@@ -317,16 +334,25 @@ async def get_aggregated_student_dashboard(
         cached_at=now
     )
 
-    # Scoped staff views must never overwrite the student cache.
-    if not use_cache:
-        return dashboard
+    if use_cache:
+        try:
+            # Cache unsigned references only; sign visible images on every response.
+            payload = dashboard.model_dump(mode="json")
+            payload["course_cards"] = [dict(c.model_dump(mode="json"), thumbnail_object_key=c.thumbnail_object_key) for c in cards]
+            envelope = json.dumps({"revision": revision, "grade": user.grade, "payload": payload})
+            redis = get_redis_client()
+            # A mutation during aggregation must not repopulate a stale cache.
+            await redis.eval("if (redis.call('GET', KEYS[2]) or '0') == ARGV[1] then return redis.call('SETEX', KEYS[1], ARGV[2], ARGV[3]) else return 0 end",
+                2, cache_key, cache_key + ":revision", revision, DASHBOARD_CACHE_TTL, envelope)
+        except Exception as exc:
+            logger.warning("dashboard_cache_write_error", error_type=type(exc).__name__)
+    return await _prepare_dashboard_media(dashboard)
 
-    # 7. Write to Redis Cache
-    try:
-        redis = get_redis_client()
-        await redis.setex(cache_key, DASHBOARD_CACHE_TTL, dashboard.model_dump_json())
-        logger.info("dashboard_cached_successfully", student_id=str(student_id))
-    except Exception as exc:
-        logger.warning("dashboard_cache_write_error", error=str(exc))
 
+async def _prepare_dashboard_media(dashboard: StudentDashboardResponse) -> StudentDashboardResponse:
+    from app.shared.s3_client import generate_presigned_url
+    for card in dashboard.course_cards:
+        if card.thumbnail_object_key and not (card.thumbnail_url and '/static/uploads/' in card.thumbnail_url):
+            card.thumbnail_url = await generate_presigned_url(card.thumbnail_object_key,
+                expires_in=get_settings().MEDIA_SIGNED_URL_TTL_SECONDS)
     return dashboard

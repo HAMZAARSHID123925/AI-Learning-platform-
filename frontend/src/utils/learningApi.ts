@@ -147,6 +147,14 @@ function challengeFor(courseId: string): ChallengeQuestion[] {
   return challengeSets.find((s) => s.courseId === courseId)?.questions ?? [];
 }
 
+/** Summary-only Dashboard cards retain the existing Course display interface. */
+export function mapDashboardCourses(dashboard: BackendDashboard, grade: Grade): Course[] {
+  return dashboard.course_cards.filter(c => Number(c.grade) === Number(grade)).map(card => ({
+    ...mapBackendCourseToFrontendCourse(card),
+    lessons: card.lessons.map(l => ({id:l.id, title:l.title, minutes:l.minutes, sequence_order:l.sequence_order})),
+  }));
+}
+
 export const learningApi = {
   async listCourseCards(grade: Grade): Promise<CourseCardData[]> {
     const result: CourseCardData[] = [];

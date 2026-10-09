@@ -288,6 +288,8 @@ async def submit_assessment(
     db.add(submission)
     await db.commit()
     await db.refresh(submission)
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(current_user.id)
 
     # 5. Run grading pipeline (MCQ + Claude LLM)
     graded_sub = await grade_submission(submission.id, db)

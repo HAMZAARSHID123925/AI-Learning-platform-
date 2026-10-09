@@ -75,6 +75,8 @@ async def generate_student_remedial_course(
             existing.study_completed_at = None
             existing.focused_retest_id = None
         await db.commit()
+        from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+        await invalidate_dashboard_cache(student_id)
         return existing
     # 1. Fetch skill metadata
     skill = await db.get(SkillTaxonomy, weakness_flag.skill_id)
@@ -169,6 +171,8 @@ Synthesize a complete, encouraging written remedial course document in Markdown 
         db.add(plan)
 
     await db.commit()
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(student_id)
     await db.refresh(plan)
     logger.info("remedial_course_document_generated", plan_id=str(plan.id), title=plan.remedial_course_title)
     return plan

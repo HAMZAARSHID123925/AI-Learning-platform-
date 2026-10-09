@@ -31,6 +31,8 @@ async def require_target_access(db, user, *, lesson_id=None, course_id=None, gen
         new_enr = EnrollmentModel(student_id=user.id, course_id=course.id, status="active")
         db.add(new_enr)
         await db.commit()
+        from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+        await invalidate_dashboard_cache(user.id)
     if user.grade is not None and course.grade is not None and course.grade != user.grade:
         raise HTTPException(403, "Active enrollment and matching grade required")
     if lesson and not allow_locked:

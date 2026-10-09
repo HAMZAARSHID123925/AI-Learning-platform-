@@ -147,4 +147,6 @@ async def evaluate_submission_skills_for_weaknesses(
                 resolved_weaknesses.append(existing_flag)
 
     await db.commit()
+    from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(submission.student_id)
     return new_weaknesses, resolved_weaknesses
