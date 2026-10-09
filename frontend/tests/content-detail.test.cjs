@@ -18,22 +18,22 @@ test('Lesson verifies membership, enrolls once, then requests fresh lesson/media
  const calls=[];global.fetch=async(url,options={})=>{
   const pathname=new URL(url).pathname;calls.push([pathname,options.method||'GET']);
   if(pathname.endsWith('/courses/course'))return json(backend);
-  if(pathname.endsWith('/enrollments')&&options.method==='POST')return json({course_id:'course'});
+  if(pathname.endsWith('/enrollments')&&options.method==='POST')return json({id:'enrollment',student_id:'student',course_id:'course',status:'active'});
   if(pathname.endsWith('/lessons/first'))return json({...backend.modules[0].lessons[0],body_markdown:'Real teaching body',video_url:'https://example.invalid/video',thumbnail_url:'https://example.invalid/poster'});
   throw new Error('Unexpected request');
  };
  const result=await learningApi.getLesson('course','first');assert.equal(result.index,0);assert.equal(result.lesson.steps[0].body,'Real teaching body');assert.equal(result.lesson.videoUrl,'https://example.invalid/video');
  assert.deepEqual(calls.map(c=>[c[0].replace('/api/v1',''),c[1]]),[['/courses/course','GET'],['/enrollments','POST'],['/lessons/first','GET']]);
 });
-test('Existing enrollment retains conflict recovery and denied lessons propagate',async()=>{
+test('Idempotent enrollment avoids recovery and denied lessons propagate',async()=>{
  const calls=[];global.fetch=async(url,options={})=>{
   const pathname=new URL(url).pathname;calls.push(pathname);
   if(pathname.endsWith('/courses/course'))return json(backend);
-  if(pathname.endsWith('/enrollments'))return json({},409);
+  if(pathname.endsWith('/enrollments'))return json({id:'enrollment',course_id:'course',status:'active'},201);
   if(pathname.endsWith('/enrollments/me'))return json([{course_id:'course'}]);
   return json({detail:'LESSON_LOCKED'},403);
  };
- await assert.rejects(()=>learningApi.getLesson('course','second'),/access denied/);assert.equal(calls.length,4);
+ await assert.rejects(()=>learningApi.getLesson('course','second'),/access denied/);assert.equal(calls.length,3);assert.ok(!calls.some(p=>p.endsWith('/enrollments/me')));
 });
 test('Wrong-course lesson never enrolls or asks for a media grant',async()=>{
  const calls=[];global.fetch=async(url)=>{calls.push(String(url));return json(backend);};

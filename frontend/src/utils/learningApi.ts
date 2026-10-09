@@ -201,7 +201,10 @@ export const learningApi = {
     const course = await this.getCourse(courseId);
     const index = course.lessons.findIndex(l => l.id === lessonId);
     if (index < 0) throw new NotFoundError('Lesson does not belong to this course.');
-    await this.enrollCourse(courseId);
+    const enrollment = await this.enrollCourse(courseId);
+    if (enrollment.course_id !== courseId || enrollment.status !== 'active') {
+      throw new Error('Course enrollment unavailable or access denied.');
+    }
     const res = await fetchWithAuth(`/lessons/${lessonId}`);
     if (!res.ok) throw new Error('Lesson unavailable or access denied.');
     return { course, lesson: mapBackendLessonToFrontendLesson(await res.json(), courseId), index };
@@ -296,11 +299,6 @@ export const learningApi = {
       method: 'POST',
       body: JSON.stringify({ course_id: courseId }),
     });
-    if (res.status === 409) {
-      const existing = await this.getMyEnrollments();
-      const match = existing.find(e => e.course_id === courseId);
-      if (match) return match;
-    }
     if (!res.ok) throw new Error('Failed to enroll in course');
     return res.json();
   },

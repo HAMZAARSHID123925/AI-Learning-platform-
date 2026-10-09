@@ -11,12 +11,14 @@ Purpose:
 from __future__ import annotations
 
 import uuid
-from sqlalchemy import select
+from sqlalchemy import and_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.modules.module2_content.models import Course, CourseStatus
 from app.modules.module4_experience.models import Enrollment
+from app.modules.module4_experience.schemas import EnrollmentResponse
 from app.modules.module4_experience.services.dashboard_service import invalidate_dashboard_cache
 from app.shared.exceptions import BusinessRuleError, ResourceNotFoundError
 from app.shared.logging_config import get_logger
@@ -24,53 +26,71 @@ from app.shared.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+_ENROLLMENT_COLUMNS = (
+    Enrollment.id, Enrollment.student_id, Enrollment.course_id,
+    Enrollment.status, Enrollment.enrolled_at,
+)
+
+
+def _enrollment_response(row, course) -> EnrollmentResponse:
+    if row["status"] != "active":
+        # The old recovery path only accepted active enrollments. Do not
+        # reactivate an inactive row or let it become a successful media gate.
+        raise BusinessRuleError("Enrollment is not active.")
+    return EnrollmentResponse(
+        **{column.key: row[column.key] for column in _ENROLLMENT_COLUMNS},
+        course_title=course["course_title"], course_slug=course["course_slug"],
+    )
+
+
 async def enroll_student(
     db: AsyncSession,
     student_id: uuid.UUID,
     course_id: uuid.UUID,
-) -> Enrollment:
+) -> EnrollmentResponse:
+    """Ensure enrollment, returning the same active row on repeat requests.
+
+    Check current course visibility even on repeats. Column reads avoid the
+    User/Course relationship graphs. Only the student/course unique conflict
+    is ignored; foreign-key and unrelated integrity errors still propagate.
     """
-    Enrolls a student in a course.
-    Idempotent: if already enrolled, returns the existing enrollment.
-    """
-    # 1. Verify course exists
-    course = await db.get(Course, course_id)
-    if not course:
+    course = (await db.execute(
+        select(Course.id.label("_course_id"), Course.status.label("_course_status"),
+               Course.title.label("course_title"), Course.slug.label("course_slug"),
+               *_ENROLLMENT_COLUMNS)
+        .select_from(Course).outerjoin(Enrollment, and_(
+            Enrollment.course_id == Course.id, Enrollment.student_id == student_id,
+        )).where(Course.id == course_id)
+    )).mappings().one_or_none()
+    if course is None:
         raise ResourceNotFoundError("Course", course_id)
-    if course.status != CourseStatus.published:
+    if course["_course_status"] != CourseStatus.published:
         raise BusinessRuleError("Cannot enroll in an unpublished course.")
+    if course["id"] is not None:
+        return _enrollment_response(course, course)
 
-    # 2. Check existing enrollment
-    query = select(Enrollment).where(
-        Enrollment.student_id == student_id,
-        Enrollment.course_id == course_id,
-    ).options(selectinload(Enrollment.course))
-    result = await db.execute(query)
-    existing = result.scalar_one_or_none()
+    created = (await db.execute(
+        insert(Enrollment).values(student_id=student_id, course_id=course_id, status="active")
+        .on_conflict_do_nothing(index_elements=[Enrollment.student_id, Enrollment.course_id])
+        .returning(*_ENROLLMENT_COLUMNS)
+    )).mappings().one_or_none()
+    if created is None:
+        # A concurrent request won. PostgreSQL's unique check waits for its
+        # transaction; this new SELECT sees the committed winner, without an
+        # UPDATE that could touch timestamps, progress or audit state.
+        existing = (await db.execute(
+            select(*_ENROLLMENT_COLUMNS).where(
+                Enrollment.student_id == student_id, Enrollment.course_id == course_id,
+            )
+        )).mappings().one_or_none()
+        if existing is None:
+            raise BusinessRuleError("Enrollment changed concurrently. Please retry.")
+        return _enrollment_response(existing, course)
 
-    if existing:
-        logger.info("student_already_enrolled", student_id=str(student_id), course_id=str(course_id))
-        from app.shared.exceptions import DuplicateResourceError
-        raise DuplicateResourceError("Enrollment", "student_id and course_id")
-
-    # 3. Create new enrollment
-    enrollment = Enrollment(
-        student_id=student_id,
-        course_id=course_id,
-        status="active",
-    )
-    db.add(enrollment)
+    response = _enrollment_response(created, course)
     await db.commit()
-    await db.refresh(enrollment)
-
-    # Attach course for response
-    enrollment.course = course
-
-    # 4. Invalidate student dashboard cache
     await invalidate_dashboard_cache(student_id)
-    logger.info("student_enrolled_successfully", student_id=str(student_id), course_id=str(course_id))
-
-    return enrollment
+    return response
 
 
 async def get_student_enrollments(

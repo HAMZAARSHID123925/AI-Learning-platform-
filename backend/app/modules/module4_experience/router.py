@@ -344,19 +344,10 @@ async def enroll_course(
     Enrolls the logged-in student in a published course.
     Idempotent: returns existing enrollment if already enrolled.
     """
-    enrollment = await enrollment_service.enroll_student(
+    return await enrollment_service.enroll_student(
         db=db,
         student_id=current_user.id,
         course_id=body.course_id,
-    )
-    return EnrollmentResponse(
-        id=enrollment.id,
-        student_id=enrollment.student_id,
-        course_id=enrollment.course_id,
-        status=enrollment.status,
-        enrolled_at=enrollment.enrolled_at,
-        course_title=enrollment.course.title if enrollment.course else None,
-        course_slug=enrollment.course.slug if enrollment.course else None,
     )
 
 
