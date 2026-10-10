@@ -52,6 +52,11 @@ target_metadata = Base.metadata
 def get_url():
     """Get database URL from environment (overrides alembic.ini)."""
     import os
+    from pathlib import Path
+    from dotenv import load_dotenv
+    # Read backend/.env so migrations hit the same database as the app,
+    # instead of falling back to the URL hard-coded in alembic.ini.
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     return os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
 
 

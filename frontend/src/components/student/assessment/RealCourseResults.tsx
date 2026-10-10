@@ -153,6 +153,18 @@ function SavedCourseResults({
 
   const weakSkills = skillBars.filter((s) => s.isWeak);
   const readyPlans = data.plans.filter((p) => Boolean(p.remedial_course_markdown));
+  // ONE combined video per test: request it for the lowest-scoring weakness
+  // (stable as plans arrive); the backend script covers every weak skill.
+  const primaryFlag = [...data.flags].sort(
+    (a, b) => a.score_at_flag - b.score_at_flag || a.id.localeCompare(b.id)
+  )[0];
+  const primaryPlan = primaryFlag
+    ? readyPlans.find((p) => p.weakness_flag_id === primaryFlag.id)
+    : undefined;
+  const videoTitle =
+    weakSkills.length > 1
+      ? `Your lesson: ${weakSkills.map((s) => s.name).join(', ')}`
+      : primaryPlan?.remedial_course_title || 'Helpful Practice Lesson';
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -279,7 +291,7 @@ function SavedCourseResults({
           <span>🎬 Video Lesson</span>
         </h2>
 
-        {readyPlans.length === 0 ? (
+        {!primaryPlan ? (
           <div className="rounded-3xl border-2 border-line bg-white p-6 text-center shadow-sm">
             {weakSkills.length > 0 ? (
               <div className="space-y-3 py-3">
@@ -303,24 +315,25 @@ function SavedCourseResults({
             )}
           </div>
         ) : (
-          readyPlans.map((plan) => (
+          <>
+          {user?.id && (
+            <PersonalizedVideoPanel
+              key={`${data.submission.id}:${primaryPlan.weakness_flag_id}`}
+              userId={user.id}
+              weaknessId={primaryPlan.weakness_flag_id}
+              submissionId={data.submission.id}
+              title={videoTitle}
+            />
+          )}
+          {readyPlans.map((plan) => (
             <div key={plan.id} className="space-y-4">
-              {user?.id && (
-                <PersonalizedVideoPanel
-                  key={`${data.submission.id}:${plan.weakness_flag_id}`}
-                  userId={user.id}
-                  weaknessId={plan.weakness_flag_id}
-                  submissionId={data.submission.id}
-                  title={plan.remedial_course_title || 'Helpful Practice Lesson'}
-                />
-              )}
 
               {plan.remedial_course_markdown && (
                 <details className="group rounded-3xl border-2 border-line bg-white p-5 shadow-sm">
                   <summary className="flex cursor-pointer items-center justify-between font-black text-ink text-sm">
                     <span className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-brand" />
-                      Lesson Notes
+                      {plan.remedial_course_title ? `Notes: ${plan.remedial_course_title.replace(/^Remedial Mastery Guide:\s*/i, '')}` : 'Lesson Notes'}
                     </span>
                     <span className="text-xs text-brand font-bold group-open:rotate-90 transition-transform">
                       &rarr;
@@ -332,7 +345,8 @@ function SavedCourseResults({
                 </details>
               )}
             </div>
-          ))
+          ))}
+          </>
         )}
       </div>
 

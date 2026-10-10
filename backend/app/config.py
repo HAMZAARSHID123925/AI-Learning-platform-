@@ -173,7 +173,33 @@ class Settings(BaseSettings):
     TTS_OUTPUT_FORMAT: str = "mp3"        # mp3 | opus
     TTS_AUDIO_OBJECT_PREFIX: str = "personalized-video"  # S3 key prefix for audio clips
     TTS_SCENE_PADDING_SECONDS: float = 0.5   # Padding added to render_duration after audio
+
+    # Presenters. One is picked at random for each video job (whole video keeps
+    # the same teacher). The name selects the narration voice here AND the
+    # green-screen clip set in video-render/src/templates/teacherClip.ts.
+    TEACHER_PRESENTERS: str = "female,male"   # comma list; "female" = only the original teacher
+    OPENAI_TTS_VOICE_FEMALE: str = ""         # defaults to OPENAI_TTS_VOICE
+    OPENAI_TTS_VOICE_MALE: str = "onyx"       # onyx (deep) | echo | fable
+    ELEVENLABS_VOICE_ID_FEMALE: str = ""      # defaults to ELEVENLABS_VOICE_ID
+    ELEVENLABS_VOICE_ID_MALE: str = ""
+
+    def presenter_choices(self) -> list[str]:
+        names = [n.strip().lower() for n in self.TEACHER_PRESENTERS.split(",")]
+        return [n for n in names if n in ("female", "male")] or ["female"]
+
+    def tts_voice_for(self, teacher: str | None) -> str:
+        """Voice id for a presenter under the active TTS provider."""
+        male = (teacher or "female") == "male"
+        if self.TTS_PROVIDER == "elevenlabs":
+            return (self.ELEVENLABS_VOICE_ID_MALE if male else self.ELEVENLABS_VOICE_ID_FEMALE) or self.ELEVENLABS_VOICE_ID
+        return (self.OPENAI_TTS_VOICE_MALE if male else self.OPENAI_TTS_VOICE_FEMALE) or self.OPENAI_TTS_VOICE
     TTS_DURATION_TOLERANCE_RATIO: float = 0.20  # ±20% total duration tolerance
+    TTS_CONCURRENCY: int = 4                    # Scene clips synthesized in parallel (1 = old serial behaviour)
+
+    # Video render performance (personalized video pipeline)
+    VIDEO_OUTPUT_HEIGHT: int = 1080             # 1080 = 1920x1080, 720 = 1280x720 (~2x faster render)
+    VIDEO_RENDER_CONCURRENCY: int = 0           # Chromium tabs rendering frames; 0 = auto (CPU count - 2, max 8)
+    VIDEO_RENDER_MODE: str = "template"         # template = keyframe stage + cached teacher loop (fast); full = draw every frame
 
     # -------------------------------------------------------------------------
     # Live Video Provider (Phase 4)

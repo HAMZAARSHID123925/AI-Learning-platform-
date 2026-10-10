@@ -240,7 +240,7 @@ def _estimate_duration_from_text(text: str, words_per_minute: float = 130.0) -> 
 # OpenAI TTS provider
 # ---------------------------------------------------------------------------
 
-async def _synthesize_openai(text: str) -> bytes:
+async def _synthesize_openai(text: str, voice: str | None = None) -> bytes:
     """Call OpenAI /v1/audio/speech and return raw MP3 bytes."""
     settings = get_settings()
     key = settings.OPENAI_TTS_API_KEY or settings.OPENAI_API_KEY
@@ -253,7 +253,7 @@ async def _synthesize_openai(text: str) -> bytes:
     client = openai.AsyncOpenAI(api_key=key, timeout=30.0, max_retries=0)
     response = await client.audio.speech.create(
         model=settings.OPENAI_TTS_MODEL,
-        voice=settings.OPENAI_TTS_VOICE,          # type: ignore[arg-type]
+        voice=voice or settings.OPENAI_TTS_VOICE,  # type: ignore[arg-type]
         input=text,
         speed=settings.TTS_SPEAKING_RATE,
         response_format="mp3",
@@ -265,11 +265,11 @@ async def _synthesize_openai(text: str) -> bytes:
 # ElevenLabs TTS provider
 # ---------------------------------------------------------------------------
 
-async def _synthesize_elevenlabs(text: str) -> bytes:
+async def _synthesize_elevenlabs(text: str, voice: str | None = None) -> bytes:
     """Call ElevenLabs v1 TTS API and return raw MP3 bytes."""
     settings = get_settings()
     key = settings.ELEVENLABS_API_KEY
-    voice_id = settings.ELEVENLABS_VOICE_ID
+    voice_id = voice or settings.ELEVENLABS_VOICE_ID
     if not key or key.startswith("#") or not voice_id:
         raise ValueError(
             "ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID is not configured. "
@@ -309,6 +309,7 @@ async def _synthesize_elevenlabs(text: str) -> bytes:
 async def synthesize_narration(
     text: str,
     scene_planned_duration: float | None = None,
+    voice: str | None = None,
 ) -> TTSSynthesisResult:
     """
     Synthesize narration audio for a single scene.
@@ -317,6 +318,8 @@ async def synthesize_narration(
         text: Raw narration text (will be sanitized internally)
         scene_planned_duration: Planned scene duration (seconds), used for
             mock duration estimation only.
+        voice: Provider voice id to use instead of the configured default
+            (the presenter's voice, see Settings.tts_voice_for).
 
     Returns:
         TTSSynthesisResult with audio_bytes and measured duration_seconds
@@ -365,8 +368,8 @@ async def synthesize_narration(
                         "Missing OPENAI_TTS_API_KEY in production. "
                         "TTS cannot silently fall back in production."
                     )
-                audio_bytes = await _synthesize_openai(clean_text)
-                voice_id = settings.OPENAI_TTS_VOICE
+                audio_bytes = await _synthesize_openai(clean_text, voice)
+                voice_id = voice or settings.OPENAI_TTS_VOICE
 
             elif provider == "elevenlabs":
                 if settings.is_production and (
@@ -377,8 +380,8 @@ async def synthesize_narration(
                         "Missing ELEVENLABS_API_KEY in production. "
                         "TTS cannot silently fall back in production."
                     )
-                audio_bytes = await _synthesize_elevenlabs(clean_text)
-                voice_id = settings.ELEVENLABS_VOICE_ID
+                audio_bytes = await _synthesize_elevenlabs(clean_text, voice)
+                voice_id = voice or settings.ELEVENLABS_VOICE_ID
 
             else:
                 raise ValueError(f"Unknown TTS_PROVIDER '{provider}'. Must be: openai_tts | elevenlabs")
