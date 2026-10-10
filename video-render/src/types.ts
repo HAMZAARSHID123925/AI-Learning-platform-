@@ -115,6 +115,9 @@ export interface RenderPayload {
   };
   video_config: RenderVideoConfig;
   output_path: string;
+  /** Presenter for the whole video ("female" | "male"); chosen by the backend
+   *  together with the narration voice. Missing = default presenter. */
+  teacher?: string;
 }
 
 // Output written back to stdout/output.json by render.ts

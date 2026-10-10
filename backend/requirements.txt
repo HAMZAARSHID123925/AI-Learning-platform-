@@ -45,6 +45,7 @@ fastembed==0.8.0                 # Local embedding model — BAAI/bge-small-en-v
 # Production switch: Anthropic Claude API
 groq==0.11.0                     # Groq SDK (OpenAI-compatible interface)
 anthropic==0.34.2                # Claude API (production — wired but disabled in dev)
+openai>=1.51,<2.0                # OpenAI SDK: GPT storyboard/remediation + TTS (was missing; imported in ai_client.py and tts_client.py)
 
 # --- HTTP Client (for webhooks, provider SDKs) --------------------------------
 httpx==0.27.2

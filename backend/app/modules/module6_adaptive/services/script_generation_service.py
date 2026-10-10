@@ -1,12 +1,13 @@
 import uuid
 import json
+import random
 import asyncio, time
 from app.modules.module6_adaptive.services.storyboard_schema import normalize_storyboard, validation_errors, repair_fields, apply_field_repair
 from app.modules.module6_adaptive.services.pipeline_errors import VideoPipelineError, safe_error, is_transient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from app.modules.module6_adaptive.models import VideoGenerationJob, VideoJobStatus, WeaknessFlag, RemediationPlan
+from app.modules.module6_adaptive.models import VideoGenerationJob, VideoJobStatus, WeaknessFlag, WeaknessStatus, RemediationPlan
 from app.modules.shared_models.skill_taxonomy import SkillTaxonomy
 from app.modules.module2_content.models import Course, Lesson, CourseModule
 from app.modules.module5_assessment.services.grading_service import grade_mcq_deterministic
@@ -76,6 +77,7 @@ Return ONE strict JSON object only, following this exact visual schema. Replace 
  "validation":{"grounding_check":"How source is used","misconception_alignment":"How mistakes are addressed","grade_level_check":"Why vocabulary is suitable"}
 }
 Generate exactly 8 scenes and 400-460 TOTAL spoken narration words. Write 50-58 words for EVERY scene, including the introduction and recap. Each scene must have 40-75 spoken words, never a short slogan. Include a hook, concept explanation, two visual worked examples, comparison, misconception correction and recap. Ground the lesson strictly in Source Chunks and written remediation. Teach reasoning; never disclose quiz answer keys, option IDs or internal metadata.
+COMBINED LESSON: if "additional_weak_skills" is non-empty, this ONE video must teach the primary skill (skill_name) AND every additional weak skill. Introduce all of them in the intro, give the primary skill the most scenes, give every additional skill at least one dedicated scene addressing its listed mistakes, and cover all of them in the recap. The lesson_plan title must name the combined topic, not just one skill.
 Allowed scene_type: intro, concept, comparison, diagram, example, misconception_correction, recap.
 Heading <=65 characters. on_screen_text: 1-3 short teaching strings <=80 characters each, not transcripts.
 Diagram has EXACTLY four keys: kind, labels, values, denominators. Allowed kinds: none, fraction_bars, number_line, equation_steps, process, cycle, comparison.
@@ -131,6 +133,49 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
         plan = await db.get(RemediationPlan, job.remediation_plan_id) if job.remediation_plan_id else None
         if plan and plan.source_submission_id != job.submission_id:
             raise ValueError("Written remediation belongs to another submission")
+        # ── Combined lesson: one video covers EVERY weak skill from this test ──
+        # The job stays linked to the primary weakness (the frontend requests a
+        # single video for the lowest-scoring skill); the other active weak
+        # skills of the same submission are taught in the same storyboard.
+        additional_weak_skills = []
+        other_flags = (await db.execute(select(WeaknessFlag).where(
+            WeaknessFlag.student_id == job.student_id,
+            WeaknessFlag.submission_id == job.submission_id,
+            WeaknessFlag.status == WeaknessStatus.active,
+            WeaknessFlag.id != job.weakness_flag_id,
+        ).order_by(WeaknessFlag.score_at_flag, WeaknessFlag.created_at))).scalars().all()
+        for other in other_flags[:3]:  # cap: an 8-scene lesson can teach at most ~4 skills well
+            other_skill = await db.get(SkillTaxonomy, other.skill_id)
+            if not other_skill:
+                continue
+            other_mistakes = []
+            if submission and submission.answers:
+                for q in submission.test.questions:
+                    if str(q.skill_id) == str(other_skill.id):
+                        ans = submission.answers.get(str(q.id))
+                        if ans and grade_mcq_deterministic(q, ans)[0] < float(q.max_score):
+                            other_mistakes.append({"prompt": q.prompt,
+                                "student_answer": ans.get("selected_option_id") or ans.get("text_response"),
+                                "options": q.options, "rubric": q.rubric})
+            other_plan = (await db.execute(select(RemediationPlan).where(
+                RemediationPlan.weakness_flag_id == other.id,
+                RemediationPlan.source_submission_id == job.submission_id))).scalars().first()
+            additional_weak_skills.append({
+                "skill_name": other_skill.name,
+                "skill_description": other_skill.description,
+                "mistakes": other_mistakes,
+                "written_remediation": (other_plan.remedial_course_markdown or "")[:4000] if other_plan else None,
+            })
+        if additional_weak_skills:
+            extra_query = " ".join(f"{s['skill_name']}. {s['skill_description'] or ''}" for s in additional_weak_skills)
+            extra_chunks = await retrieve_course_chunks(course.id, extra_query, db=db, top_k=4)
+            seen_text = {c["text"] for c in source_chunks}
+            source_chunks += [{"text": c.chunk_text, "lesson_id": str(c.lesson_id)} for c in extra_chunks if c.chunk_text not in seen_text]
+            if not extra_chunks:
+                lessons = (await db.execute(select(Lesson).join(CourseModule, CourseModule.id == Lesson.module_id).where(CourseModule.course_id == course.id, Lesson.status == "published"))).scalars().all()
+                source_chunks += [{"text": l.body_markdown, "lesson_id": str(l.id)} for l in lessons
+                                  if l.body_markdown and l.body_markdown not in seen_text]
+
         context = {
             "course_title": course.title,
             "skill_name": skill.name,
@@ -138,6 +183,7 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
             "mistakes": mistakes,
             "source_chunks": source_chunks,
             "written_remediation": plan.remedial_course_markdown if plan else None,
+            "additional_weak_skills": additional_weak_skills,
             "target_duration_seconds": job.target_duration_seconds
         }
         
@@ -160,7 +206,12 @@ async def generate_personalized_script_and_scenes(job_id: uuid.UUID, db: AsyncSe
         # Persist results
         job.title = data["lesson_plan"]["title"]
         job.script_json = {"lesson_plan": data["lesson_plan"], "validation": data.get("validation", {})}
-        job.scene_json = {"scenes": data["scenes"]}
+        # Presenter for the whole video: random per job unless already chosen
+        # (a retried job keeps its teacher so cached audio stays valid).
+        from app.config import get_settings
+        teacher = (job.scene_json or {}).get("teacher") or random.choice(get_settings().presenter_choices())
+        job.scene_json = {"scenes": data["scenes"], "teacher": teacher}
+        logger.info("teacher_selected", job_id=str(job_id), teacher=teacher)
         
         job.status = VideoJobStatus.storyboard_ready
         await db.commit()

@@ -81,7 +81,7 @@ services:
   # Console UI available at http://localhost:9001
   # ---------------------------------------------------------------------------
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z   # minio/minio was removed from Docker Hub (Sep 2026); community MinIO build
     container_name: elarion_minio
     ports:
       - "9000:9000"    # API endpoint (same as S3)
@@ -93,10 +93,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      disable: true    # replacement image may not include curl
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------

@@ -72,6 +72,14 @@ RENDER_SCRIPT = VIDEO_RENDER_DIR / "src" / "render.ts"
 EXPECTED_WIDTH = 1920
 EXPECTED_HEIGHT = 1080
 EXPECTED_FPS = 30
+
+
+def expected_output_size() -> tuple[int, int]:
+    """Composition canvas stays 1920x1080; the MP4 may be rendered scaled down for speed."""
+    height = int(get_settings().VIDEO_OUTPUT_HEIGHT or EXPECTED_HEIGHT)
+    if height <= 0 or height > EXPECTED_HEIGHT or height % 2:
+        height = EXPECTED_HEIGHT
+    return round(EXPECTED_WIDTH * height / EXPECTED_HEIGHT), height
 DURATION_TOLERANCE_RATIO = 0.20    # ±20%
 
 
@@ -210,8 +218,9 @@ def validate_mp4_with_ffprobe(output_path: str, expected_duration: float) -> FFP
                 pass
 
         # Resolution check
-        if width != EXPECTED_WIDTH or height != EXPECTED_HEIGHT:
-            errors.append(f"Resolution mismatch: got {width}x{height}, expected {EXPECTED_WIDTH}x{EXPECTED_HEIGHT}")
+        out_w, out_h = expected_output_size()
+        if width != out_w or height != out_h:
+            errors.append(f"Resolution mismatch: got {width}x{height}, expected {out_w}x{out_h}")
 
         # FPS check (allow ±2)
         if abs(fps - EXPECTED_FPS) > 2:
@@ -282,6 +291,7 @@ def build_render_payload(job: VideoGenerationJob, output_path: str) -> dict:
         "job_id": str(job.id),
         "title": job.title or "ELARION Personalized Lesson",
         "scenes": scene_json.get("scenes", []),
+        "teacher": scene_json.get("teacher") or "female",
         "audio_manifest": audio_manifest,
         "asset_manifest": asset_manifest,
         "video_config": {
@@ -308,7 +318,14 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
 
     Returns RenderResult parsed from subprocess stdout.
     """
-    node_env = {**os.environ, "NODE_ENV": "production"}
+    settings = get_settings()
+    node_env = {**os.environ, "NODE_ENV": "production",
+                "VIDEO_OUTPUT_HEIGHT": str(expected_output_size()[1]),
+                "VIDEO_RENDER_CONCURRENCY": str(settings.VIDEO_RENDER_CONCURRENCY or 0),
+                "VIDEO_RENDER_MODE": settings.VIDEO_RENDER_MODE or "template",
+                # The template renderer assembles the MP4 with the same FFmpeg the backend validates with.
+                "FFMPEG_BINARY": resolve_executable("ffmpeg", "FFMPEG_BINARY"),
+                "FFPROBE_BINARY": resolve_executable("ffprobe", "FFPROBE_BINARY")}
 
     try:
         executors = [renderer_command() + [str(Path(input_path).resolve()), str(Path(output_path).resolve())]]
@@ -358,6 +375,8 @@ def invoke_remotion_render(input_path: str, output_path: str, cancel_event: thre
                 raise RuntimeError("Render cancelled after ownership loss")
 
             logger.info("video_renderer_exited", executor=Path(cmd[0]).name, exit_code=proc.returncode,
+                        renderer_timings=[l.strip() for l in (stderr or "").splitlines()
+                                          if l.startswith(("render_timing:", "render_config:"))],
                         stderr_summary=safe_error(stderr, limit=None)[-1200:])
             # Parse stdout JSON result
             stdout_lines = stdout.strip().splitlines()
@@ -432,7 +451,8 @@ def render_fingerprint(job) -> str:
     clips = [{k:c.get(k) for k in ("scene_id", "audio_key", "text_hash", "tts_provider", "tts_voice_id", "duration_seconds", "render_duration_seconds")}
              for c in (job.audio_manifest_json or {}).get("scenes", [])]
     body = {"scenes":job.scene_json, "audio":clips, "assets":job.asset_manifest_json,
-            "renderer_contract":2, "width":EXPECTED_WIDTH, "height":EXPECTED_HEIGHT, "fps":EXPECTED_FPS}
+            "renderer_contract":2, "width":EXPECTED_WIDTH, "height":EXPECTED_HEIGHT, "fps":EXPECTED_FPS,
+            "output_size":list(expected_output_size())}
     return hashlib.sha256(json.dumps(body,sort_keys=True,separators=(",", ":")).encode()).hexdigest()
 
 async def render_video(job_id: uuid.UUID, db: AsyncSession) -> None:
